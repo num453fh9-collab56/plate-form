@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Gig } from "@/lib/types";
 import { formatPrice, initials, stars } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 function ClockIcon() {
   return (
@@ -41,6 +42,7 @@ function RefreshIcon() {
 }
 
 export default function GigCard({ gig }: { gig: Gig }) {
+  const { t } = useI18n();
   const [saved, setSaved] = useState(false);
   const [ordering, setOrdering] = useState(false);
 
@@ -59,7 +61,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
         <button
           className={"fav" + (saved ? " on" : "")}
           type="button"
-          aria-label="Save gig"
+          aria-label={t("card.saveAria")}
           onClick={() => setSaved((value) => !value)}
         >
           {saved ? "♥" : "♡"}
@@ -91,11 +93,11 @@ export default function GigCard({ gig }: { gig: Gig }) {
         <div className="gig-meta">
           <span className="meta-tag">
             <ClockIcon />
-            {gig.delivery} delivery
+            {t("card.delivery", { time: gig.delivery })}
           </span>
           <span className="meta-tag">
             <RefreshIcon />
-            Unlimited revisions
+            {t("card.revisions")}
           </span>
         </div>
         <div className="gig-foot">
@@ -106,11 +108,11 @@ export default function GigCard({ gig }: { gig: Gig }) {
             </span>
           ) : (
             <span className="rating">
-              <span className="fresh">New — no reviews yet</span>
+              <span className="fresh">{t("card.newNoReviews")}</span>
             </span>
           )}
           <span className="price">
-            <span className="from">Starting at</span>
+            <span className="from">{t("card.startingAt")}</span>
             <span className="amount">
               <span>$</span>
               {formatPrice(gig.price)}
@@ -118,7 +120,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
           </span>
         </div>
         <button className="btn-order" type="button" onClick={handleOrder} disabled={ordering}>
-          {ordering ? "Opening order…" : "View Gig / Order"}
+          {ordering ? t("card.openingOrder") : t("card.viewGig")}
         </button>
       </div>
     </article>

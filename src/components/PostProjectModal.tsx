@@ -5,7 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/lib/ui";
 import { useAuth } from "@/lib/auth";
 import { useMarketplace } from "@/lib/marketplace";
-import { CATEGORY_OPTIONS } from "@/lib/gigs";
+import { useI18n } from "@/lib/i18n";
+import type { Translate, TranslationKey } from "@/lib/i18n";
+import { CATEGORY_OPTIONS, isCategory } from "@/lib/gigs";
+
+const CATEGORY_LABEL_KEYS: Record<string, TranslationKey> = {
+  "Website Development": "cat.website",
+  "UI/UX": "cat.uiux",
+  "Video Editing": "cat.video",
+  AI: "cat.ai",
+};
 
 interface FormValues {
   title: string;
@@ -27,23 +36,62 @@ const EMPTY: FormValues = {
   seller: "",
 };
 
-function validate(values: FormValues): Partial<Record<FieldKey, string>> {
+const URL_ONLY = /^(https?:\/\/|www\.)\S+$/i;
+
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function looksFake(value: string): boolean {
+  const compact = value.replace(/\s+/g, "").toLowerCase();
+  if (compact.length < 4) return true;
+  return new Set(compact).size < 4;
+}
+
+function validate(values: FormValues, t: Translate): Partial<Record<FieldKey, string>> {
   const errors: Partial<Record<FieldKey, string>> = {};
-  if (values.title.trim().length < 6) {
-    errors.title = "Give your project a descriptive title (at least 6 characters).";
+
+  const title = values.title.trim();
+  if (title.length < 8) {
+    errors.title = t("err.titleShort");
+  } else if (URL_ONLY.test(title)) {
+    errors.title = t("err.titleUrl");
+  } else if (wordCount(title) < 2) {
+    errors.title = t("err.titleWords");
+  } else if (looksFake(title)) {
+    errors.title = t("err.titleFake");
   }
-  if (!values.category) errors.category = "Choose a category.";
-  if (values.description.trim().length < 20) {
-    errors.description = "Describe the work in at least 20 characters.";
+
+  if (!isCategory(values.category)) {
+    errors.category = t("err.category");
   }
+
+  const description = values.description.trim();
+  if (description.length < 30) {
+    errors.description = t("err.descShort");
+  } else if (wordCount(description) < 5) {
+    errors.description = t("err.descWords");
+  } else if (looksFake(description)) {
+    errors.description = t("err.descFake");
+  }
+
   const price = Number(values.price);
-  if (values.price === "" || !Number.isFinite(price) || price <= 0) {
-    errors.price = "Enter a price greater than 0.";
+  if (values.price.trim() === "" || !Number.isFinite(price) || price <= 0) {
+    errors.price = t("err.price");
+  } else if (price > 1000000) {
+    errors.price = t("err.priceMax");
   }
+
   const days = Number(values.delivery);
-  if (values.delivery === "" || !Number.isFinite(days) || days < 1 || days > 90) {
-    errors.delivery = "Delivery must be between 1 and 90 days.";
+  if (
+    values.delivery.trim() === "" ||
+    !Number.isInteger(days) ||
+    days < 1 ||
+    days > 90
+  ) {
+    errors.delivery = t("err.delivery");
   }
+
   return errors;
 }
 
@@ -51,6 +99,7 @@ function PostProjectForm() {
   const { closePost, toast } = useUI();
   const { user } = useAuth();
   const { addGig } = useMarketplace();
+  const { t } = useI18n();
 
   const [values, setValues] = useState<FormValues>(() => ({
     ...EMPTY,
@@ -77,18 +126,18 @@ function PostProjectForm() {
   const setField = (field: FieldKey, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
     if (touched[field]) {
-      setErrors(validate({ ...values, [field]: value }));
+      setErrors(validate({ ...values, [field]: value }, t));
     }
   };
 
   const blurField = (field: FieldKey) => {
     setTouched((current) => ({ ...current, [field]: true }));
-    setErrors(validate(values));
+    setErrors(validate(values, t));
   };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const nextErrors = validate(values);
+    const nextErrors = validate(values, t);
     setErrors(nextErrors);
     setTouched({
       title: true,
@@ -100,7 +149,7 @@ function PostProjectForm() {
     });
     const firstError = (Object.keys(nextErrors) as FieldKey[])[0];
     if (firstError) {
-      toast("Please fix the highlighted fields.");
+      toast(t("post.fixFields"));
       return;
     }
 
@@ -114,7 +163,8 @@ function PostProjectForm() {
     });
 
     closePost();
-    toast(`"${gig.title.slice(0, 42)}${gig.title.length > 42 ? "…" : ""}" is now live.`);
+    const shortTitle = `${gig.title.slice(0, 42)}${gig.title.length > 42 ? "…" : ""}`;
+    toast(t("post.isLive", { title: shortTitle }));
     document.getElementById("gigs")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -133,8 +183,8 @@ function PostProjectForm() {
       <div className="modal">
         <div className="modal-head">
           <div>
-            <h3 id="postModalTitle">Post a Project / Create Gig</h3>
-            <p>Publish your service to the marketplace — it goes live instantly.</p>
+            <h3 id="postModalTitle">{t("post.title")}</h3>
+            <p>{t("post.subtitle")}</p>
           </div>
           <button
             className="modal-close"
@@ -149,14 +199,14 @@ function PostProjectForm() {
           <div className="modal-body">
             <div className={"form-field" + (fieldError("title") ? " invalid" : "")}>
               <label htmlFor="gigTitle">
-                Project title <span className="req">*</span>
+                {t("post.gigTitle")} <span className="req">*</span>
               </label>
               <input
                 id="gigTitle"
                 ref={titleRef}
                 type="text"
                 value={values.title}
-                placeholder="e.g. I will build a responsive React landing page"
+                placeholder={t("post.titlePlaceholder")}
                 autoComplete="off"
                 onChange={(event) => setField("title", event.target.value)}
                 onBlur={() => blurField("title")}
@@ -167,7 +217,7 @@ function PostProjectForm() {
             <div className="field-row">
               <div className={"form-field" + (fieldError("category") ? " invalid" : "")}>
                 <label htmlFor="gigCategory">
-                  Category <span className="req">*</span>
+                  {t("post.category")} <span className="req">*</span>
                 </label>
                 <select
                   id="gigCategory"
@@ -175,10 +225,10 @@ function PostProjectForm() {
                   onChange={(event) => setField("category", event.target.value)}
                   onBlur={() => blurField("category")}
                 >
-                  <option value="">Select a category</option>
+                  <option value="">{t("post.selectCategory")}</option>
                   {CATEGORY_OPTIONS.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {t(CATEGORY_LABEL_KEYS[option])}
                     </option>
                   ))}
                 </select>
@@ -186,7 +236,7 @@ function PostProjectForm() {
               </div>
               <div className={"form-field" + (fieldError("price") ? " invalid" : "")}>
                 <label htmlFor="gigPrice">
-                  Starting price <span className="req">*</span>
+                  {t("post.startingPrice")} <span className="req">*</span>
                 </label>
                 <span className="price-input">
                   <span className="prefix">$</span>
@@ -210,12 +260,12 @@ function PostProjectForm() {
               className={"form-field" + (fieldError("description") ? " invalid" : "")}
             >
               <label htmlFor="gigDescription">
-                Description <span className="req">*</span>
+                {t("post.description")} <span className="req">*</span>
               </label>
               <textarea
                 id="gigDescription"
                 value={values.description}
-                placeholder="Describe what you will deliver, what is included, and how you work…"
+                placeholder={t("post.descriptionPlaceholder")}
                 onChange={(event) => setField("description", event.target.value)}
                 onBlur={() => blurField("description")}
               />
@@ -227,7 +277,7 @@ function PostProjectForm() {
                 className={"form-field" + (fieldError("delivery") ? " invalid" : "")}
               >
                 <label htmlFor="gigDelivery">
-                  Delivery time (days) <span className="req">*</span>
+                  {t("post.delivery")} <span className="req">*</span>
                 </label>
                 <input
                   id="gigDelivery"
@@ -244,13 +294,13 @@ function PostProjectForm() {
                 <span className="error-msg">{fieldError("delivery")}</span>
               </div>
               <div className="form-field">
-                <label htmlFor="gigSeller">Your name / brand</label>
+                <label htmlFor="gigSeller">{t("post.seller")}</label>
                 <input
                   id="gigSeller"
                   type="text"
                   autoComplete="name"
                   value={values.seller}
-                  placeholder="Auto-filled when signed in"
+                  placeholder={t("post.sellerPlaceholder")}
                   onChange={(event) => setField("seller", event.target.value)}
                 />
               </div>
@@ -258,10 +308,10 @@ function PostProjectForm() {
           </div>
           <div className="modal-foot">
             <button className="btn-ghost" type="button" onClick={closePost}>
-              Cancel
+              {t("post.cancel")}
             </button>
-            <button className="btn-primary" type="submit">
-              Publish Gig
+            <button className="btn-publish" type="submit">
+              {t("post.publish")}
             </button>
           </div>
         </form>

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { UIProvider } from "@/lib/ui";
+import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { MarketplaceProvider } from "@/lib/marketplace";
 import Header from "@/components/Header";
@@ -16,9 +17,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "WorkVortex — Hire Expert Freelance Talent",
+  title: "Apex — Hire Expert Freelance Talent",
   description:
-    "WorkVortex — the high-end global marketplace connecting expert freelancers with ambitious businesses.",
+    "Apex — the high-end global marketplace connecting expert freelancers with ambitious businesses.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,16 +30,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
         />
-        <UIProvider>
-          <AuthProvider>
-            <MarketplaceProvider>
-              <Header />
-              {children}
-              <Footer />
-              <Overlays />
-            </MarketplaceProvider>
-          </AuthProvider>
-        </UIProvider>
+        <I18nProvider>
+          <UIProvider>
+            <AuthProvider>
+              <MarketplaceProvider>
+                <Header />
+                {children}
+                <Footer />
+                <Overlays />
+              </MarketplaceProvider>
+            </AuthProvider>
+          </UIProvider>
+        </I18nProvider>
       </body>
     </html>
   );

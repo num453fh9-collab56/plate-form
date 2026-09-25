@@ -3,11 +3,13 @@
 import { useMemo } from "react";
 import { useMarketplace } from "@/lib/marketplace";
 import { useUI } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
 import GigCard from "./GigCard";
 
 export default function GigGrid() {
   const { gigs, query, category } = useMarketplace();
   const { openPost } = useUI();
+  const { t } = useI18n();
 
   const visibleGigs = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -28,18 +30,16 @@ export default function GigGrid() {
       <div className="wrap">
         <div className="section-head">
           <div>
-            <div className="kicker">Featured Marketplace</div>
-            <h2>Top-Rated Freelance Services</h2>
-            <p className="sub">
-              Handpicked gigs from verified professionals with proven track records.
-            </p>
+            <div className="kicker">{t("grid.kicker")}</div>
+            <h2>{t("grid.title")}</h2>
+            <p className="sub">{t("grid.sub")}</p>
           </div>
           <div className="head-actions">
             <a href="#gigs" className="link-all">
-              Browse all gigs <span>&rarr;</span>
+              {t("grid.browseAll")} <span>&rarr;</span>
             </a>
             <button className="btn-post" type="button" onClick={openPost}>
-              + Post a Project
+              + {t("grid.postGig")}
             </button>
           </div>
         </div>
@@ -50,8 +50,8 @@ export default function GigGrid() {
           ))}
           {visibleGigs.length === 0 && (
             <div className="empty">
-              <h3>No gigs found</h3>
-              <p>Try a different keyword or category, or post your own project.</p>
+              <h3>{t("grid.emptyTitle")}</h3>
+              <p>{t("grid.emptyText")}</p>
             </div>
           )}
         </div>

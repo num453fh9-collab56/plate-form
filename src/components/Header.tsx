@@ -1,30 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
-import { initials } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
+import AccountMenu from "./AccountMenu";
+import LanguageSelector from "./LanguageSelector";
 
 export default function Header() {
-  const { user, configured, googleHostRef, signOut, promptSignIn } = useAuth();
+  const { user, configured, googleHostRef, promptSignIn } = useAuth();
   const { openPost, toast } = useUI();
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setUserOpen(false);
-      }
-    };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, []);
 
   const handleSignIn = () => {
     if (!configured) {
-      toast("Add your Google OAuth client ID to enable sign-in.");
+      toast(t("toast.oauth"));
       return;
     }
     promptSignIn();
@@ -34,9 +25,9 @@ export default function Header() {
     <header>
       <div className="wrap nav">
         <a href="#" className="logo">
-          <span className="mark">W</span>
+          <span className="mark" aria-hidden="true"><svg className="apex" viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="18.4" stroke="#111111" strokeWidth="1.2" /><path d="M20 8L30 28H25L20 18L15 28H10L20 8Z" fill="#111111" /><path d="M16 23H24" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" /></svg></span>
           <b>
-            Work<span className="accent">Vortex</span>
+            Ap<span className="accent">ex</span>
           </b>
         </a>
         <button
@@ -48,90 +39,47 @@ export default function Header() {
           &#9776;
         </button>
         <nav className={"nav-links" + (menuOpen ? " open" : "")}>
-          <a href="#gigs" onClick={() => setMenuOpen(false)}>
-            Browse Gigs
+          <a href="#" onClick={() => setMenuOpen(false)}>
+            {t("nav.home")}
           </a>
-          <a
-            href="#post"
-            className="link-btn"
-            onClick={(event) => {
-              event.preventDefault();
+          <a href="#experience" onClick={() => setMenuOpen(false)}>
+            {t("nav.project")}
+          </a>
+          <a href="#experience" onClick={() => setMenuOpen(false)}>
+            {t("nav.resolutions")}
+          </a>
+          <a href="#experience" onClick={() => setMenuOpen(false)}>
+            {t("nav.products")}
+          </a>
+          <button className="nav-login" type="button" onClick={handleSignIn}>
+            {t("nav.login")}
+          </button>
+          <button
+            className="btn-gig"
+            type="button"
+            onClick={() => {
               setMenuOpen(false);
               openPost();
             }}
           >
-            Post a Project
-          </a>
+            <span className="btn-gig-plus" aria-hidden="true">
+              +
+            </span>
+            {t("nav.postProject")}
+          </button>
+
+          <LanguageSelector />
 
           {!user && (
             <span className="signin-wrap">
               <button className="btn-signin" type="button" onClick={handleSignIn}>
-                Sign In
+                {t("nav.signIn")}
               </button>
-              <span ref={googleHostRef} aria-hidden="true" />
+              <span id="googleBtnHost" ref={googleHostRef} aria-hidden="true" />
             </span>
           )}
 
-          {user && (
-            <div className={"user-menu" + (userOpen ? " open" : "")} ref={menuRef}>
-              <button
-                className="user-trigger"
-                type="button"
-                aria-haspopup="true"
-                aria-expanded={userOpen}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setUserOpen((open) => !open);
-                }}
-              >
-                {user.picture ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img className="user-avatar" src={user.picture} alt="" />
-                ) : (
-                  <span className="user-initials">{initials(user.name)}</span>
-                )}
-                <span className="user-label">{user.name.split(" ")[0]}</span>
-                <svg
-                  className="chev"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-              <div className="user-dropdown" role="menu">
-                <div className="user-dd-head">
-                  {user.picture ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.picture} alt="" />
-                  ) : (
-                    <span className="user-initials">{initials(user.name)}</span>
-                  )}
-                  <div className="user-dd-info">
-                    <strong>{user.name}</strong>
-                    <span>{user.email}</span>
-                  </div>
-                </div>
-                <button
-                  className="user-signout"
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    signOut();
-                    setUserOpen(false);
-                    toast("Signed out.");
-                  }}
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          )}
+          <AccountMenu />
         </nav>
       </div>
     </header>

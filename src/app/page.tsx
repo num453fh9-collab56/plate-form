@@ -1,12 +1,14 @@
 import Hero from "@/components/Hero";
-import GigGrid from "@/components/GigGrid";
+import Experience from "@/components/Experience";
+import SuccessShowcase from "@/components/SuccessShowcase";
 import Cta from "@/components/Cta";
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <GigGrid />
+      <Experience />
+      <SuccessShowcase />
       <Cta />
     </>
   );

@@ -3,23 +3,17 @@ import type { Gig, GigColorPair, GigDraft } from "./types";
 export const ACCENT_COLORS: GigColorPair = ["#0066cc", "#003d7a"];
 
 export const CATEGORY_GLYPHS: Record<string, string> = {
-  "Web Development": "WD",
-  "UI/UX Design": "UX",
-  "Digital Marketing": "DM",
-  "Video & Animation": "VE",
-  "AI & Data": "AI",
-  Writing: "WR",
-  Other: "PR",
+  "Website Development": "WD",
+  "UI/UX": "UX",
+  "Video Editing": "VE",
+  AI: "AI",
 };
 
 export const CATEGORY_OPTIONS: string[] = [
-  "Web Development",
-  "UI/UX Design",
-  "Digital Marketing",
-  "Video & Animation",
-  "AI & Data",
-  "Writing",
-  "Other",
+  "Website Development",
+  "UI/UX",
+  "Video Editing",
+  "AI",
 ];
 
 export const SEED_GIGS: Gig[] = [
@@ -35,7 +29,7 @@ export const SEED_GIGS: Gig[] = [
     reviews: 412,
     price: 450,
     delivery: "5 days",
-    category: "Web Development",
+    category: "Website Development",
     badge: "Top Rated",
     colors: ["#0066cc", "#003d7a"],
     glyph: "WD",
@@ -52,14 +46,14 @@ export const SEED_GIGS: Gig[] = [
     reviews: 288,
     price: 320,
     delivery: "3 days",
-    category: "UI/UX Design",
+    category: "UI/UX",
     badge: "Pro",
     colors: ["#2b7bc4", "#10508f"],
     glyph: "UX",
   },
   {
     id: "seed-03",
-    title: "SEO & Performance Digital Marketing Campaign Strategy",
+    title: "SEO & Performance Website Optimization",
     description:
       "Keyword research, technical SEO fixes, content roadmap and conversion tracking to grow qualified organic traffic.",
     seller: "Linda Okafor",
@@ -69,10 +63,10 @@ export const SEED_GIGS: Gig[] = [
     reviews: 531,
     price: 260,
     delivery: "7 days",
-    category: "Digital Marketing",
+    category: "Website Development",
     badge: "Best Seller",
     colors: ["#4a90d9", "#1f5f9e"],
-    glyph: "DM",
+    glyph: "WD",
   },
   {
     id: "seed-04",
@@ -86,7 +80,7 @@ export const SEED_GIGS: Gig[] = [
     reviews: 194,
     price: 180,
     delivery: "4 days",
-    category: "Video & Animation",
+    category: "Video Editing",
     badge: "Pro",
     colors: ["#0a5aa8", "#062f5c"],
     glyph: "VE",
@@ -103,14 +97,14 @@ export const SEED_GIGS: Gig[] = [
     reviews: 137,
     price: 900,
     delivery: "10 days",
-    category: "AI & Data",
+    category: "AI",
     badge: "Top Rated",
     colors: ["#1a6fbf", "#0b3f73"],
     glyph: "AI",
   },
   {
     id: "seed-06",
-    title: "SEO-Optimized Blog & Website Content Writing",
+    title: "SEO-Optimized Website Content & Technical Copywriting",
     description:
       "Original, well-researched long-form content structured for search intent, readability and measurable rankings.",
     seller: "Emma Lindqvist",
@@ -120,10 +114,10 @@ export const SEED_GIGS: Gig[] = [
     reviews: 276,
     price: 120,
     delivery: "2 days",
-    category: "Writing",
+    category: "Website Development",
     badge: "Best Seller",
     colors: ["#2f80c9", "#134f85"],
-    glyph: "WR",
+    glyph: "WD",
   },
   {
     id: "seed-07",
@@ -137,7 +131,7 @@ export const SEED_GIGS: Gig[] = [
     reviews: 356,
     price: 390,
     delivery: "6 days",
-    category: "Web Development",
+    category: "Website Development",
     badge: "Pro",
     colors: ["#0066cc", "#002f5c"],
     glyph: "EC",
@@ -154,7 +148,7 @@ export const SEED_GIGS: Gig[] = [
     reviews: 221,
     price: 420,
     delivery: "5 days",
-    category: "UI/UX Design",
+    category: "UI/UX",
     badge: "Best Seller",
     colors: ["#3d8fd0", "#1a5794"],
     glyph: "UI",
@@ -171,7 +165,7 @@ export const SEED_GIGS: Gig[] = [
     reviews: 302,
     price: 210,
     delivery: "3 days",
-    category: "Video & Animation",
+    category: "Video Editing",
     badge: "Pro",
     colors: ["#1470c2", "#0a3f6e"],
     glyph: "YT",
@@ -188,16 +182,16 @@ export const SEED_GIGS: Gig[] = [
     reviews: 96,
     price: 750,
     delivery: "8 days",
-    category: "AI & Data",
+    category: "AI",
     badge: "Top Rated",
     colors: ["#1f74bf", "#0c3e69"],
     glyph: "LLM",
   },
   {
     id: "seed-11",
-    title: "Social Media Growth & Paid Ads Management",
+    title: "Landing Page UI Design & Conversion Optimization",
     description:
-      "Audience targeting, creative testing and budget optimisation across Meta, LinkedIn and TikTok with weekly reporting.",
+      "High-converting landing pages with wireframes, responsive UI, A/B test variants and a developer-ready handoff.",
     seller: "James Whitfield",
     role: "Level 1 Seller",
     verified: false,
@@ -205,16 +199,16 @@ export const SEED_GIGS: Gig[] = [
     reviews: 168,
     price: 150,
     delivery: "7 days",
-    category: "Digital Marketing",
+    category: "UI/UX",
     badge: "Rising Talent",
     colors: ["#4d97d6", "#2263a0"],
-    glyph: "SM",
+    glyph: "UX",
   },
   {
     id: "seed-12",
-    title: "Technical Documentation & Whitepaper Writing",
+    title: "AI Workflow Automation & Custom Chatbot Setup",
     description:
-      "Clear API references, developer guides and whitepapers written from source material with diagrams and examples.",
+      "Automate repetitive business workflows and deploy a custom chatbot trained on your own documents and data.",
     seller: "Grace Mensah",
     role: "Level 2 Seller",
     verified: true,
@@ -222,15 +216,19 @@ export const SEED_GIGS: Gig[] = [
     reviews: 143,
     price: 220,
     delivery: "4 days",
-    category: "Writing",
+    category: "AI",
     badge: "Pro",
     colors: ["#0f63b0", "#07375f"],
-    glyph: "TD",
+    glyph: "AI",
   },
 ];
 
 export function glyphFor(category: string): string {
-  return CATEGORY_GLYPHS[category] ?? "PR";
+  return CATEGORY_GLYPHS[category] ?? CATEGORY_GLYPHS[CATEGORY_OPTIONS[0]];
+}
+
+export function isCategory(value: string): boolean {
+  return CATEGORY_OPTIONS.includes(value);
 }
 
 export function createGig(draft: GigDraft): Gig {
@@ -249,7 +247,7 @@ export function createGig(draft: GigDraft): Gig {
     reviews: 0,
     price: draft.price,
     delivery: `${days} ${days === 1 ? "day" : "days"}`,
-    category: CATEGORY_GLYPHS[draft.category] ? draft.category : "Other",
+    category: isCategory(draft.category) ? draft.category : CATEGORY_OPTIONS[0],
     badge: "New",
     colors: ACCENT_COLORS,
     glyph: glyphFor(draft.category),
