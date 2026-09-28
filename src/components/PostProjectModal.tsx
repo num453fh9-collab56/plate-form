@@ -6,15 +6,8 @@ import { useUI } from "@/lib/ui";
 import { useAuth } from "@/lib/auth";
 import { useMarketplace } from "@/lib/marketplace";
 import { useI18n } from "@/lib/i18n";
-import type { Translate, TranslationKey } from "@/lib/i18n";
-import { CATEGORY_OPTIONS, isCategory } from "@/lib/gigs";
-
-const CATEGORY_LABEL_KEYS: Record<string, TranslationKey> = {
-  "Website Development": "cat.website",
-  "UI/UX": "cat.uiux",
-  "Video Editing": "cat.video",
-  AI: "cat.ai",
-};
+import type { Translate } from "@/lib/i18n";
+import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS, isCategory } from "@/lib/gigs";
 
 interface FormValues {
   title: string;

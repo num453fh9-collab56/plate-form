@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
@@ -127,7 +127,7 @@ interface DashItem {
 }
 
 const DASH_ITEMS: DashItem[] = [
-  { id: "manage", labelKey: "account.manage", icon: "manage", color: "#0066cc", soft: "rgba(0,102,204,0.12)" },
+  { id: "manage", labelKey: "account.settings", icon: "manage", color: "#0066cc", soft: "rgba(0,102,204,0.12)" },
   { id: "groups", labelKey: "account.groups", icon: "groups", color: "#7c3aed", soft: "rgba(124,58,237,0.12)" },
   {
     id: "notifications",
@@ -160,8 +160,9 @@ const DASH_ITEMS: DashItem[] = [
 ];
 
 export default function AccountMenu() {
-  const { user, signOut } = useAuth();
-  const { openPost, toast } = useUI();
+  const { user, signOut, strength } = useAuth();
+  const { openPost, openProfile, openAccount, toast } = useUI();
+  const requireAuth = useRequireAuth();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -184,9 +185,17 @@ export default function AccountMenu() {
   }, []);
 
   const handleItem = (item: DashItem) => {
+    setOpen(false);
     if (item.id === "post") {
-      setOpen(false);
-      openPost();
+      requireAuth(openPost);
+      return;
+    }
+    if (item.id === "profile" || item.id === "improve") {
+      requireAuth(openProfile);
+      return;
+    }
+    if (item.id === "manage") {
+      requireAuth(openAccount);
       return;
     }
     toast(t("account.soon", { item: t(item.labelKey) }));
@@ -249,6 +258,24 @@ export default function AccountMenu() {
             <strong>{t("account.welcomeTitle")}</strong>
             <span>{t("account.welcomeText")}</span>
           </div>
+        )}
+
+        {user && (
+          <button
+            className="account-strength"
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              openProfile();
+            }}
+          >
+            <span className="account-strength-label">{t("profile.strength")}</span>
+            <span className="account-strength-bar">
+              <span style={{ width: `${strength.percent}%` }} />
+            </span>
+            <span className="account-strength-value">{strength.percent}%</span>
+          </button>
         )}
 
         <div className="dash-label">{t("account.dashboard")}</div>

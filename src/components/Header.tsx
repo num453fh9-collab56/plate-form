@@ -8,17 +8,15 @@ import AccountMenu from "./AccountMenu";
 import LanguageSelector from "./LanguageSelector";
 
 export default function Header() {
-  const { user, configured, googleHostRef, promptSignIn } = useAuth();
-  const { openPost, toast } = useUI();
+  const { user } = useAuth();
+  const { openPost, openAuth } = useUI();
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleSignIn = () => {
-    if (!configured) {
-      toast(t("toast.oauth"));
-      return;
-    }
-    promptSignIn();
+  const startProject = () => {
+    setMenuOpen(false);
+    if (user) openPost();
+    else openAuth("signup");
   };
 
   return (
@@ -42,7 +40,7 @@ export default function Header() {
           <a href="#" onClick={() => setMenuOpen(false)}>
             {t("nav.home")}
           </a>
-          <a href="#experience" onClick={() => setMenuOpen(false)}>
+          <a href="#work" onClick={() => setMenuOpen(false)}>
             {t("nav.project")}
           </a>
           <a href="#experience" onClick={() => setMenuOpen(false)}>
@@ -51,17 +49,17 @@ export default function Header() {
           <a href="#experience" onClick={() => setMenuOpen(false)}>
             {t("nav.products")}
           </a>
-          <button className="nav-login" type="button" onClick={handleSignIn}>
-            {t("nav.login")}
-          </button>
           <button
-            className="btn-gig"
+            className="nav-login"
             type="button"
             onClick={() => {
               setMenuOpen(false);
-              openPost();
+              openAuth("login");
             }}
           >
+            {t("nav.login")}
+          </button>
+          <button className="btn-gig" type="button" onClick={startProject}>
             <span className="btn-gig-plus" aria-hidden="true">
               +
             </span>
@@ -71,12 +69,16 @@ export default function Header() {
           <LanguageSelector />
 
           {!user && (
-            <span className="signin-wrap">
-              <button className="btn-signin" type="button" onClick={handleSignIn}>
-                {t("nav.signIn")}
-              </button>
-              <span id="googleBtnHost" ref={googleHostRef} aria-hidden="true" />
-            </span>
+            <button
+              className="btn-signin"
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                openAuth("signup");
+              }}
+            >
+              {t("nav.join")}
+            </button>
           )}
 
           <AccountMenu />

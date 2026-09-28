@@ -1,0 +1,119 @@
+"use client";
+
+import { useMemo } from "react";
+import type { PortfolioProject } from "@/lib/types";
+import { useAuth, useRequireAuth } from "@/lib/auth";
+import { useUI } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
+import {
+  SEED_PROJECTS,
+  coverStyle,
+  portfolioGlyph,
+} from "@/lib/portfolio";
+
+/* ==========================================================================
+   APEX · PORTFOLIO SHOWCASE
+   A clean, light-mode grid of digital projects from Apex professionals.
+   Signed-in users see their own projects pinned to the front of the grid.
+   ========================================================================== */
+
+function ExternalIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
+    </svg>
+  );
+}
+
+function ProjectCard({
+  project,
+  mine,
+  mineLabel,
+  previewLabel,
+}: {
+  project: PortfolioProject;
+  mine?: boolean;
+  mineLabel: string;
+  previewLabel: string;
+}) {
+  return (
+    <article className={"project-card" + (mine ? " is-mine" : "")}>
+      <div className="project-cover" style={coverStyle(project.cover)}>
+        <span className="project-glyph" aria-hidden="true">
+          {portfolioGlyph(project.category)}
+        </span>
+        <span className="project-cat">{project.category}</span>
+        {mine ? <span className="project-mine">{mineLabel}</span> : null}
+      </div>
+      <div className="project-body">
+        <h3>{project.title}</h3>
+        {project.summary ? <p>{project.summary}</p> : null}
+        {project.tags.length > 0 ? (
+          <div className="project-tags">
+            {project.tags.map((tag) => (
+              <span className="project-tag" key={tag}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {project.link ? (
+          <a
+            className="project-link"
+            href={project.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {previewLabel}
+            <ExternalIcon />
+          </a>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+export default function PortfolioShowcase() {
+  const { user, profile } = useAuth();
+  const { openAccount } = useUI();
+  const requireAuth = useRequireAuth();
+  const { t } = useI18n();
+
+  const mine = useMemo(
+    () => (user && Array.isArray(profile.portfolioProjects) ? profile.portfolioProjects : []),
+    [user, profile.portfolioProjects],
+  );
+
+  const projects = useMemo(() => [...mine, ...SEED_PROJECTS], [mine]);
+
+  return (
+    <section className="section portfolio" id="portfolio">
+      <div className="wrap">
+        <div className="section-head">
+          <div>
+            <div className="kicker">{t("portfolio.kicker")}</div>
+            <h2>{t("portfolio.title")}</h2>
+            <p className="sub">{t("portfolio.sub")}</p>
+          </div>
+          <button className="btn-post" type="button" onClick={() => requireAuth(openAccount)}>
+            + {t("portfolio.add")}
+          </button>
+        </div>
+
+        <div className="project-grid">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              mine={mine.some((item) => item.id === project.id)}
+              mineLabel={t("portfolio.yours")}
+              previewLabel={t("portfolio.livePreview")}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -22,8 +22,8 @@ export default function Footer() {
           </div>
           <div className="foot-col">
             <h4>{t("footer.marketplace")}</h4>
-            <a href="#gigs">{t("footer.browseGigs")}</a>
-            <a href="#gigs">{t("footer.categories")}</a>
+            <a href="#work">{t("footer.browseGigs")}</a>
+            <a href="#work">{t("footer.categories")}</a>
             <button className="link-btn" type="button" onClick={openPost}>
               {t("footer.postGig")}
             </button>
@@ -33,8 +33,8 @@ export default function Footer() {
             <button className="link-btn" type="button" onClick={openPost}>
               {t("footer.becomeSeller")}
             </button>
-            <a href="#gigs">{t("footer.successStories")}</a>
-            <a href="#gigs">{t("footer.sellerAcademy")}</a>
+            <a href="#work">{t("footer.successStories")}</a>
+            <a href="#work">{t("footer.sellerAcademy")}</a>
           </div>
           <div className="foot-col">
             <h4>{t("footer.company")}</h4>

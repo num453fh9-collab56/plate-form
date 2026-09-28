@@ -61,6 +61,39 @@ const PROFILE = {
   ],
 };
 
+const TOPICS = [
+  {
+    badge: "UX",
+    title: "Design & Brand",
+    text: "Product design, brand identity and design systems built to scale.",
+  },
+  {
+    badge: "DEV",
+    title: "Web Development",
+    text: "Fast, accessible web apps built with modern frameworks.",
+  },
+  {
+    badge: "MOT",
+    title: "Motion & Video",
+    text: "Story-driven edits, motion graphics and cinematic brand films.",
+  },
+  {
+    badge: "AI",
+    title: "AI & Automation",
+    text: "Practical AI and workflow automation for real products.",
+  },
+  {
+    badge: "MKT",
+    title: "Marketing & Growth",
+    text: "Positioning, campaigns and content that convert.",
+  },
+  {
+    badge: "DOC",
+    title: "Writing & Content",
+    text: "Clear copy and content for products and brands.",
+  },
+];
+
 export default function Experience() {
   const { t } = useI18n();
 
@@ -122,6 +155,24 @@ export default function Experience() {
               ))}
             </div>
           </article>
+        </div>
+
+        <div className="expertise-block">
+          <div className="expertise-head">
+            <div className="kicker">{t("exp.areasKicker")}</div>
+            <h3>{t("exp.areas")}</h3>
+          </div>
+          <div className="expertise-grid">
+            {TOPICS.map((topic) => (
+              <article className="topic-card" key={topic.title}>
+                <span className="topic-badge" aria-hidden="true">
+                  {topic.badge}
+                </span>
+                <h3>{topic.title}</h3>
+                <p>{topic.text}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 
+export type AuthModalMode = "signup" | "login";
+
 interface UIValue {
   toast: (message: string, duration?: number) => void;
   toastMessage: string;
@@ -17,12 +19,26 @@ interface UIValue {
   isPostOpen: boolean;
   openPost: () => void;
   closePost: () => void;
+  isAuthOpen: boolean;
+  authMode: AuthModalMode;
+  openAuth: (mode?: AuthModalMode) => void;
+  closeAuth: () => void;
+  isProfileOpen: boolean;
+  openProfile: () => void;
+  closeProfile: () => void;
+  isAccountOpen: boolean;
+  openAccount: () => void;
+  closeAccount: () => void;
 }
 
 const UIContext = createContext<UIValue | null>(null);
 
 export function UIProvider({ children }: { children: ReactNode }) {
   const [isPostOpen, setIsPostOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthModalMode>("signup");
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,6 +53,28 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const openPost = useCallback(() => setIsPostOpen(true), []);
   const closePost = useCallback(() => setIsPostOpen(false), []);
 
+  const openAuth = useCallback((mode: AuthModalMode = "signup") => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+    setIsProfileOpen(false);
+    setIsAccountOpen(false);
+  }, []);
+  const closeAuth = useCallback(() => setIsAuthOpen(false), []);
+
+  const openProfile = useCallback(() => {
+    setIsAuthOpen(false);
+    setIsAccountOpen(false);
+    setIsProfileOpen(true);
+  }, []);
+  const closeProfile = useCallback(() => setIsProfileOpen(false), []);
+
+  const openAccount = useCallback(() => {
+    setIsAuthOpen(false);
+    setIsProfileOpen(false);
+    setIsAccountOpen(true);
+  }, []);
+  const closeAccount = useCallback(() => setIsAccountOpen(false), []);
+
   const value = useMemo<UIValue>(
     () => ({
       toast,
@@ -45,8 +83,35 @@ export function UIProvider({ children }: { children: ReactNode }) {
       isPostOpen,
       openPost,
       closePost,
+      isAuthOpen,
+      authMode,
+      openAuth,
+      closeAuth,
+      isProfileOpen,
+      openProfile,
+      closeProfile,
+      isAccountOpen,
+      openAccount,
+      closeAccount,
     }),
-    [toast, toastMessage, toastVisible, isPostOpen, openPost, closePost],
+    [
+      toast,
+      toastMessage,
+      toastVisible,
+      isPostOpen,
+      openPost,
+      closePost,
+      isAuthOpen,
+      authMode,
+      openAuth,
+      closeAuth,
+      isProfileOpen,
+      openProfile,
+      closeProfile,
+      isAccountOpen,
+      openAccount,
+      closeAccount,
+    ],
   );
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
