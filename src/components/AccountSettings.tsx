@@ -7,20 +7,15 @@ import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import { initials, maskEmail } from "@/lib/format";
-import type { PortfolioProject } from "@/lib/types";
-import {
-  PORTFOLIO_CATEGORIES,
-  coverStyle,
-  portfolioGlyph,
-} from "@/lib/portfolio";
 
 /* ==========================================================================
    APEX · ACCOUNT & SETTINGS
    A secure, light-mode dashboard for personal information, security,
-   identity verification, portfolio projects and privacy controls.
+   identity verification and privacy controls. Profile editing — including
+   portfolio projects — lives in the profile wizard.
    ========================================================================== */
 
-type Tab = "personal" | "security" | "verification" | "portfolio" | "privacy";
+type Tab = "personal" | "security" | "verification" | "privacy";
 
 const TABS: { id: Tab; labelKey: TranslationKey; icon: ReactNode }[] = [
   {
@@ -49,16 +44,6 @@ const TABS: { id: Tab; labelKey: TranslationKey; icon: ReactNode }[] = [
       <>
         <path d="M9 12l2 2 4-4" />
         <circle cx="12" cy="12" r="9" />
-      </>
-    ),
-  },
-  {
-    id: "portfolio",
-    labelKey: "account.tabPortfolio",
-    icon: (
-      <>
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M3 9h18" />
       </>
     ),
   },
@@ -105,17 +90,6 @@ function Toggle({
   );
 }
 
-function uid(): string {
-  try {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-  } catch {
-    /* fall through */
-  }
-  return `pf_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-}
-
 function AccountSettingsModal() {
   const { user, account, profile, updateProfile, changePassword, signOut } = useAuth();
   const { closeAccount, toast } = useUI();
@@ -128,17 +102,6 @@ function AccountSettingsModal() {
   const [pwNext, setPwNext] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwError, setPwError] = useState("");
-
-  const [draft, setDraft] = useState<PortfolioProject>({
-    id: "",
-    title: "",
-    category: PORTFOLIO_CATEGORIES[0],
-    summary: "",
-    tags: [],
-    link: "",
-    cover: "",
-  });
-  const [tagText, setTagText] = useState("");
 
   useEffect(() => {
     document.body.classList.add("modal-open");
@@ -182,48 +145,6 @@ function AccountSettingsModal() {
     setPwNext("");
     setPwConfirm("");
     toast(t("account.passwordUpdated"));
-  };
-
-  const addProject = () => {
-    const title = draft.title.trim();
-    if (title.length < 3) {
-      toast(t("account.projectTitleShort"));
-      return;
-    }
-    const tags = tagText
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-      .slice(0, 8);
-    const project: PortfolioProject = {
-      ...draft,
-      id: uid(),
-      title,
-      tags,
-      summary: draft.summary.trim(),
-      link: draft.link.trim(),
-      cover: draft.cover.trim(),
-      updatedAt: Date.now(),
-    };
-    updateProfile({ portfolioProjects: [project, ...profile.portfolioProjects] });
-    setDraft({
-      id: "",
-      title: "",
-      category: PORTFOLIO_CATEGORIES[0],
-      summary: "",
-      tags: [],
-      link: "",
-      cover: "",
-    });
-    setTagText("");
-    toast(t("account.projectAdded"));
-  };
-
-  const removeProject = (id: string) => {
-    updateProfile({
-      portfolioProjects: profile.portfolioProjects.filter((item) => item.id !== id),
-    });
-    toast(t("account.projectRemoved"));
   };
 
   const savePersonal = () => {
@@ -530,109 +451,6 @@ function AccountSettingsModal() {
                     </div>
                   ))}
                 </div>
-              </>
-            )}
-
-            {tab === "portfolio" && (
-              <>
-                <div className="account-section-head">
-                  <h3>{t("account.portfolioTitle")}</h3>
-                  <p>{t("account.portfolioSub")}</p>
-                </div>
-
-                <div className="account-form-block">
-                  <div className="field-grid">
-                    <div className="form-field">
-                      <label>{t("account.projectTitle")}</label>
-                      <input
-                        type="text"
-                        value={draft.title}
-                        placeholder={t("account.projectTitlePlaceholder")}
-                        onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>{t("account.projectCategory")}</label>
-                      <select
-                        value={draft.category}
-                        onChange={(event) => setDraft({ ...draft, category: event.target.value })}
-                      >
-                        {PORTFOLIO_CATEGORIES.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-field">
-                      <label>{t("account.projectTags")}</label>
-                      <input
-                        type="text"
-                        value={tagText}
-                        placeholder="React, Next.js, TypeScript"
-                        onChange={(event) => setTagText(event.target.value)}
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>{t("account.projectLink")}</label>
-                      <input
-                        type="url"
-                        value={draft.link}
-                        placeholder="https://your-project.com"
-                        onChange={(event) => setDraft({ ...draft, link: event.target.value })}
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>{t("account.projectCover")}</label>
-                      <input
-                        type="url"
-                        value={draft.cover}
-                        placeholder="https://…/cover.jpg"
-                        onChange={(event) => setDraft({ ...draft, cover: event.target.value })}
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>{t("profile.bio")}</label>
-                      <input
-                        type="text"
-                        value={draft.summary}
-                        placeholder={t("account.projectSummaryPlaceholder")}
-                        onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <button className="btn-primary account-inline-btn" type="button" onClick={addProject}>
-                    + {t("account.addProject")}
-                  </button>
-                </div>
-
-                {profile.portfolioProjects.length === 0 ? (
-                  <p className="account-empty">{t("account.noProjects")}</p>
-                ) : (
-                  <ul className="project-manage">
-                    {profile.portfolioProjects.map((project) => (
-                      <li key={project.id}>
-                        <span className="project-manage-cover" style={coverStyle(project.cover)}>
-                          {portfolioGlyph(project.category)}
-                        </span>
-                        <div className="project-manage-info">
-                          <strong>{project.title}</strong>
-                          <span>
-                            {project.category}
-                            {project.tags.length > 0 ? ` · ${project.tags.join(", ")}` : ""}
-                          </span>
-                        </div>
-                        <button
-                          className="btn-ghost btn-sm danger"
-                          type="button"
-                          onClick={() => removeProject(project.id)}
-                        >
-                          {t("account.removeProject")}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </>
             )}
 

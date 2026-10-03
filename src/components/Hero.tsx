@@ -26,6 +26,12 @@ export default function Hero() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const scrollToGigs = () => {
+    document
+      .getElementById("gigs")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <section className="hero">
       <div className="wrap">
@@ -72,7 +78,7 @@ export default function Hero() {
             className="search-bar hero-search-bar"
             onSubmit={(event) => {
               event.preventDefault();
-              scrollToShowcase();
+              scrollToGigs();
             }}
           >
             <label className="field">

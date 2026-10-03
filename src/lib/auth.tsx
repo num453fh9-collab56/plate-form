@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createExternalStore } from "./external-store";
+import { isAllowedCategory } from "./taxonomy";
 import type { Account, AuthState, Profile, User } from "./types";
 import type { TranslationKey } from "./i18n";
 import { useUI } from "./ui";
@@ -24,6 +25,7 @@ export const GOOGLE_CONFIGURED =
 export const EMPTY_PROFILE: Profile = {
   fullName: "",
   title: "",
+  primaryCategory: "",
   bio: "",
   phone: "",
   country: "",
@@ -31,6 +33,7 @@ export const EMPTY_PROFILE: Profile = {
   avatar: "",
   skills: [],
   hourlyRate: "",
+  projectRate: "",
   availability: "",
   portfolio: "",
   introVideo: "",
@@ -238,7 +241,7 @@ function decodeJwt(token: string): Record<string, unknown> | null {
   }
 }
 
-/* ======================= PROFILE STRENGTH (13 steps) ======================= */
+/* ======================= PROFILE STRENGTH (14 steps) ======================= */
 
 export interface StrengthItem {
   key: keyof Profile;
@@ -258,6 +261,11 @@ export function computeProfileStrength(profile: Profile): ProfileStrength {
   const items: StrengthItem[] = [
     { key: "fullName", label: "Full name", done: profile.fullName.trim().length >= 2 },
     { key: "title", label: "Professional title", done: profile.title.trim().length >= 3 },
+    {
+      key: "primaryCategory",
+      label: "Primary category",
+      done: isAllowedCategory(profile.primaryCategory),
+    },
     { key: "bio", label: "Bio / description", done: profile.bio.trim().length >= 40 },
     {
       key: "phone",

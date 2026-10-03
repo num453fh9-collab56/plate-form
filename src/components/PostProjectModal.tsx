@@ -7,15 +7,21 @@ import { useAuth } from "@/lib/auth";
 import { useMarketplace } from "@/lib/marketplace";
 import { useI18n } from "@/lib/i18n";
 import type { Translate } from "@/lib/i18n";
-import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS, isCategory } from "@/lib/gigs";
+import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS } from "@/lib/gigs";
+import { isAllowedCategory, normalizeSkills } from "@/lib/taxonomy";
+import IntroVideo from "./IntroVideo";
+import SkillPicker from "./SkillPicker";
 
 interface FormValues {
   title: string;
   category: string;
+  skills: string[];
   description: string;
   price: string;
   delivery: string;
   seller: string;
+  video: string;
+  videoName: string;
 }
 
 type FieldKey = keyof FormValues;
@@ -23,10 +29,13 @@ type FieldKey = keyof FormValues;
 const EMPTY: FormValues = {
   title: "",
   category: "",
+  skills: [],
   description: "",
   price: "",
   delivery: "",
   seller: "",
+  video: "",
+  videoName: "",
 };
 
 const URL_ONLY = /^(https?:\/\/|www\.)\S+$/i;
@@ -55,8 +64,12 @@ function validate(values: FormValues, t: Translate): Partial<Record<FieldKey, st
     errors.title = t("err.titleFake");
   }
 
-  if (!isCategory(values.category)) {
+  if (!isAllowedCategory(values.category)) {
     errors.category = t("err.category");
+  } else if (values.skills.length === 0) {
+    errors.skills = t("err.skillsRequired");
+  } else if (normalizeSkills(values.skills, values.category).length !== values.skills.length) {
+    errors.skills = t("err.skillsCategory");
   }
 
   const description = values.description.trim();
@@ -128,6 +141,21 @@ function PostProjectForm() {
     setErrors(validate(values, t));
   };
 
+  const setCategory = (category: string) => {
+    const skills = normalizeSkills(values.skills, category);
+    setValues((current) => ({ ...current, category, skills }));
+    if (touched.category) {
+      setErrors(validate({ ...values, category, skills }, t));
+    }
+  };
+
+  const setSkills = (skills: string[]) => {
+    setValues((current) => ({ ...current, skills }));
+    if (touched.skills) {
+      setErrors(validate({ ...values, skills }, t));
+    }
+  };
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const nextErrors = validate(values, t);
@@ -135,6 +163,7 @@ function PostProjectForm() {
     setTouched({
       title: true,
       category: true,
+      skills: true,
       description: true,
       price: true,
       delivery: true,
@@ -150,9 +179,12 @@ function PostProjectForm() {
       title: values.title.trim(),
       description: values.description.trim(),
       category: values.category,
+      skills: values.skills,
       price: Number(values.price),
       deliveryDays: Number(values.delivery),
       seller: values.seller.trim() || user?.name || "Independent Professional",
+      video: values.video,
+      videoName: values.videoName,
     });
 
     closePost();
@@ -215,7 +247,7 @@ function PostProjectForm() {
                 <select
                   id="gigCategory"
                   value={values.category}
-                  onChange={(event) => setField("category", event.target.value)}
+                  onChange={(event) => setCategory(event.target.value)}
                   onBlur={() => blurField("category")}
                 >
                   <option value="">{t("post.selectCategory")}</option>
@@ -247,6 +279,30 @@ function PostProjectForm() {
                 </span>
                 <span className="error-msg">{fieldError("price")}</span>
               </div>
+            </div>
+
+            <div
+              className={
+                "form-field taxonomy-field" + (fieldError("skills") ? " invalid" : "")
+              }
+            >
+              <label>
+                {t("post.skills")} <span className="req">*</span>
+                <span className="field-tag">{t("post.skillsTag")}</span>
+              </label>
+              <p className="field-hint">{t("post.skillsHint")}</p>
+              {isAllowedCategory(values.category) ? (
+                <SkillPicker
+                  value={values.skills}
+                  onChange={setSkills}
+                  category={values.category}
+                  placeholder={t("post.skillsPlaceholder")}
+                  max={12}
+                />
+              ) : (
+                <div className="taxonomy-locked">{t("post.skillsPickCategory")}</div>
+              )}
+              <span className="error-msg">{fieldError("skills")}</span>
             </div>
 
             <div
@@ -297,6 +353,21 @@ function PostProjectForm() {
                   onChange={(event) => setField("seller", event.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="form-field">
+              <label>
+                {t("post.video")}
+                <span className="field-tag">{t("post.optional")}</span>
+              </label>
+              <p className="field-hint">{t("post.videoHint")}</p>
+              <IntroVideo
+                src={values.video}
+                name={values.videoName}
+                onChange={(src, name) =>
+                  setValues((current) => ({ ...current, video: src, videoName: name }))
+                }
+              />
             </div>
           </div>
           <div className="modal-foot">

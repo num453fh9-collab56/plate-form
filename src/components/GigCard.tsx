@@ -4,45 +4,14 @@ import { useState } from "react";
 import type { Gig } from "@/lib/types";
 import { formatPrice, initials, stars } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
-
-function ClockIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    >
-      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-      <path d="M3 21v-5h5" />
-    </svg>
-  );
-}
+import { useMarketplace } from "@/lib/marketplace";
+import { useUI } from "@/lib/ui";
+import { translationKeyForCategory } from "@/lib/taxonomy";
 
 export default function GigCard({ gig }: { gig: Gig }) {
   const { t } = useI18n();
+  const { openVideo } = useUI();
+  const { selectedSkills, toggleSkill } = useMarketplace();
   const [saved, setSaved] = useState(false);
   const [ordering, setOrdering] = useState(false);
 
@@ -53,31 +22,27 @@ export default function GigCard({ gig }: { gig: Gig }) {
 
   return (
     <article className={"gig" + (gig.isNew ? " is-new" : "")} data-category={gig.category}>
-      <div
-        className="gig-media"
-        style={{ background: `linear-gradient(140deg,${gig.colors[0]},${gig.colors[1]})` }}
-      >
-        <span className={gig.badge === "Pro" ? "badge dark" : "badge"}>{gig.badge}</span>
+      <div className="gig-head">
+        <span className="gig-eyebrow">{t(translationKeyForCategory(gig.category))}</span>
         <button
           className={"fav" + (saved ? " on" : "")}
           type="button"
           aria-label={t("card.saveAria")}
+          aria-pressed={saved}
           onClick={() => setSaved((value) => !value)}
         >
           {saved ? "♥" : "♡"}
         </button>
-        <span className="glyph">{gig.glyph}</span>
       </div>
+
       <div className="gig-body">
         <h3 className="gig-title">{gig.title}</h3>
         {gig.description && <p className="gig-desc">{gig.description}</p>}
+
         <div className="seller">
-          <div
-            className="avatar"
-            style={{ background: `linear-gradient(140deg,${gig.colors[0]},${gig.colors[1]})` }}
-          >
+          <span className="avatar" aria-hidden="true">
             {initials(gig.seller)}
-          </div>
+          </span>
           <div className="seller-info">
             <div className="seller-name">
               {gig.seller}
@@ -87,20 +52,48 @@ export default function GigCard({ gig }: { gig: Gig }) {
                 </span>
               )}
             </div>
-            <div className="seller-role">{gig.role}</div>
           </div>
+          {gig.video ? (
+            <button
+              className="gig-watch"
+              type="button"
+              aria-label={t("card.watchIntro")}
+              onClick={() =>
+                openVideo({ src: gig.video as string, title: gig.videoName || gig.title })
+              }
+            >
+              <span className="gig-watch-icon" aria-hidden="true">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+              {t("card.introBadge")}
+            </button>
+          ) : null}
         </div>
-        <div className="gig-meta">
-          <span className="meta-tag">
-            <ClockIcon />
-            {t("card.delivery", { time: gig.delivery })}
-          </span>
-          <span className="meta-tag">
-            <RefreshIcon />
-            {t("card.revisions")}
-          </span>
-        </div>
-        <div className="gig-foot">
+      </div>
+
+      <div className="gig-foot">
+        {gig.skills.length > 0 && (
+          <div className="gig-skills" aria-label={t("card.skillsAria")}>
+            {gig.skills.map((skill) => {
+              const active = selectedSkills.includes(skill);
+              return (
+                <button
+                  key={skill}
+                  type="button"
+                  className={"gig-skill" + (active ? " on" : "")}
+                  aria-pressed={active}
+                  onClick={() => toggleSkill(skill)}
+                >
+                  {skill}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="gig-trade">
           {gig.reviews > 0 ? (
             <span className="rating">
               <span className="stars">{stars(gig.rating)}</span>
@@ -119,6 +112,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
             </span>
           </span>
         </div>
+
         <button className="btn-order" type="button" onClick={handleOrder} disabled={ordering}>
           {ordering ? t("card.openingOrder") : t("card.viewGig")}
         </button>

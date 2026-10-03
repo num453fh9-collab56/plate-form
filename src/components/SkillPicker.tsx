@@ -2,84 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { getCategory, searchSkills } from "@/lib/taxonomy";
 
-/* Strictly curated catalogue of remote digital, tech and creative skills,
-   grouped by discipline. Only these platform-approved skills can be selected. */
-export const SKILL_CATALOG: { category: string; skills: string[] }[] = [
-  {
-    category: "Web & Software Development",
-    skills: [
-      "Full-Stack Development", "Frontend Development", "Backend Development",
-      "React/Next.js", "Node.js", "TypeScript", "JavaScript", "Python", "PHP",
-      "Laravel", "Django", "Java", "C#/.NET", "Go", "REST API", "GraphQL",
-      "API Integration", "SQL", "PostgreSQL", "MongoDB", "DevOps", "Docker",
-      "Kubernetes", "CI/CD", "AWS", "WordPress", "Shopify", "Webflow",
-      "Web Security", "Testing & QA",
-    ],
-  },
-  {
-    category: "Mobile App Development",
-    skills: [
-      "Mobile App Development", "React Native", "Flutter", "Swift (iOS)",
-      "Kotlin (Android)", "Cross-Platform Apps", "App Store Optimization",
-    ],
-  },
-  {
-    category: "AI & Automation",
-    skills: [
-      "AI & Automation", "AI/ML", "Machine Learning", "Deep Learning", "NLP",
-      "Computer Vision", "Generative AI", "Prompt Engineering", "LLM Integration",
-      "Chatbot Development", "TensorFlow", "PyTorch", "Data Analysis",
-      "Data Science", "Data Visualization", "Process Automation",
-      "Zapier / Make", "Power BI", "Tableau",
-    ],
-  },
-  {
-    category: "UI/UX & Web Design",
-    skills: [
-      "UI/UX & Web Design", "UI/UX Design", "Web Design", "Product Design",
-      "Mobile App Design", "Wireframing", "Prototyping", "Design Systems",
-      "Interaction Design", "Figma", "Adobe XD", "Sketch", "Accessibility",
-    ],
-  },
-  {
-    category: "Graphic Design & Branding",
-    skills: [
-      "Graphic Design & Branding", "Graphic Design", "Logo Design",
-      "Brand Identity", "Brand Guidelines", "Illustration", "Typography",
-      "Packaging Design", "Social Media Graphics", "Adobe Photoshop",
-      "Adobe Illustrator", "Canva",
-    ],
-  },
-  {
-    category: "Video Editing & Post-Production",
-    skills: [
-      "Video Editing & Post-Production", "Video Editing", "CapCut",
-      "Adobe Premiere Pro", "After Effects", "DaVinci Resolve", "Motion Graphics",
-      "Color Grading", "Sound Design", "Subtitling",
-      "Short-Form / Reels Editing", "YouTube Video Editing",
-    ],
-  },
-  {
-    category: "Digital Marketing & Growth",
-    skills: [
-      "Digital Marketing & Growth", "Social Media Marketing", "Meta Ads",
-      "Google Ads", "TikTok Ads", "SEO", "SEO & Content Strategy",
-      "Content Marketing", "Email Marketing", "Marketing Automation",
-      "Conversion Optimization", "Analytics & Tracking", "Growth Marketing",
-      "Influencer Marketing",
-    ],
-  },
-  {
-    category: "Writing & Copywriting",
-    skills: [
-      "Professional Copywriting", "Technical Writing", "Blog Writing",
-      "SEO Writing", "Content Writing", "Website Copy", "Ad Copy",
-      "Email Copywriting", "Product Descriptions", "Scriptwriting",
-      "Proofreading & Editing",
-    ],
-  },
-];
+/* ==========================================================================
+   APEX · SKILL PICKER
+   A taxonomy-driven multi-select. Freelancers use it during onboarding; gig
+   owners use it (scoped to the chosen category) when posting a service.
+   Only platform-approved skills can be selected.
+   ========================================================================== */
 
 function CheckIcon() {
   return (
@@ -93,10 +23,20 @@ interface SkillPickerProps {
   value: string[];
   onChange: (skills: string[]) => void;
   placeholder: string;
+  /** When set, only skills belonging to this category label are offered. */
+  category?: string;
   max?: number;
+  className?: string;
 }
 
-export default function SkillPicker({ value, onChange, placeholder, max = 25 }: SkillPickerProps) {
+export default function SkillPicker({
+  value,
+  onChange,
+  placeholder,
+  category,
+  max = 25,
+  className = "",
+}: SkillPickerProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -119,6 +59,7 @@ export default function SkillPicker({ value, onChange, placeholder, max = 25 }: 
   }, []);
 
   const selected = useMemo(() => new Set(value), [value]);
+  const activeCategory = category ? getCategory(category) : undefined;
 
   const toggle = (skill: string) => {
     if (selected.has(skill)) {
@@ -129,16 +70,12 @@ export default function SkillPicker({ value, onChange, placeholder, max = 25 }: 
     onChange([...value, skill]);
   };
 
-  const groups = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return SKILL_CATALOG.map((group) => ({
-      category: group.category,
-      skills: group.skills.filter((skill) => !term || skill.toLowerCase().includes(term)),
-    })).filter((group) => group.skills.length > 0);
-  }, [query]);
+  const groups = useMemo(() => searchSkills(query, category), [query, category]);
+
+  const atLimit = value.length >= max;
 
   return (
-    <div className="skill-picker" ref={boxRef}>
+    <div className={"skill-picker " + className} ref={boxRef}>
       <div
         className={"skill-box" + (open ? " open" : "")}
         onClick={() => {
@@ -175,8 +112,8 @@ export default function SkillPicker({ value, onChange, placeholder, max = 25 }: 
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              const firstMatch = groups[0]?.skills.find((skill) => !selected.has(skill));
-              if (firstMatch) toggle(firstMatch);
+              const firstMatch = groups[0]?.skills.find((skill) => !selected.has(skill.label));
+              if (firstMatch) toggle(firstMatch.label);
             } else if (event.key === "Backspace" && !query && value.length) {
               onChange(value.slice(0, -1));
             }
@@ -186,28 +123,47 @@ export default function SkillPicker({ value, onChange, placeholder, max = 25 }: 
 
       {open && (
         <div className="skill-dropdown">
+          {activeCategory && (
+            <div className="skill-scope">
+              <span className="skill-scope-glyph" aria-hidden="true">
+                {activeCategory.glyph}
+              </span>
+              <span className="skill-scope-copy">
+                <strong>{t(activeCategory.translationKey)}</strong>
+                <small>{activeCategory.tagline}</small>
+              </span>
+              <span className="skill-scope-count">
+                {value.filter((skill) =>
+                  activeCategory.skills.some((item) => item.label === skill),
+                ).length}
+              </span>
+            </div>
+          )}
+
           {groups.map((group) => (
-            <div className="skill-group" key={group.category}>
-              <div className="skill-group-title">{group.category}</div>
+            <div className="skill-group" key={group.id}>
+              <div className="skill-group-title">{t(group.translationKey)}</div>
               <div className="skill-options">
-                {group.skills.map((skill) => (
-                  <button
-                    type="button"
-                    key={skill}
-                    className={"skill-option" + (selected.has(skill) ? " selected" : "")}
-                    onClick={() => toggle(skill)}
-                  >
-                    {selected.has(skill) ? <CheckIcon /> : null}
-                    {skill}
-                  </button>
-                ))}
+                {group.skills.map((skill) => {
+                  const isSelected = selected.has(skill.label);
+                  return (
+                    <button
+                      type="button"
+                      key={skill.id}
+                      className={"skill-option" + (isSelected ? " selected" : "")}
+                      disabled={!isSelected && atLimit}
+                      onClick={() => toggle(skill.label)}
+                    >
+                      {isSelected ? <CheckIcon /> : null}
+                      {skill.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
 
-          {!groups.length && (
-            <div className="skill-empty">{t("profile.skillsNoMatch")}</div>
-          )}
+          {!groups.length && <div className="skill-empty">{t("profile.skillsNoMatch")}</div>}
         </div>
       )}
     </div>

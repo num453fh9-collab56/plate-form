@@ -1,40 +1,34 @@
-import type { Gig, GigColorPair, GigDraft } from "./types";
+import type { Gig, GigDraft } from "./types";
 import type { TranslationKey } from "./i18n";
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  categoryColors,
+  glyphForCategory,
+  isAllowedCategory,
+  isAllowedSkill,
+  normalizeSkills,
+} from "./taxonomy";
 
-export const ACCENT_COLORS: GigColorPair = ["#0066cc", "#003d7a"];
+/* Category metadata is derived from the taxonomy module so there is a single
+   source of truth. Re-exported under the original names for existing callers. */
+export const CATEGORY_OPTIONS: string[] = CATEGORY_LABELS;
 
-export const CATEGORY_GLYPHS: Record<string, string> = {
-  "Web & Software Development": "WD",
-  "Mobile App Development": "MB",
-  "AI & Automation": "AI",
-  "UI/UX & Web Design": "UX",
-  "Graphic Design & Branding": "BR",
-  "Video Editing & Post-Production": "VE",
-  "Digital Marketing & Growth": "DM",
-  "Writing & Copywriting": "WR",
-};
+export const CATEGORY_GLYPHS: Record<string, string> = Object.fromEntries(
+  CATEGORIES.map((category) => [category.label, category.glyph]),
+);
 
-export const CATEGORY_OPTIONS: string[] = [
-  "Web & Software Development",
-  "Mobile App Development",
-  "AI & Automation",
-  "UI/UX & Web Design",
-  "Graphic Design & Branding",
-  "Video Editing & Post-Production",
-  "Digital Marketing & Growth",
-  "Writing & Copywriting",
-];
+export const CATEGORY_LABEL_KEYS: Record<string, TranslationKey> = Object.fromEntries(
+  CATEGORIES.map((category) => [category.label, category.translationKey]),
+);
 
-export const CATEGORY_LABEL_KEYS: Record<string, TranslationKey> = {
-  "Web & Software Development": "cat.webdev",
-  "Mobile App Development": "cat.mobile",
-  "AI & Automation": "cat.ai",
-  "UI/UX & Web Design": "cat.uiux",
-  "Graphic Design & Branding": "cat.branding",
-  "Video Editing & Post-Production": "cat.video",
-  "Digital Marketing & Growth": "cat.marketing",
-  "Writing & Copywriting": "cat.writing",
-};
+export function glyphFor(category: string): string {
+  return glyphForCategory(category);
+}
+
+export function isCategory(value: string): boolean {
+  return isAllowedCategory(value);
+}
 
 export const SEED_GIGS: Gig[] = [
   {
@@ -49,10 +43,13 @@ export const SEED_GIGS: Gig[] = [
     reviews: 412,
     price: 450,
     delivery: "5 days",
-    category: "Web & Software Development",
+    category: "Web Development",
+    skills: ["Full-Stack Development", "React", "Node.js", "PostgreSQL", "REST APIs"],
     badge: "Top Rated",
-    colors: ["#0066cc", "#003d7a"],
-    glyph: "WD",
+    colors: categoryColors("Web Development"),
+    glyph: glyphForCategory("Web Development"),
+    video: "/videos/developer.mp4",
+    videoName: "Full-stack build demo",
   },
   {
     id: "seed-02",
@@ -66,10 +63,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 288,
     price: 320,
     delivery: "3 days",
-    category: "UI/UX & Web Design",
+    category: "UI/UX Design",
+    skills: ["UI Design", "Design Systems", "Figma", "Prototyping", "Accessibility"],
     badge: "Pro",
-    colors: ["#2b7bc4", "#10508f"],
-    glyph: "UX",
+    colors: categoryColors("UI/UX Design"),
+    glyph: glyphForCategory("UI/UX Design"),
   },
   {
     id: "seed-03",
@@ -83,10 +81,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 531,
     price: 260,
     delivery: "7 days",
-    category: "Digital Marketing & Growth",
+    category: "Paid Marketing",
+    skills: ["SEO", "Content Marketing", "Google Analytics", "Conversion Optimization (CRO)"],
     badge: "Best Seller",
-    colors: ["#4a90d9", "#1f5f9e"],
-    glyph: "DM",
+    colors: categoryColors("Paid Marketing"),
+    glyph: glyphForCategory("Paid Marketing"),
   },
   {
     id: "seed-04",
@@ -100,10 +99,13 @@ export const SEED_GIGS: Gig[] = [
     reviews: 194,
     price: 180,
     delivery: "4 days",
-    category: "Video Editing & Post-Production",
+    category: "Video Production",
+    skills: ["Video Editing", "Color Grading", "Motion Graphics", "Sound Design"],
     badge: "Pro",
-    colors: ["#0a5aa8", "#062f5c"],
-    glyph: "VE",
+    colors: categoryColors("Video Production"),
+    glyph: glyphForCategory("Video Production"),
+    video: "/videos/showcase-1.mp4",
+    videoName: "Cinematic reel",
   },
   {
     id: "seed-05",
@@ -117,10 +119,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 137,
     price: 900,
     delivery: "10 days",
-    category: "AI & Automation",
+    category: "AI Agents",
+    skills: ["Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Data Science"],
     badge: "Top Rated",
-    colors: ["#1a6fbf", "#0b3f73"],
-    glyph: "AI",
+    colors: categoryColors("AI Agents"),
+    glyph: glyphForCategory("AI Agents"),
   },
   {
     id: "seed-06",
@@ -135,9 +138,10 @@ export const SEED_GIGS: Gig[] = [
     price: 120,
     delivery: "2 days",
     category: "Writing & Copywriting",
+    skills: ["SEO Writing", "Blog Writing", "Technical Writing", "Content Writing"],
     badge: "Best Seller",
-    colors: ["#2f80c9", "#134f85"],
-    glyph: "WR",
+    colors: categoryColors("Writing & Copywriting"),
+    glyph: glyphForCategory("Writing & Copywriting"),
   },
   {
     id: "seed-07",
@@ -151,10 +155,13 @@ export const SEED_GIGS: Gig[] = [
     reviews: 356,
     price: 390,
     delivery: "6 days",
-    category: "Web & Software Development",
+    category: "Web Development",
+    skills: ["Shopify", "WordPress", "Full-Stack Development", "API Integration"],
     badge: "Pro",
-    colors: ["#0066cc", "#002f5c"],
-    glyph: "WD",
+    colors: categoryColors("Web Development"),
+    glyph: glyphForCategory("Web Development"),
+    video: "/videos/ecommerce.mp4",
+    videoName: "Store walkthrough",
   },
   {
     id: "seed-08",
@@ -168,10 +175,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 221,
     price: 420,
     delivery: "5 days",
-    category: "UI/UX & Web Design",
+    category: "UI/UX Design",
+    skills: ["Mobile App Design", "UI Design", "Prototyping", "Figma"],
     badge: "Best Seller",
-    colors: ["#3d8fd0", "#1a5794"],
-    glyph: "UX",
+    colors: categoryColors("UI/UX Design"),
+    glyph: glyphForCategory("UI/UX Design"),
   },
   {
     id: "seed-09",
@@ -185,10 +193,18 @@ export const SEED_GIGS: Gig[] = [
     reviews: 302,
     price: 210,
     delivery: "3 days",
-    category: "Video Editing & Post-Production",
+    category: "Video Production",
+    skills: [
+      "Video Editing",
+      "YouTube Video Editing",
+      "Short-Form / Reels Editing",
+      "CapCut",
+    ],
     badge: "Pro",
-    colors: ["#1470c2", "#0a3f6e"],
-    glyph: "VE",
+    colors: categoryColors("Video Production"),
+    glyph: glyphForCategory("Video Production"),
+    video: "/videos/showcase-2.mp4",
+    videoName: "Short-form reel",
   },
   {
     id: "seed-10",
@@ -202,10 +218,17 @@ export const SEED_GIGS: Gig[] = [
     reviews: 96,
     price: 750,
     delivery: "8 days",
-    category: "AI & Automation",
+    category: "AI Agents",
+    skills: [
+      "LLM Integration",
+      "Chatbot Development",
+      "NLP",
+      "Prompt Engineering",
+      "OpenAI API",
+    ],
     badge: "Top Rated",
-    colors: ["#1f74bf", "#0c3e69"],
-    glyph: "AI",
+    colors: categoryColors("AI Agents"),
+    glyph: glyphForCategory("AI Agents"),
   },
   {
     id: "seed-11",
@@ -219,10 +242,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 168,
     price: 150,
     delivery: "7 days",
-    category: "UI/UX & Web Design",
+    category: "UI/UX Design",
+    skills: ["Landing Page Design", "Web Design", "UI Design", "Wireframing"],
     badge: "Rising Talent",
-    colors: ["#4d97d6", "#2263a0"],
-    glyph: "UX",
+    colors: categoryColors("UI/UX Design"),
+    glyph: glyphForCategory("UI/UX Design"),
   },
   {
     id: "seed-12",
@@ -236,10 +260,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 143,
     price: 220,
     delivery: "4 days",
-    category: "AI & Automation",
+    category: "AI Agents",
+    skills: ["AI Automation", "Workflow Automation", "Chatbot Development", "Zapier"],
     badge: "Pro",
-    colors: ["#0f63b0", "#07375f"],
-    glyph: "AI",
+    colors: categoryColors("AI Agents"),
+    glyph: glyphForCategory("AI Agents"),
   },
   {
     id: "seed-13",
@@ -254,9 +279,10 @@ export const SEED_GIGS: Gig[] = [
     price: 340,
     delivery: "6 days",
     category: "Graphic Design & Branding",
+    skills: ["Brand Identity", "Logo Design", "Brand Guidelines", "Visual Identity"],
     badge: "Top Rated",
-    colors: ["#2f7fc9", "#0f4c81"],
-    glyph: "BR",
+    colors: categoryColors("Graphic Design & Branding"),
+    glyph: glyphForCategory("Graphic Design & Branding"),
   },
   {
     id: "seed-14",
@@ -270,10 +296,11 @@ export const SEED_GIGS: Gig[] = [
     reviews: 187,
     price: 300,
     delivery: "5 days",
-    category: "Digital Marketing & Growth",
+    category: "Paid Marketing",
+    skills: ["Meta Ads", "Google Ads", "Campaign Management", "Conversion Optimization (CRO)"],
     badge: "Pro",
-    colors: ["#3b8ad2", "#155a94"],
-    glyph: "DM",
+    colors: categoryColors("Paid Marketing"),
+    glyph: glyphForCategory("Paid Marketing"),
   },
   {
     id: "seed-15",
@@ -288,9 +315,10 @@ export const SEED_GIGS: Gig[] = [
     price: 680,
     delivery: "9 days",
     category: "Mobile App Development",
+    skills: ["React Native", "Flutter", "Cross-Platform Apps", "Mobile App Development"],
     badge: "Top Rated",
-    colors: ["#156fc0", "#0a3f72"],
-    glyph: "MB",
+    colors: categoryColors("Mobile App Development"),
+    glyph: glyphForCategory("Mobile App Development"),
   },
   {
     id: "seed-16",
@@ -305,22 +333,20 @@ export const SEED_GIGS: Gig[] = [
     price: 140,
     delivery: "3 days",
     category: "Writing & Copywriting",
+    skills: ["Professional Copywriting", "Ad Copy", "Email Copywriting", "Website Copy"],
     badge: "Best Seller",
-    colors: ["#2b82cd", "#104f88"],
-    glyph: "WR",
+    colors: categoryColors("Writing & Copywriting"),
+    glyph: glyphForCategory("Writing & Copywriting"),
   },
-];
-
-export function glyphFor(category: string): string {
-  return CATEGORY_GLYPHS[category] ?? CATEGORY_GLYPHS[CATEGORY_OPTIONS[0]];
-}
-
-export function isCategory(value: string): boolean {
-  return CATEGORY_OPTIONS.includes(value);
-}
+].map((gig) => ({
+  ...gig,
+  // Guard the seed data against typos — only allowed skills survive.
+  skills: normalizeSkills(gig.skills, gig.category),
+}));
 
 export function createGig(draft: GigDraft): Gig {
   const days = draft.deliveryDays;
+  const category = isAllowedCategory(draft.category) ? draft.category : CATEGORY_OPTIONS[0];
   return {
     id:
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -335,10 +361,15 @@ export function createGig(draft: GigDraft): Gig {
     reviews: 0,
     price: draft.price,
     delivery: `${days} ${days === 1 ? "day" : "days"}`,
-    category: isCategory(draft.category) ? draft.category : CATEGORY_OPTIONS[0],
+    category,
+    skills: normalizeSkills(draft.skills, category),
     badge: "New",
-    colors: ACCENT_COLORS,
-    glyph: glyphFor(draft.category),
+    colors: categoryColors(category),
+    glyph: glyphForCategory(category),
+    video: draft.video?.trim() || undefined,
+    videoName: draft.videoName?.trim() || undefined,
     isNew: true,
   };
 }
+
+export { isAllowedSkill };

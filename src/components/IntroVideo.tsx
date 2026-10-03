@@ -10,6 +10,7 @@ import {
   MAX_VIDEO_BYTES,
   readFileAsDataUrl,
 } from "@/lib/media";
+import VideoPlayer from "./VideoPlayer";
 
 const MAX_MB = Math.round(MAX_VIDEO_BYTES / 1048576);
 
@@ -171,9 +172,7 @@ export default function IntroVideo({ src, name, onChange }: IntroVideoProps) {
   if (src) {
     return (
       <div className="intro-video">
-        <div className="intro-video-frame">
-          <video src={src} controls playsInline preload="metadata" />
-        </div>
+        <VideoPlayer src={src} title={name || t("video.ready")} />
         <div className="intro-video-meta">
           <span className="intro-video-name">{name || t("video.ready")}</span>
           {/^https?:/i.test(src) ? null : (

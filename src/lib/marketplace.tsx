@@ -10,7 +10,8 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { createExternalStore } from "./external-store";
-import { createGig, SEED_GIGS } from "./gigs";
+import { CATEGORY_OPTIONS, createGig, SEED_GIGS } from "./gigs";
+import { isAllowedCategory } from "./taxonomy";
 import type { Gig, GigDraft } from "./types";
 
 const POSTED_KEY = "wv_posted_gigs";
@@ -22,7 +23,13 @@ function readPostedGigs(): Gig[] {
     if (!raw) return EMPTY_GIGS;
     const parsed = JSON.parse(raw) as Gig[];
     if (!Array.isArray(parsed)) return EMPTY_GIGS;
-    return parsed.filter((gig) => gig && typeof gig.title === "string");
+    return parsed
+      .filter((gig) => gig && typeof gig.title === "string")
+      .map((gig) => ({
+        ...gig,
+        skills: Array.isArray(gig.skills) ? gig.skills : [],
+        category: isAllowedCategory(gig.category) ? gig.category : CATEGORY_OPTIONS[0],
+      }));
   } catch {
     return EMPTY_GIGS;
   }
@@ -44,6 +51,10 @@ interface MarketplaceValue {
   setQuery: (value: string) => void;
   category: string;
   setCategory: (value: string) => void;
+  selectedSkills: string[];
+  toggleSkill: (skill: string) => void;
+  setSkills: (skills: string[]) => void;
+  clearFilters: () => void;
   addGig: (draft: GigDraft) => Gig;
 }
 
@@ -57,8 +68,23 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   );
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
   const gigs = useMemo(() => [...posted, ...SEED_GIGS], [posted]);
+
+  const toggleSkill = useCallback((skill: string) => {
+    setSelectedSkills((current) =>
+      current.includes(skill)
+        ? current.filter((item) => item !== skill)
+        : [...current, skill],
+    );
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setQuery("");
+    setCategory("All");
+    setSelectedSkills([]);
+  }, []);
 
   const addGig = useCallback((draft: GigDraft) => {
     const gig = createGig(draft);
@@ -69,8 +95,19 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<MarketplaceValue>(
-    () => ({ gigs, query, setQuery, category, setCategory, addGig }),
-    [gigs, query, category, addGig],
+    () => ({
+      gigs,
+      query,
+      setQuery,
+      category,
+      setCategory,
+      selectedSkills,
+      toggleSkill,
+      setSkills: setSelectedSkills,
+      clearFilters,
+      addGig,
+    }),
+    [gigs, query, category, selectedSkills, toggleSkill, clearFilters, addGig],
   );
 
   return (

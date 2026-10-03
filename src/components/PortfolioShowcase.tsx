@@ -10,11 +10,12 @@ import {
   coverStyle,
   portfolioGlyph,
 } from "@/lib/portfolio";
-
+import VideoPlayer from "./VideoPlayer";
 /* ==========================================================================
    APEX · PORTFOLIO SHOWCASE
    A clean, light-mode grid of digital projects from Apex professionals.
-   Signed-in users see their own projects pinned to the front of the grid.
+   Signed-in users see their own projects pinned to the front of the grid,
+   plus a featured intro video buyers can play without leaving the page.
    ========================================================================== */
 
 function ExternalIcon() {
@@ -27,26 +28,77 @@ function ExternalIcon() {
   );
 }
 
+function PlayIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
 function ProjectCard({
   project,
   mine,
   mineLabel,
   previewLabel,
+  watchLabel,
 }: {
   project: PortfolioProject;
   mine?: boolean;
   mineLabel: string;
   previewLabel: string;
+  watchLabel: string;
 }) {
-  return (
-    <article className={"project-card" + (mine ? " is-mine" : "")}>
-      <div className="project-cover" style={coverStyle(project.cover)}>
+  const { openVideo } = useUI();
+  const hasVideo = Boolean(project.video);
+
+  const coverInner = (
+    <>
+      {project.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="project-image"
+          src={project.image}
+          alt={project.title}
+          loading="lazy"
+        />
+      ) : (
         <span className="project-glyph" aria-hidden="true">
           {portfolioGlyph(project.category)}
         </span>
-        <span className="project-cat">{project.category}</span>
-        {mine ? <span className="project-mine">{mineLabel}</span> : null}
-      </div>
+      )}
+      <span className="project-cat">{project.category}</span>
+      {mine ? <span className="project-mine">{mineLabel}</span> : null}
+      {hasVideo ? (
+        <span className="video-play" aria-hidden="true">
+          <PlayIcon />
+        </span>
+      ) : null}
+    </>
+  );
+
+  return (
+    <article className={"project-card" + (mine ? " is-mine" : "")}>
+      {hasVideo ? (
+        <button
+          type="button"
+          className="project-cover project-cover-play"
+          style={project.image ? undefined : coverStyle(project.cover)}
+          aria-label={watchLabel}
+          onClick={() =>
+            openVideo({
+              src: project.video as string,
+              title: project.videoName || project.title,
+            })
+          }
+        >
+          {coverInner}
+        </button>
+      ) : (
+        <div className="project-cover" style={project.image ? undefined : coverStyle(project.cover)}>
+          {coverInner}
+        </div>
+      )}
       <div className="project-body">
         <h3>{project.title}</h3>
         {project.summary ? <p>{project.summary}</p> : null}
@@ -102,6 +154,23 @@ export default function PortfolioShowcase() {
           </button>
         </div>
 
+        {user && profile.introVideo ? (
+          <div className="portfolio-intro">
+            <div className="portfolio-intro-media">
+              <VideoPlayer
+                src={profile.introVideo}
+                title={profile.introVideoName || t("video.introTitle")}
+              />
+            </div>
+            <div className="portfolio-intro-copy">
+              <span className="kicker">{t("video.introKicker")}</span>
+              <h3>{profile.fullName || user.name}</h3>
+              <p>{profile.title || t("profile.subtitle")}</p>
+              {profile.bio ? <p className="portfolio-intro-bio">{profile.bio}</p> : null}
+            </div>
+          </div>
+        ) : null}
+
         <div className="project-grid">
           {projects.map((project) => (
             <ProjectCard
@@ -110,6 +179,7 @@ export default function PortfolioShowcase() {
               mine={mine.some((item) => item.id === project.id)}
               mineLabel={t("portfolio.yours")}
               previewLabel={t("portfolio.livePreview")}
+              watchLabel={t("portfolio.watch")}
             />
           ))}
         </div>

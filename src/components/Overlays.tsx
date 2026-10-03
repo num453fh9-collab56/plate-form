@@ -7,6 +7,7 @@ import PostProjectModal from "./PostProjectModal";
 import AuthModal from "./AuthModal";
 import ProfileBuilder from "./ProfileBuilder";
 import AccountSettings from "./AccountSettings";
+import VideoLightbox from "./VideoLightbox";
 
 const ONBOARD_KEY = "wv_onboard_prompted";
 
@@ -45,6 +46,7 @@ export default function Overlays() {
       <AuthModal />
       <ProfileBuilder />
       <AccountSettings />
+      <VideoLightbox />
       <div
         className={"toast" + (toastVisible ? " show" : "")}
         role="status"

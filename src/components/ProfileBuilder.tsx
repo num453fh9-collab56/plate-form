@@ -1,14 +1,39 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useAuth } from "@/lib/auth";
+import { createExternalStore } from "@/lib/external-store";
+import type { ExternalStore } from "@/lib/external-store";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
 import { initials } from "@/lib/format";
+import { isAllowedCategory } from "@/lib/taxonomy";
 import { MAX_AVATAR_SOURCE_BYTES, resizeImageToSquare } from "@/lib/media";
-import SkillPicker from "./SkillPicker";
-import IntroVideo from "./IntroVideo";
+import type { Profile } from "@/lib/types";
+import BasicInformationStep from "./BasicInformationStep";
+import type { BasicInformationValues } from "./BasicInformationStep";
+import SkillsStep from "./SkillsStep";
+import type { SkillsValues } from "./SkillsStep";
+import BioPortfolioStep from "./BioPortfolioStep";
+import type { BioPortfolioValues } from "./BioPortfolioStep";
+import ReviewStep from "./ReviewStep";
+
+/* ==========================================================================
+   APEX · PROFILE WIZARD
+   The profile settings surface, broken into four progressive steps:
+
+     1 · Basic info              identity, location, contact
+     2 · Skills & expertise      category, skills, availability
+     3 · Bio & portfolio         bio, website, intro video, projects
+     4 · Review                  read-only summary, then publish
+
+   Every keystroke writes through `updateProfile`, which persists to
+   localStorage immediately — so progress is never lost when moving between
+   steps, closing the modal, or reloading the page. The active step index is
+   persisted separately so reopening the wizard resumes where the user left off.
+   ========================================================================== */
 
 const AVAILABILITY: {
   value: string;
@@ -20,15 +45,103 @@ const AVAILABILITY: {
   { value: "Not available right now", key: "profile.availNot" },
 ];
 
+interface StepDef {
+  id: "basic" | "skills" | "bio" | "review";
+  titleKey: TranslationKey;
+  subKey: TranslationKey;
+}
+
+const STEPS: StepDef[] = [
+  { id: "basic", titleKey: "wizard.step1Title", subKey: "wizard.step1Sub" },
+  { id: "skills", titleKey: "wizard.step2Title", subKey: "wizard.step2Sub" },
+  { id: "bio", titleKey: "wizard.step3Title", subKey: "wizard.step3Sub" },
+  { id: "review", titleKey: "wizard.step4Title", subKey: "wizard.step4Sub" },
+];
+
+const LAST_STEP = STEPS.length - 1;
+const BASIC_STEP = 0;
+const SKILLS_STEP = 1;
+const BIO_STEP = 2;
+
+/** Fields that must be filled before a profile is considered publishable.
+ *  Each entry declares which step owns the field, so inline errors only ever
+ *  appear against the step that can actually fix them. */
+interface Requirement {
+  key: keyof Profile;
+  step: number;
+  valid: (profile: Profile) => boolean;
+}
+
+const REQUIREMENTS: Requirement[] = [
+  { key: "avatar", step: BASIC_STEP, valid: (p) => p.avatar.trim().length > 0 },
+  { key: "fullName", step: BASIC_STEP, valid: (p) => p.fullName.trim().length >= 2 },
+  { key: "title", step: BASIC_STEP, valid: (p) => p.title.trim().length >= 3 },
+  { key: "phone", step: BASIC_STEP, valid: (p) => p.phone.replace(/\D/g, "").length >= 7 },
+  { key: "primaryCategory", step: SKILLS_STEP, valid: (p) => isAllowedCategory(p.primaryCategory) },
+  { key: "bio", step: BIO_STEP, valid: (p) => p.bio.trim().length >= 40 },
+];
+
+function requirementFor(key: keyof Profile): Requirement {
+  return (
+    REQUIREMENTS.find((item) => item.key === key) ?? {
+      key,
+      step: BASIC_STEP,
+      valid: () => true,
+    }
+  );
+}
+
+/* ---------------- persisted step index (per account) ----------------
+   Backed by the same external-store pattern used by auth and i18n: the server
+   always renders step 1, then the client picks up the stored position after
+   hydration. This keeps progress across reloads without a setState-in-effect. */
+
+const STEP_STORE_PREFIX = "wv_wizard_step:";
+const EMPTY_STEP_STORE = createExternalStore<number>(() => 0, 0);
+const STEP_STORES = new Map<string, ExternalStore<number>>();
+
+function stepStore(accountId: string): ExternalStore<number> {
+  const existing = STEP_STORES.get(accountId);
+  if (existing) return existing;
+  const created = createExternalStore<number>(() => {
+    try {
+      const parsed = Number(window.localStorage.getItem(STEP_STORE_PREFIX + accountId));
+      if (Number.isInteger(parsed) && parsed >= 0 && parsed <= LAST_STEP) return parsed;
+    } catch {
+      /* storage unavailable */
+    }
+    return 0;
+  }, 0);
+  STEP_STORES.set(accountId, created);
+  return created;
+}
+
+function persistStep(accountId: string, step: number): void {
+  try {
+    if (step <= 0) {
+      window.localStorage.removeItem(STEP_STORE_PREFIX + accountId);
+    } else {
+      window.localStorage.setItem(STEP_STORE_PREFIX + accountId, String(step));
+    }
+  } catch {
+    /* storage unavailable */
+  }
+  if (accountId) stepStore(accountId).set(step);
+}
+
+/* ------------------------------ primitives ------------------------------ */
+
 function Field({
   label,
   required,
   error,
+  hint,
   children,
 }: {
   label: string;
   required?: boolean;
   error?: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
@@ -38,17 +151,62 @@ function Field({
         {required ? <span className="req"> *</span> : null}
       </label>
       {children}
+      {hint ? <span className="field-hint">{hint}</span> : null}
       <span className="error-msg">{error}</span>
     </div>
   );
 }
 
-function ProfileEditor() {
+function WizardCard({ children }: { children: ReactNode }) {
+  return <div className="wiz-card">{children}</div>;
+}
+
+function CheckMark() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+/* ============================== the wizard ============================== */
+
+function ProfileWizard() {
   const { closeProfile, toast } = useUI();
-  const { user, profile, strength, updateProfile } = useAuth();
+  const { user, account, profile, strength, updateProfile } = useAuth();
   const { t } = useI18n();
-  const [triedSave, setTriedSave] = useState(false);
+
+  const accountId = account?.id ?? "";
+  const store = useMemo(
+    () => (accountId ? stepStore(accountId) : EMPTY_STEP_STORE),
+    [accountId],
+  );
+  const step = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot,
+  );
+  /* Steps the user has visited — their errors stay visible until fixed. */
+  const [revealed, setRevealed] = useState<number[]>([]);
   const avatarRef = useRef<HTMLInputElement>(null);
+  const [basicInfo, setBasicInfo] = useState<BasicInformationValues>(() => ({
+    fullName: profile.fullName,
+    headline: profile.title,
+    profilePictureUrl: profile.avatar,
+  }));
+  const [skillsInfo, setSkillsInfo] = useState<SkillsValues>(() => ({
+    primaryCategory: profile.primaryCategory,
+    skills: profile.skills,
+  }));
+  const [bioInfo, setBioInfo] = useState<BioPortfolioValues>(() => ({
+    bio: profile.bio,
+    hourlyRate: profile.hourlyRate,
+    projectRate: profile.projectRate,
+    portfolio: profile.portfolio,
+    introVideo: profile.introVideo,
+    introVideoName: profile.introVideoName,
+    portfolioProjects: profile.portfolioProjects,
+  }));
 
   useEffect(() => {
     document.body.classList.add("modal-open");
@@ -62,18 +220,28 @@ function ProfileEditor() {
     };
   }, [closeProfile]);
 
-  if (!user) return null;
+  const gotoStep = useCallback(
+    (next: number) => {
+      const clamped = Math.max(0, Math.min(LAST_STEP, next));
+      setRevealed((prev) => (prev.includes(clamped) ? prev : [...prev, clamped]));
+      persistStep(accountId, clamped);
+    },
+    [accountId],
+  );
 
-  const required = {
-    fullName: profile.fullName.trim().length >= 2,
-    title: profile.title.trim().length >= 3,
-    bio: profile.bio.trim().length >= 40,
-    phone: profile.phone.replace(/\D/g, "").length >= 7,
-    avatar: profile.avatar.trim().length > 0,
-  };
+  const errorFor = useCallback(
+    (key: keyof Profile): string => {
+      const requirement = requirementFor(key);
+      if (!revealed.includes(requirement.step)) return "";
+      return requirement.valid(profile) ? "" : t("profile.fieldRequired");
+    },
+    [revealed, profile, t],
+  );
 
-  const fieldError = (key: keyof typeof required) =>
-    triedSave && !required[key] ? t("profile.fieldRequired") : "";
+  const missingRequired = useMemo(
+    () => REQUIREMENTS.filter((item) => !item.valid(profile)),
+    [profile],
+  );
 
   const onAvatar = async (file: File) => {
     if (file.size > MAX_AVATAR_SOURCE_BYTES) {
@@ -82,20 +250,257 @@ function ProfileEditor() {
     }
     try {
       const dataUrl = await resizeImageToSquare(file);
+      setBasicInfo((prev) => ({ ...prev, profilePictureUrl: dataUrl }));
       updateProfile({ avatar: dataUrl });
     } catch {
       toast(t("video.errRead"));
     }
   };
 
-  const save = () => {
-    setTriedSave(true);
-    if (!Object.values(required).every(Boolean)) {
-      toast(t("profile.fieldRequired"));
-      return;
+  const updateBasicInfo = (patch: Partial<BasicInformationValues>) => {
+    const next = { ...basicInfo, ...patch };
+    setBasicInfo(next);
+    updateProfile({
+      fullName: next.fullName,
+      title: next.headline,
+      avatar: next.profilePictureUrl,
+    });
+  };
+
+  const updateSkillsInfo = (patch: Partial<SkillsValues>) => {
+    setSkillsInfo((prev) => ({ ...prev, ...patch }));
+  };
+
+  const updateBioInfo = (patch: Partial<BioPortfolioValues>) => {
+    setBioInfo((prev) => ({ ...prev, ...patch }));
+  };
+
+  const commitStep = (stepIndex: number) => {
+    if (stepIndex === BASIC_STEP) {
+      updateProfile({
+        fullName: basicInfo.fullName,
+        title: basicInfo.headline,
+        avatar: basicInfo.profilePictureUrl,
+      });
     }
-    const persisted = updateProfile({});
+    if (stepIndex === SKILLS_STEP) {
+      updateProfile({
+        primaryCategory: skillsInfo.primaryCategory,
+        skills: skillsInfo.skills,
+      });
+    }
+    if (stepIndex === BIO_STEP) {
+      updateProfile({
+        bio: bioInfo.bio,
+        hourlyRate: bioInfo.hourlyRate,
+        projectRate: bioInfo.projectRate,
+        portfolio: bioInfo.portfolio,
+        introVideo: bioInfo.introVideo,
+        introVideoName: bioInfo.introVideoName,
+        portfolioProjects: bioInfo.portfolioProjects,
+      });
+    }
+  };
+
+  const finish = () => {
+    const persisted = updateProfile({
+      fullName: basicInfo.fullName,
+      title: basicInfo.headline,
+      avatar: basicInfo.profilePictureUrl,
+      primaryCategory: skillsInfo.primaryCategory,
+      skills: skillsInfo.skills,
+      bio: bioInfo.bio,
+      hourlyRate: bioInfo.hourlyRate,
+      projectRate: bioInfo.projectRate,
+      portfolio: bioInfo.portfolio,
+      introVideo: bioInfo.introVideo,
+      introVideoName: bioInfo.introVideoName,
+      portfolioProjects: bioInfo.portfolioProjects,
+      profilePublic: true,
+    });
+    persistStep(accountId, 0);
     toast(persisted ? t("profile.saved") : t("video.quota"));
+    closeProfile();
+  };
+
+if (!user) return null;
+
+const active = STEPS[step];
+const progress = Math.round(((step + 1) / STEPS.length) * 100);
+const fallbackInitials = initials(profile.fullName || user.name);
+
+  /* ------------------------------ step 1 ------------------------------ */
+  function renderBasic() {
+    return (
+      <>
+        <WizardCard>
+          <div className="wiz-card-head">
+            <h3>{t("profile.photo")}</h3>
+            <p>{t("profile.photoSub")}</p>
+          </div>
+          <div className="avatar-upload">
+            <div className="avatar-preview">
+              {profile.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar} alt="" />
+              ) : (
+                fallbackInitials
+              )}
+            </div>
+            <div className="avatar-actions">
+              <button
+                type="button"
+                className="btn-ghost btn-sm"
+                onClick={() => avatarRef.current?.click()}
+              >
+                {profile.avatar ? t("profile.photoChange") : t("profile.photoUpload")}
+              </button>
+              {profile.avatar && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm danger"
+                  onClick={() => {
+                    setBasicInfo((prev) => ({ ...prev, profilePictureUrl: "" }));
+                    updateProfile({ avatar: "" });
+                  }}
+                >
+                  {t("profile.remove")}
+                </button>
+              )}
+            </div>
+            {errorFor("avatar") ? <p className="wiz-inline-error">{errorFor("avatar")}</p> : null}
+            <input
+              ref={avatarRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void onAvatar(file);
+                event.target.value = "";
+              }}
+            />
+          </div>
+        </WizardCard>
+
+        <BasicInformationStep
+          values={basicInfo}
+          errors={{
+            fullName: errorFor("fullName"),
+            headline: errorFor("title"),
+          }}
+          onChange={updateBasicInfo}
+        />
+
+        <WizardCard>
+          <div className="wiz-card-head">
+            <h3>{t("profile.contact")}</h3>
+            <p>{t("profile.contactSub")}</p>
+          </div>
+          <div className="field-grid">
+            <Field label={t("profile.country")}>
+              <input
+                type="text"
+                value={profile.country}
+                placeholder={t("profile.countryPlaceholder")}
+                onChange={(event) => updateProfile({ country: event.target.value })}
+              />
+            </Field>
+            <Field label={t("profile.languages")}>
+              <input
+                type="text"
+                value={profile.languages}
+                placeholder={t("profile.languagesPlaceholder")}
+                onChange={(event) => updateProfile({ languages: event.target.value })}
+              />
+            </Field>
+            <Field label={t("profile.phone")} required error={errorFor("phone")}>
+              <input
+                type="tel"
+                autoComplete="tel"
+                value={profile.phone}
+                placeholder={t("profile.phonePlaceholder")}
+                onChange={(event) => updateProfile({ phone: event.target.value })}
+              />
+            </Field>
+          </div>
+        </WizardCard>
+      </>
+    );
+  }
+
+  /* ------------------------------ step 2 ------------------------------ */
+  function renderSkills() {
+    return (
+      <>
+        <SkillsStep
+          values={skillsInfo}
+          errors={{ primaryCategory: errorFor("primaryCategory") }}
+          onChange={updateSkillsInfo}
+        />
+
+        <WizardCard>
+          <div className="wiz-card-head">
+            <h3>{t("profile.work")}</h3>
+            <p>{t("profile.workSub")}</p>
+          </div>
+          <div className="field-grid">
+            <Field label={t("profile.availability")}>
+              <select
+                value={profile.availability}
+                onChange={(event) => updateProfile({ availability: event.target.value })}
+              >
+                <option value="">&mdash;</option>
+                {AVAILABILITY.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.key)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </WizardCard>
+      </>
+    );
+  }
+
+  /* ------------------------------ step 3 ------------------------------ */
+  function renderBio() {
+    return (
+      <BioPortfolioStep
+        values={bioInfo}
+        errors={{ bio: errorFor("bio") }}
+        onChange={updateBioInfo}
+      />
+    );
+  }
+
+  /* ------------------------------ step 4 ------------------------------ */
+  function renderReview() {
+    return (
+      <>
+        {missingRequired.length > 0 && (
+          <p className="wiz-review-note">{t("wizard.reviewIncomplete")}</p>
+        )}
+        <ReviewStep
+          profile={profile}
+          strength={strength}
+          onEdit={(section) => {
+            if (section === "basic") gotoStep(BASIC_STEP);
+            if (section === "skills") gotoStep(SKILLS_STEP);
+            if (section === "bio") gotoStep(BIO_STEP);
+          }}
+          onPublish={finish}
+        />
+      </>
+    );
+  }
+
+  const panels: Record<StepDef["id"], () => ReactNode> = {
+    basic: renderBasic,
+    skills: renderSkills,
+    bio: renderBio,
+    review: renderReview,
   };
 
   return (
@@ -108,263 +513,79 @@ function ProfileEditor() {
         if (event.target === event.currentTarget) closeProfile();
       }}
     >
-      <div className="profile-modal">
-        <div className="profile-head">
-          <div className="profile-head-id">
-            {profile.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="profile-head-avatar" src={profile.avatar} alt="" />
-            ) : (
-              <span className="profile-head-avatar profile-head-initials">
-                {initials(profile.fullName || user.name)}
-              </span>
-            )}
-            <div className="profile-head-info">
-              <strong id="profileTitle">{t("profile.title")}</strong>
-              <span>{profile.title || t("profile.subtitle")}</span>
-            </div>
+      <div className="profile-modal wiz-modal">
+        <div className="wiz-head">
+          <div className="wiz-head-copy">
+            <span className="wiz-kicker">
+              {t("wizard.kicker")} ·{" "}
+              {t("wizard.stepOf", { current: step + 1, total: STEPS.length })}
+            </span>
+            <h2 id="profileTitle">{t(active.titleKey)}</h2>
+            <p>{t(active.subKey)}</p>
           </div>
-          <button className="modal-close" type="button" aria-label="Close" onClick={closeProfile}>
+          <button className="modal-close" type="button" aria-label={t("common.close")} onClick={closeProfile}>
             &times;
           </button>
         </div>
 
-        <div className="profile-body">
-          <aside className="profile-side">
-            <div className="strength-card">
-              <div
-                className="strength-ring"
-                style={{
-                  background: `conic-gradient(var(--accent) ${strength.percent}%, var(--line) ${strength.percent}%)`,
-                }}
-              >
-                <div className="strength-ring-inner">
-                  <strong>{strength.percent}%</strong>
-                  <span>
-                    {strength.completed}/{strength.total}
-                  </span>
-                </div>
-              </div>
-              <div className="strength-copy">
-                <h3>{t("profile.strength")}</h3>
-                <p>{t("profile.steps", { done: strength.completed, total: strength.total })}</p>
-              </div>
-            </div>
-
-            <ul className="strength-list">
-              {strength.items.map((item) => (
-                <li key={String(item.key)} className={item.done ? "done" : ""}>
-                  <span className="strength-check" aria-hidden="true">
-                    {item.done ? (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                    ) : null}
-                  </span>
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-          </aside>
-
-          <div className="profile-form">
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.basics")}</h4>
-                <p>{t("profile.basicsSub")}</p>
-              </div>
-              <div className="field-grid">
-                <Field label={t("profile.fullName")} required error={fieldError("fullName")}>
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    value={profile.fullName}
-                    placeholder={t("auth.fullNamePlaceholder")}
-                    onChange={(event) => updateProfile({ fullName: event.target.value })}
-                  />
-                </Field>
-                <Field label={t("profile.profTitle")} required error={fieldError("title")}>
-                  <input
-                    type="text"
-                    value={profile.title}
-                    placeholder={t("profile.profTitlePlaceholder")}
-                    onChange={(event) => updateProfile({ title: event.target.value })}
-                  />
-                </Field>
-                <Field label={t("profile.country")}>
-                  <input
-                    type="text"
-                    value={profile.country}
-                    placeholder={t("profile.countryPlaceholder")}
-                    onChange={(event) => updateProfile({ country: event.target.value })}
-                  />
-                </Field>
-                <Field label={t("profile.languages")}>
-                  <input
-                    type="text"
-                    value={profile.languages}
-                    placeholder={t("profile.languagesPlaceholder")}
-                    onChange={(event) => updateProfile({ languages: event.target.value })}
-                  />
-                </Field>
-              </div>
-            </section>
-
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.about")}</h4>
-                <p>{t("profile.aboutSub")}</p>
-              </div>
-              <Field label={t("profile.bio")} required error={fieldError("bio")}>
-                <textarea
-                  rows={5}
-                  value={profile.bio}
-                  placeholder={t("profile.bioPlaceholder")}
-                  onChange={(event) => updateProfile({ bio: event.target.value })}
-                />
-                <span className="char-count">{profile.bio.trim().length} / 40+</span>
-              </Field>
-            </section>
-
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.contact")}</h4>
-                <p>{t("profile.contactSub")}</p>
-              </div>
-              <div className="field-grid">
-                <Field label={t("profile.phone")} required error={fieldError("phone")}>
-                  <input
-                    type="tel"
-                    autoComplete="tel"
-                    value={profile.phone}
-                    placeholder={t("profile.phonePlaceholder")}
-                    onChange={(event) => updateProfile({ phone: event.target.value })}
-                  />
-                </Field>
-                <Field label={t("profile.portfolio")}>
-                  <input
-                    type="url"
-                    value={profile.portfolio}
-                    placeholder={t("profile.portfolioPlaceholder")}
-                    onChange={(event) => updateProfile({ portfolio: event.target.value })}
-                  />
-                </Field>
-              </div>
-            </section>
-
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.work")}</h4>
-                <p>{t("profile.workSub")}</p>
-              </div>
-              <div className="field-grid">
-                <Field label={t("profile.rate")}>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    inputMode="numeric"
-                    value={profile.hourlyRate}
-                    placeholder={t("profile.ratePlaceholder")}
-                    onChange={(event) => updateProfile({ hourlyRate: event.target.value })}
-                  />
-                </Field>
-                <Field label={t("profile.availability")}>
-                  <select
-                    value={profile.availability}
-                    onChange={(event) => updateProfile({ availability: event.target.value })}
-                  >
-                    <option value="">&mdash;</option>
-                    {AVAILABILITY.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {t(option.key)}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-            </section>
-
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.skills")}</h4>
-                <p>{t("profile.skillsSub")}</p>
-              </div>
-              <SkillPicker
-                value={profile.skills}
-                onChange={(skills) => updateProfile({ skills })}
-                placeholder={t("profile.skillsPlaceholder")}
-              />
-            </section>
-
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.photo")}</h4>
-                <p>{t("profile.photoSub")}</p>
-              </div>
-              <div className="avatar-upload">
-                <div className="avatar-preview">
-                  {profile.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={profile.avatar} alt="" />
-                  ) : (
-                    initials(profile.fullName || user.name)
-                  )}
-                </div>
-                <div className="avatar-actions">
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => avatarRef.current?.click()}
-                  >
-                    {profile.avatar ? t("profile.photoChange") : t("profile.photoUpload")}
-                  </button>
-                  {profile.avatar && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm danger"
-                      onClick={() => updateProfile({ avatar: "" })}
-                    >
-                      {t("profile.remove")}
-                    </button>
-                  )}
-                </div>
-                <input
-                  ref={avatarRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void onAvatar(file);
-                    event.target.value = "";
-                  }}
-                />
-              </div>
-            </section>
-
-            <section className="form-section">
-              <div className="form-section-head">
-                <h4>{t("profile.video")}</h4>
-                <p>{t("profile.videoSub")}</p>
-              </div>
-              <IntroVideo
-                src={profile.introVideo}
-                name={profile.introVideoName}
-                onChange={(src, name) => {
-                  const persisted = updateProfile({ introVideo: src, introVideoName: name });
-                  if (!persisted && src) toast(t("video.quota"));
-                }}
-              />
-            </section>
-          </div>
+        <div
+          className="wiz-progress"
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-valuenow={step + 1}
+          aria-valuetext={t("wizard.stepOf", { current: step + 1, total: STEPS.length })}
+          aria-label={t("profile.strength")}
+        >
+          <span className="wiz-progress-fill" style={{ width: `${progress}%` }} />
         </div>
 
-        <div className="profile-foot">
-          <span className="profile-foot-note">{t("profile.completeAll")}</span>
-          <button type="button" className="btn-publish" onClick={save}>
-            {t("profile.save")}
-          </button>
+        <nav className="wiz-steps" aria-label={t("wizard.kicker")}>
+          {STEPS.map((item, index) => {
+            const state =
+              index === step ? "active" : revealed.includes(index) ? "done" : "todo";
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={"wiz-step " + state}
+                aria-current={index === step ? "step" : undefined}
+                onClick={() => {
+                  commitStep(step);
+                  gotoStep(index);
+                }}
+              >
+                <span className="wiz-step-index">
+                  {state === "done" ? <CheckMark /> : index + 1}
+                </span>
+                <span className="wiz-step-label">{t(item.titleKey)}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="wiz-body" key={active.id}>
+          {panels[active.id]()}
+        </div>
+
+        <div className="wiz-foot">
+          <span className="wiz-foot-note">{t("wizard.autosaved")}</span>
+          <div className="wiz-foot-actions">
+            {step > 0 && (
+              <button type="button" className="btn-ghost" onClick={() => { commitStep(step); gotoStep(step - 1); }}>
+                {t("wizard.back")}
+              </button>
+            )}
+            {step < LAST_STEP ? (
+              <button type="button" className="btn-publish" onClick={() => { commitStep(step); gotoStep(step + 1); }}>
+                {t("wizard.next")}
+              </button>
+            ) : (
+              <button type="button" className="btn-publish" onClick={finish}>
+                {t("wizard.publish")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -375,5 +596,5 @@ export default function ProfileBuilder() {
   const { isProfileOpen } = useUI();
   const { user } = useAuth();
   if (!isProfileOpen || !user) return null;
-  return <ProfileEditor />;
+  return <ProfileWizard />;
 }

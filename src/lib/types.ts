@@ -12,9 +12,12 @@ export interface Gig {
   price: number;
   delivery: string;
   category: string;
+  skills: string[];
   badge: string;
   colors: GigColorPair;
   glyph: string;
+  video?: string;
+  videoName?: string;
   isNew?: boolean;
 }
 
@@ -29,9 +32,12 @@ export interface GigDraft {
   title: string;
   description: string;
   category: string;
+  skills: string[];
   price: number;
   deliveryDays: number;
   seller: string;
+  video?: string;
+  videoName?: string;
 }
 
 export type AuthProvider = "google" | "email";
@@ -43,13 +49,17 @@ export interface PortfolioProject {
   summary: string;
   tags: string[];
   link: string;
+  image: string;
   cover: string;
+  video?: string;
+  videoName?: string;
   updatedAt?: number;
 }
 
 export interface Profile {
   fullName: string;
   title: string;
+  primaryCategory: string;
   bio: string;
   phone: string;
   country: string;
@@ -57,6 +67,7 @@ export interface Profile {
   avatar: string;
   skills: string[];
   hourlyRate: string;
+  projectRate: string;
   availability: string;
   portfolio: string;
   introVideo: string;

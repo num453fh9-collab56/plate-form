@@ -12,10 +12,22 @@ import {
 
 export type AuthModalMode = "signup" | "login";
 
+export interface VideoPayload {
+  src: string;
+  title?: string;
+  poster?: string;
+}
+
 interface UIValue {
   toast: (message: string, duration?: number) => void;
   toastMessage: string;
   toastVisible: boolean;
+  isVideoOpen: boolean;
+  videoSrc: string;
+  videoTitle: string;
+  videoPoster: string;
+  openVideo: (payload: VideoPayload) => void;
+  closeVideo: () => void;
   isPostOpen: boolean;
   openPost: () => void;
   closePost: () => void;
@@ -41,6 +53,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [video, setVideo] = useState<VideoPayload | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toast = useCallback((message: string, duration = 3600) => {
@@ -75,11 +88,26 @@ export function UIProvider({ children }: { children: ReactNode }) {
   }, []);
   const closeAccount = useCallback(() => setIsAccountOpen(false), []);
 
+  const openVideo = useCallback((payload: VideoPayload) => {
+    setVideo({
+      src: payload.src,
+      title: payload.title ?? "",
+      poster: payload.poster ?? "",
+    });
+  }, []);
+  const closeVideo = useCallback(() => setVideo(null), []);
+
   const value = useMemo<UIValue>(
     () => ({
       toast,
       toastMessage,
       toastVisible,
+      isVideoOpen: video !== null,
+      videoSrc: video?.src ?? "",
+      videoTitle: video?.title ?? "",
+      videoPoster: video?.poster ?? "",
+      openVideo,
+      closeVideo,
       isPostOpen,
       openPost,
       closePost,
@@ -98,6 +126,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
       toast,
       toastMessage,
       toastVisible,
+      video,
+      openVideo,
+      closeVideo,
       isPostOpen,
       openPost,
       closePost,
