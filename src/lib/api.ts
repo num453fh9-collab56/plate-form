@@ -119,6 +119,9 @@ export interface SearchParams {
   skills?: string[];
   limit?: number;
   offset?: number;
+  maxPrice?: number;
+  maxDeliveryDays?: number;
+  sort?: "newest" | "price_asc" | "price_desc";
 }
 
 export async function searchGigs({
@@ -127,6 +130,9 @@ export async function searchGigs({
   skills,
   limit = 12,
   offset = 0,
+  maxPrice,
+  maxDeliveryDays,
+  sort = "newest",
 }: SearchParams): Promise<{ items: Gig[]; count: number }> {
   const supabase = getSupabase();
   if (!supabase) return { items: [], count: 0 };
@@ -139,6 +145,12 @@ export async function searchGigs({
   if (skills && skills.length > 0) {
     query = query.contains("skills", skills);
   }
+  if (maxPrice != null && Number.isFinite(maxPrice)) {
+    query = query.lte("price", maxPrice);
+  }
+  if (maxDeliveryDays != null && Number.isFinite(maxDeliveryDays)) {
+    query = query.lte("delivery_days", maxDeliveryDays);
+  }
   const term = (q ?? "").trim().replace(/[,()%]/g, " ");
   if (term) {
     query = query.or(
@@ -146,8 +158,11 @@ export async function searchGigs({
     );
   }
 
+  const orderColumn = sort === "price_asc" || sort === "price_desc" ? "price" : "created_at";
+  const ascending = sort === "price_asc";
+
   const { data, count, error } = await query
-    .order("created_at", { ascending: false })
+    .order(orderColumn, { ascending })
     .range(offset, offset + limit - 1);
 
   if (error || !data) return { items: [], count: 0 };

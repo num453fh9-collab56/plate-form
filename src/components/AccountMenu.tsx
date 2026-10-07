@@ -172,7 +172,12 @@ export default function AccountMenu() {
       requireAuth(openPost);
       return;
     }
-    if (item.id === "profile" || item.id === "improve") {
+    if (item.id === "profile") {
+      setOpen(false);
+      if (user?.sub) router.push(`/user/${user.sub}`);
+      return;
+    }
+    if (item.id === "improve") {
       requireAuth(openProfile);
       return;
     }
@@ -326,9 +331,26 @@ export default function AccountMenu() {
                 className="dash-icon"
                 style={{ color: "#2563eb", background: "rgba(37,99,235,0.12)" }}
               >
-                <Icon name="chat" />
+                <Icon name="bell" />
               </span>
               <span className="dash-text">Notifications</span>
+            </button>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                router.push("/favorites");
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#e11d48", background: "rgba(225,29,72,0.12)" }}
+              >
+                <Icon name="rewards" />
+              </span>
+              <span className="dash-text">Saved gigs</span>
             </button>
           </>
         )}

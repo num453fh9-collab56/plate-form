@@ -24,6 +24,9 @@ function SearchView() {
 
   const [term, setTerm] = useState(qParam);
   const [skills, setSkills] = useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = useState("");
+  const [maxDelivery, setMaxDelivery] = useState("");
+  const [sort, setSort] = useState<"newest" | "price_asc" | "price_desc">("newest");
   const [items, setItems] = useState<Gig[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -38,6 +41,9 @@ function SearchView() {
       skills,
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      maxDeliveryDays: maxDelivery ? Number(maxDelivery) : undefined,
+      sort,
     }).then((result) => {
       if (cancelled) return;
       setItems(result.items);
@@ -48,7 +54,7 @@ function SearchView() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qParam, category, skillsKey, page]);
+  }, [qParam, category, skillsKey, page, maxPrice, maxDelivery, sort]);
 
   const pushParams = useCallback(
     (next: { q?: string; category?: string; page?: number }) => {
@@ -110,6 +116,52 @@ function SearchView() {
         </form>
 
         <div className="taxonomy-filters">
+          <div className="taxonomy-row">
+            <span className="taxonomy-label">Filters</span>
+            <div className="taxonomy-chips" style={{ alignItems: "center" }}>
+              <input
+                type="number"
+                min={0}
+                placeholder="Max price ($)"
+                value={maxPrice}
+                style={{ width: 120, padding: "6px 10px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
+                onChange={(e) => {
+                  setLoading(true);
+                  setMaxPrice(e.target.value);
+                  pushParams({ page: 1 });
+                }}
+              />
+              <select
+                value={maxDelivery}
+                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
+                onChange={(e) => {
+                  setLoading(true);
+                  setMaxDelivery(e.target.value);
+                  pushParams({ page: 1 });
+                }}
+              >
+                <option value="">Any delivery time</option>
+                <option value="1">Within 1 day</option>
+                <option value="3">Within 3 days</option>
+                <option value="7">Within 7 days</option>
+                <option value="14">Within 14 days</option>
+                <option value="30">Within 30 days</option>
+              </select>
+              <select
+                value={sort}
+                style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
+                onChange={(e) => {
+                  setLoading(true);
+                  setSort(e.target.value as "newest" | "price_asc" | "price_desc");
+                  pushParams({ page: 1 });
+                }}
+              >
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+              </select>
+            </div>
+          </div>
           <div className="taxonomy-row">
             <span className="taxonomy-label">{t("grid.categoryLabel")}</span>
             <div className="taxonomy-chips">

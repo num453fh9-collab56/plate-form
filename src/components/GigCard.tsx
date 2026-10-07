@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Gig } from "@/lib/types";
 import { formatPrice, initials, stars } from "@/lib/format";
@@ -9,6 +10,7 @@ import { useMarketplace } from "@/lib/marketplace";
 import { useMessaging } from "@/lib/messaging";
 import { useUI } from "@/lib/ui";
 import { translationKeyForCategory } from "@/lib/taxonomy";
+import { fetchFavoriteIds, toggleFavorite } from "@/lib/favorites";
 
 export default function GigCard({ gig }: { gig: Gig }) {
   const { t } = useI18n();
@@ -18,6 +20,28 @@ export default function GigCard({ gig }: { gig: Gig }) {
   const { openVideo, openMessages } = useUI();
   const { selectedSkills, toggleSkill } = useMarketplace();
   const router = useRouter();
+  const [saved, setSaved] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user?.sub) return;
+    let cancelled = false;
+    void fetchFavoriteIds().then((ids) => {
+      if (!cancelled) setSaved(ids.has(gig.id));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, gig.id]);
+
+  const onFavorite = () => {
+    if (!user) {
+      requireAuth(() => undefined);
+      return;
+    }
+    const next = saved === true ? false : true;
+    setSaved(next);
+    void toggleFavorite(gig.id, saved === true).then((nowSaved) => setSaved(nowSaved));
+  };
 
   const handleOrder = () => {
     router.push(`/gig/${gig.id}`);
@@ -37,6 +61,21 @@ export default function GigCard({ gig }: { gig: Gig }) {
     <article className={"gig" + (gig.isNew ? " is-new" : "")} data-category={gig.category}>
       <div className="gig-head">
         <span className="gig-eyebrow">{t(translationKeyForCategory(gig.category))}</span>
+        <button
+          type="button"
+          aria-label="Save gig"
+          onClick={onFavorite}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "1.1rem",
+            color: saved ? "#e11d48" : "var(--muted)",
+            padding: 4,
+          }}
+        >
+          {saved ? "♥" : "♡"}
+        </button>
       </div>
 
       <div className="gig-body">

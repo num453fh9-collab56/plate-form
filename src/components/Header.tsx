@@ -47,16 +47,18 @@ export default function Header() {
           <Link href="/#portfolio" onClick={() => setMenuOpen(false)}>
             {t("nav.resolutions")}
           </Link>
-          <button
-            className="nav-login"
-            type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              openAuth("login");
-            }}
-          >
-            {t("nav.login")}
-          </button>
+          {!user && (
+            <button
+              className="nav-login"
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                openAuth("login");
+              }}
+            >
+              {t("nav.login")}
+            </button>
+          )}
           <button className="btn-gig" type="button" onClick={startProject}>
             <span className="btn-gig-plus" aria-hidden="true">
               +
