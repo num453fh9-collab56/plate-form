@@ -1,9 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useUI } from "@/lib/ui";
 import { useRouter } from "next/navigation";
 import { CATEGORY_OPTIONS } from "@/lib/gigs";
+
+function Playlist({ srcs }: { srcs: string[] }) {
+  const [index, setIndex] = useState(0);
+  return (
+    <video
+      key={index}
+      src={srcs[index]}
+      autoPlay
+      muted
+      playsInline
+      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      onEnded={() => setIndex((i) => (i + 1) % srcs.length)}
+    />
+  );
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Programming & Tech": "#00715a",
@@ -36,29 +52,24 @@ export default function Landing() {
         </div>
       </div>
 
-      <section className="section">
-        <div className="wrap" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <video src="/videos/demo-1.mp4" autoPlay muted loop playsInline style={{ width: "100%", borderRadius: 16, aspectRatio: "16 / 9", objectFit: "cover" }} />
-          <video src="/videos/demo-2.mp4" autoPlay muted loop playsInline style={{ width: "100%", borderRadius: 16, aspectRatio: "16 / 9", objectFit: "cover" }} />
+      <section className="section" style={{ padding: 0 }}>
+        <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", maxHeight: "85vh", overflow: "hidden" }}>
+          <Playlist srcs={["/videos/video-1.mp4", "/videos/demo-1.mp4", "/videos/demo-2.mp4"]} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.45))" }} />
+          <div style={{ position: "absolute", left: "6%", bottom: "10%", color: "#fff", maxWidth: 560 }}>
+            <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 3rem)", lineHeight: 1.15, marginBottom: 10 }}>
+              Make it all happen with freelancers
+            </h1>
+            <p style={{ marginBottom: 16 }}>Hire expert freelancers for any project, from logo design to full-stack apps.</p>
+            <button className="btn-primary" type="button" onClick={() => openAuth("signup")}>
+              Join now
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="section">
-        <div className="wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
-          <h1 style={{ fontSize: "clamp(2rem, 4vw, 3.2rem)", lineHeight: 1.15, maxWidth: 640 }}>
-            Make it all happen with <span style={{ color: "var(--accent)" }}>freelancers</span>
-          </h1>
-          <button
-            className="btn-primary"
-            type="button"
-            onClick={() => openAuth("signup")}
-            style={{ height: 48, padding: "0 28px", whiteSpace: "nowrap" }}
-          >
-            Join now
-          </button>
-        </div>
-
-        <div className="wrap" style={{ marginTop: 28, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div className="wrap" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           <div>
             <strong>Access a pool of top talent</strong>
             <p className="order-note">Across {CATEGORY_OPTIONS.length} categories and thousands of services.</p>
