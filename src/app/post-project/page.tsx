@@ -7,9 +7,31 @@ import { useUI } from "@/lib/ui";
 import { useMarketplace } from "@/lib/marketplace";
 import { CATEGORY_OPTIONS } from "@/lib/gigs";
 import { getSupabase } from "@/lib/supabase";
+import { uploadFile } from "@/lib/storage";
 import SkillPicker from "@/components/SkillPicker";
 
-const EMPTY_PACKAGE = { price: "", delivery: "", note: "" };
+interface PackageForm {
+  name: string;
+  price: string;
+  delivery: string;
+  note: string;
+}
+
+const EMPTY_PACKAGES: Record<"basic" | "standard" | "premium", PackageForm> = {
+  basic: { name: "Basic", price: "", delivery: "", note: "" },
+  standard: { name: "Standard", price: "", delivery: "", note: "" },
+  premium: { name: "Premium", price: "", delivery: "", note: "" },
+};
+
+const inputStyle = {
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid var(--line)",
+  background: "var(--card)",
+  font: "inherit",
+  width: "100%",
+  boxSizing: "border-box" as const,
+};
 
 export default function PostProjectPage() {
   const router = useRouter();
@@ -21,10 +43,9 @@ export default function PostProjectPage() {
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [skills, setSkills] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  const [basic, setBasic] = useState({ ...EMPTY_PACKAGE, note: "Core delivery" });
-  const [standard, setStandard] = useState({ ...EMPTY_PACKAGE, note: "More polish + faster" });
-  const [premium, setPremium] = useState({ ...EMPTY_PACKAGE, note: "Everything + priority" });
-  const [images, setImages] = useState(["", "", ""]);
+  const [packages, setPackages] = useState(EMPTY_PACKAGES);
+  const [photoFiles, setPhotoFiles] = useState<(File | null)[]>([null, null, null]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>(["", "", ""]);
   const [video, setVideo] = useState("");
   const [videoName, setVideoName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -44,65 +65,70 @@ export default function PostProjectPage() {
     );
   }
 
+  const onPickPhoto = (index: number, file: File | null) => {
+    setPhotoFiles((cur) => cur.map((f, i) => (i === index ? file : f)));
+    setPhotoPreviews((cur) =>
+      cur.map((p, i) => (i === index && file ? URL.createObjectURL(file) : p)),
+    );
+  };
+
+  const setPackage = (key: keyof typeof packages, patch: Partial<PackageForm>) => {
+    setPackages((cur) => ({ ...cur, [key]: { ...cur[key], ...patch } }));
+  };
+
   const submit = async () => {
     if (title.trim().length < 8) {
       toast("Title must be at least 8 characters.");
       return;
     }
-    const price = Number(basic.price);
-    if (!price || price <= 0) {
+    if (!Number(packages.basic.price) || Number(packages.basic.price) <= 0) {
       toast("Basic package needs a valid price.");
       return;
     }
     setSubmitting(true);
-    const gig = await addGig({
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      skills,
-      price,
-      deliveryDays: Math.max(1, Number(basic.delivery) || 1),
-      seller: user.name ?? "Seller",
-      video: video.trim() || undefined,
-      videoName: videoName.trim() || undefined,
-      images: images.map((u) => u.trim()).filter(Boolean),
-    });
-    if (!gig) {
+    try {
+      const urls: string[] = [];
+      for (const file of photoFiles) {
+        if (!file) continue;
+        const url = await uploadFile("gig-media", user.sub ?? "", file);
+        if (url) urls.push(url);
+      }
+      const gig = await addGig({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        skills,
+        price: Number(packages.basic.price),
+        deliveryDays: Math.max(1, Number(packages.basic.delivery) || 1),
+        seller: user.name ?? "Seller",
+        video: video.trim() || undefined,
+        videoName: videoName.trim() || undefined,
+        images: urls,
+      });
+      if (!gig) {
+        toast("Could not publish gig.");
+        setSubmitting(false);
+        return;
+      }
+      const supabase = getSupabase();
+      if (supabase) {
+        await supabase
+          .from("gigs")
+          .update({
+            packages: {
+              basic: { price: Number(packages.basic.price) || 0, delivery: Number(packages.basic.delivery) || 1, note: packages.basic.note },
+              standard: { price: Number(packages.standard.price) || 0, delivery: Number(packages.standard.delivery) || 3, note: packages.standard.note, name: packages.standard.name },
+              premium: { price: Number(packages.premium.price) || 0, delivery: Number(packages.premium.delivery) || 7, note: packages.premium.note, name: packages.premium.name },
+            },
+          })
+          .eq("id", gig.id);
+      }
+      toast("Gig published!");
+      router.push(`/gig/${gig.id}`);
+    } finally {
       setSubmitting(false);
-      toast("Could not publish gig.");
-      return;
     }
-    const supabase = getSupabase();
-    if (supabase) {
-      await supabase
-        .from("gigs")
-        .update({
-          packages: {
-            basic: { ...basic, price: Number(basic.price) || 0, delivery: Number(basic.delivery) || 1 },
-            standard: { ...standard, price: Number(standard.price) || 0, delivery: Number(standard.delivery) || 3 },
-            premium: { ...premium, price: Number(premium.price) || 0, delivery: Number(premium.delivery) || 7 },
-          },
-        })
-        .eq("id", gig.id);
-    }
-    setSubmitting(false);
-    toast("Gig published!");
-    router.push(`/gig/${gig.id}`);
   };
-
-  const fieldStyle = {
-    display: "grid",
-    gap: 6,
-    marginBottom: 14,
-  } as const;
-
-  const inputStyle = {
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1px solid var(--line)",
-    background: "var(--card)",
-    font: "inherit",
-  } as const;
 
   return (
     <section className="section">
@@ -111,17 +137,17 @@ export default function PostProjectPage() {
           <div>
             <div className="kicker">Post a project</div>
             <h2>Create your gig</h2>
-            <p className="sub">Fiverr-style listing — clear title, photos, packages, delivery.</p>
+            <p className="sub">Fiverr-style listing — title, photos, packages, delivery.</p>
           </div>
         </div>
 
         <div className="order-row">
-          <label style={fieldStyle}>
+          <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Gig title</strong>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="I will build a modern portfolio website" style={inputStyle} />
           </label>
 
-          <label style={fieldStyle}>
+          <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Category</strong>
             <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
               {CATEGORY_OPTIONS.map((c) => (
@@ -130,45 +156,48 @@ export default function PostProjectPage() {
             </select>
           </label>
 
-          <div style={fieldStyle}>
+          <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Skills</strong>
             <SkillPicker value={skills} onChange={setSkills} placeholder="Add skills" />
           </div>
 
-          <label style={fieldStyle}>
+          <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Description</strong>
             <textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is included, your process, what you need from the buyer..." style={{ ...inputStyle, resize: "vertical" }} />
           </label>
 
           <strong style={{ display: "block", marginBottom: 8 }}>Packages</strong>
-          {([
-            ["Basic", basic, setBasic],
-            ["Standard", standard, setStandard],
-            ["Premium", premium, setPremium],
-          ] as const).map(([label, pkg, setPkg]) => (
-            <div key={label} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
-              <input value={pkg.price} onChange={(e) => setPkg({ ...pkg, price: e.target.value })} placeholder={`${label} price ($)`} type="number" style={inputStyle} />
-              <input value={pkg.delivery} onChange={(e) => setPkg({ ...pkg, delivery: e.target.value })} placeholder={`${label} delivery (days)`} type="number" style={inputStyle} />
-              <input value={pkg.note} onChange={(e) => setPkg({ ...pkg, note: e.target.value })} placeholder={`${label} includes`} style={inputStyle} />
+          {(["basic", "standard", "premium"] as const).map((key) => (
+            <div key={key} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14, marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", gap: 10 }}>
+                <input value={packages[key].name} onChange={(e) => setPackage(key, { name: e.target.value })} placeholder="Name" style={inputStyle} />
+                <input value={packages[key].price} onChange={(e) => setPackage(key, { price: e.target.value })} placeholder="Price ($)" type="number" style={inputStyle} />
+                <input value={packages[key].delivery} onChange={(e) => setPackage(key, { delivery: e.target.value })} placeholder="Days" type="number" style={inputStyle} />
+                <input value={packages[key].note} onChange={(e) => setPackage(key, { note: e.target.value })} placeholder="What is included" style={inputStyle} />
+              </div>
             </div>
           ))}
 
-          <strong style={{ display: "block", marginBottom: 8 }}>Photos (up to 3)</strong>
-          {images.map((url, i) => (
-            <input
-              key={i}
-              value={url}
-              onChange={(e) => setImages((cur) => cur.map((u, idx) => (idx === i ? e.target.value : u)))}
-              placeholder={`Photo ${i + 1} URL (https://...)`}
-              style={{ ...inputStyle, marginBottom: 8, width: "100%", boxSizing: "border-box" }}
-            />
-          ))}
+          <strong style={{ display: "block", marginBottom: 8 }}>Photos (up to 3, from your device)</strong>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 14 }}>
+            {photoFiles.map((file, i) => (
+              <label key={i} style={{ border: "1px dashed var(--line)", borderRadius: 12, padding: 12, textAlign: "center", cursor: "pointer", display: "block" }}>
+                {photoPreviews[i] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photoPreviews[i]} alt={`Photo ${i + 1} preview`} style={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", borderRadius: 8 }} />
+                ) : (
+                  <span style={{ color: "var(--muted)" }}>{file ? file.name : `Choose photo ${i + 1}`}</span>
+                )}
+                <input type="file" accept="image/*" hidden onChange={(e) => onPickPhoto(i, e.target.files?.[0] ?? null)} />
+              </label>
+            ))}
+          </div>
 
-          <label style={fieldStyle}>
+          <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Showcase video URL (optional)</strong>
             <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://... or YouTube link" style={inputStyle} />
           </label>
-          <label style={fieldStyle}>
+          <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Video name</strong>
             <input value={videoName} onChange={(e) => setVideoName(e.target.value)} placeholder="Intro video" style={inputStyle} />
           </label>

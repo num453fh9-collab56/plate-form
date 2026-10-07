@@ -20,7 +20,7 @@ export interface Gig {
   video?: string;
   videoName?: string;
   images?: string[];
-  packages?: Record<string, { price: number; delivery: number; note: string }>;
+  packages?: Record<string, { name?: string; price: number; delivery: number; note: string }>;
   isNew?: boolean;
 }
 

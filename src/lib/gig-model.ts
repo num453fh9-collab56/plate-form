@@ -15,7 +15,7 @@ export interface GigRow {
   video: string | null;
   video_name: string | null;
   images: string[] | null;
-  packages: Record<string, { price: number; delivery: number; note: string }> | null;
+  packages: Record<string, { name?: string; price: number; delivery: number; note: string }> | null;
   created_at: string;
 }
 

@@ -187,7 +187,7 @@ export default function GigDetailPage() {
                     if (!pkg) return null;
                     return (
                       <div key={key} className="order-row">
-                        <div className="order-title" style={{ textTransform: "capitalize" }}>{key}</div>
+                        <div className="order-title" style={{ textTransform: "capitalize" }}>{pkg.name ?? key}</div>
                         <div className="order-meta">
                           <span>${pkg.price}</span>
                           <span>{pkg.delivery} day{pkg.delivery === 1 ? "" : "s"}</span>
