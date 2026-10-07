@@ -21,15 +21,15 @@ function Playlist({ srcs }: { srcs: string[] }) {
   );
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "Programming & Tech": "#00715a",
-  "Mobile Apps": "#003912",
-  "AI Services": "#7a3e9d",
-  "UI/UX Design": "#005a9e",
-  "Graphics & Design": "#c2440e",
-  "Video & Animation": "#a91d32",
-  "Digital Marketing": "#0e6e6e",
-  "Writing & Translation": "#8a6d1a",
+const CATEGORY_IMAGES: Record<string, string> = {
+  "Programming & Tech": "/portfolio/saas-analytics-dashboard.jpg",
+  "Mobile Apps": "/portfolio/mobile-banking-app.jpg",
+  "AI Services": "/portfolio/ai-support-agent.jpg",
+  "UI/UX Design": "/portfolio/ecommerce-storefront.jpg",
+  "Graphics & Design": "/portfolio/brand-identity-system.jpg",
+  "Video & Animation": "/portfolio/short-form-video-engine.jpg",
+  "Digital Marketing": "/portfolio/meta-ads-campaign.jpg",
+  "Writing & Translation": "/portfolio/seo-content-engine.jpg",
 };
 
 export default function Landing() {
@@ -95,19 +95,22 @@ export default function Landing() {
                 type="button"
                 onClick={() => router.push(`/search?category=${encodeURIComponent(cat)}`)}
                 style={{
-                  background: CATEGORY_COLORS[cat] ?? "#00715a",
-                  color: "#fff",
+                  position: "relative",
                   border: "none",
                   borderRadius: 16,
+                  minHeight: 180,
                   padding: 20,
-                  minHeight: 150,
                   textAlign: "left",
                   cursor: "pointer",
                   fontSize: "1.1rem",
                   fontWeight: 800,
+                  color: "#fff",
+                  overflow: "hidden",
+                  background: `url(${CATEGORY_IMAGES[cat]}) center/cover`,
                 }}
               >
-                {cat}
+                <span style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }} />
+                <span style={{ position: "relative" }}>{cat}</span>
               </button>
             ))}
           </div>
