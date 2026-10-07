@@ -307,6 +307,23 @@ export default function AccountMenu() {
               role="menuitem"
               onClick={() => {
                 setOpen(false);
+                router.push("/dashboard");
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}
+              >
+                <Icon name="manage" />
+              </span>
+              <span className="dash-text">Dashboard</span>
+            </button>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
                 router.push("/earnings");
               }}
             >
