@@ -15,7 +15,10 @@ export interface GigRow {
   video: string | null;
   video_name: string | null;
   images: string[] | null;
-  packages: Record<string, { name?: string; price: number; delivery: number; note: string }> | null;
+  packages: Record<string, { name?: string; price: number; delivery: number; note?: string; description?: string; revisions?: number }> | null;
+  extras: { label: string; price: number }[] | null;
+  faq: { question: string; answer: string }[] | null;
+  requirements: string | null;
   created_at: string;
 }
 
@@ -44,6 +47,9 @@ export function rowToGig(row: GigRow): Gig {
     videoName: row.video_name ?? undefined,
     images: Array.isArray(row.images) ? row.images : [],
     packages: row.packages ?? undefined,
+    extras: Array.isArray(row.extras) ? row.extras : undefined,
+    faq: Array.isArray(row.faq) ? row.faq : undefined,
+    requirementsText: row.requirements ?? undefined,
     isNew: false,
   };
 }

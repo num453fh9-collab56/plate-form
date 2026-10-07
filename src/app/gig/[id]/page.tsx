@@ -192,11 +192,44 @@ export default function GigDetailPage() {
                           <span>${pkg.price}</span>
                           <span>{pkg.delivery} day{pkg.delivery === 1 ? "" : "s"}</span>
                         </div>
-                        <p className="order-note">{pkg.note}</p>
+                        <p className="order-note">{pkg.note || pkg.description}{pkg.revisions != null ? ` · ${pkg.revisions} revision${pkg.revisions === 1 ? "" : "s"}` : ""}</p>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            ) : null}
+
+            {gig.extras && gig.extras.length > 0 ? (
+              <div className="gig-detail-block">
+                <h2>Extras</h2>
+                <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 6 }}>
+                  {gig.extras.map((extra) => (
+                    <li key={extra.label} className="order-meta">
+                      <span>{extra.label}</span>
+                      <span>+${extra.price}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {gig.requirementsText ? (
+              <div className="gig-detail-block">
+                <h2>Requirements</h2>
+                <p className="gig-detail-desc">{gig.requirementsText}</p>
+              </div>
+            ) : null}
+
+            {gig.faq && gig.faq.length > 0 ? (
+              <div className="gig-detail-block">
+                <h2>FAQ</h2>
+                {gig.faq.map((f, i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <strong>{f.question}</strong>
+                    <p className="gig-detail-desc">{f.answer}</p>
+                  </div>
+                ))}
               </div>
             ) : null}
 

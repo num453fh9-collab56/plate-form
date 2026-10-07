@@ -12,15 +12,26 @@ import SkillPicker from "@/components/SkillPicker";
 
 interface PackageForm {
   name: string;
+  description: string;
   price: string;
   delivery: string;
-  note: string;
+  revisions: string;
+}
+
+interface ExtraForm {
+  label: string;
+  price: string;
+}
+
+interface FaqForm {
+  question: string;
+  answer: string;
 }
 
 const EMPTY_PACKAGES: Record<"basic" | "standard" | "premium", PackageForm> = {
-  basic: { name: "Basic", price: "", delivery: "", note: "" },
-  standard: { name: "Standard", price: "", delivery: "", note: "" },
-  premium: { name: "Premium", price: "", delivery: "", note: "" },
+  basic: { name: "Basic", description: "", price: "", delivery: "", revisions: "1" },
+  standard: { name: "Standard", description: "", price: "", delivery: "", revisions: "2" },
+  premium: { name: "Premium", description: "", price: "", delivery: "", revisions: "5" },
 };
 
 const inputStyle = {
@@ -42,8 +53,13 @@ export default function PostProjectPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [skills, setSkills] = useState<string[]>([]);
-  const [description, setDescription] = useState("");
   const [packages, setPackages] = useState(EMPTY_PACKAGES);
+  const [extras, setExtras] = useState<ExtraForm[]>([
+    { label: "Fast delivery (extra charge)", price: "" },
+  ]);
+  const [description, setDescription] = useState("");
+  const [faq, setFaq] = useState<FaqForm[]>([{ question: "", answer: "" }]);
+  const [requirements, setRequirements] = useState("");
   const [photoFiles, setPhotoFiles] = useState<(File | null)[]>([null, null, null]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>(["", "", ""]);
   const [video, setVideo] = useState("");
@@ -65,6 +81,10 @@ export default function PostProjectPage() {
     );
   }
 
+  const setPackage = (key: keyof typeof packages, patch: Partial<PackageForm>) => {
+    setPackages((cur) => ({ ...cur, [key]: { ...cur[key], ...patch } }));
+  };
+
   const onPickPhoto = (index: number, file: File | null) => {
     setPhotoFiles((cur) => cur.map((f, i) => (i === index ? file : f)));
     setPhotoPreviews((cur) =>
@@ -72,17 +92,13 @@ export default function PostProjectPage() {
     );
   };
 
-  const setPackage = (key: keyof typeof packages, patch: Partial<PackageForm>) => {
-    setPackages((cur) => ({ ...cur, [key]: { ...cur[key], ...patch } }));
-  };
-
   const submit = async () => {
     if (title.trim().length < 8) {
       toast("Title must be at least 8 characters.");
       return;
     }
-    if (!Number(packages.basic.price) || Number(packages.basic.price) <= 0) {
-      toast("Basic package needs a valid price.");
+    if (!Number(packages.basic.price)) {
+      toast("Basic package needs a price.");
       return;
     }
     setSubmitting(true);
@@ -116,10 +132,13 @@ export default function PostProjectPage() {
           .from("gigs")
           .update({
             packages: {
-              basic: { price: Number(packages.basic.price) || 0, delivery: Number(packages.basic.delivery) || 1, note: packages.basic.note },
-              standard: { price: Number(packages.standard.price) || 0, delivery: Number(packages.standard.delivery) || 3, note: packages.standard.note, name: packages.standard.name },
-              premium: { price: Number(packages.premium.price) || 0, delivery: Number(packages.premium.delivery) || 7, note: packages.premium.note, name: packages.premium.name },
+              basic: { ...packages.basic, price: Number(packages.basic.price) || 0, delivery: Number(packages.basic.delivery) || 1, revisions: Number(packages.basic.revisions) || 1 },
+              standard: { ...packages.standard, price: Number(packages.standard.price) || 0, delivery: Number(packages.standard.delivery) || 3, revisions: Number(packages.standard.revisions) || 2 },
+              premium: { ...packages.premium, price: Number(packages.premium.price) || 0, delivery: Number(packages.premium.delivery) || 7, revisions: Number(packages.premium.revisions) || 5 },
             },
+            extras: extras.filter((e) => e.label.trim() && Number(e.price) > 0).map((e) => ({ label: e.label.trim(), price: Number(e.price) })),
+            faq: faq.filter((f) => f.question.trim()).map((f) => ({ question: f.question.trim(), answer: f.answer.trim() })),
+            requirements: requirements.trim() || null,
           })
           .eq("id", gig.id);
       }
@@ -137,16 +156,16 @@ export default function PostProjectPage() {
           <div>
             <div className="kicker">Post a project</div>
             <h2>Create your gig</h2>
-            <p className="sub">Fiverr-style listing — title, photos, packages, delivery.</p>
+            <p className="sub">Fiverr-style listing — title, packages, extras, photos, publish.</p>
           </div>
         </div>
 
         <div className="order-row">
+          <h3>Overview</h3>
           <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
-            <strong>Gig title</strong>
+            <strong>Title (start with &quot;I will...&quot;)</strong>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="I will build a modern portfolio website" style={inputStyle} />
           </label>
-
           <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Category</strong>
             <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
@@ -155,30 +174,52 @@ export default function PostProjectPage() {
               ))}
             </select>
           </label>
-
           <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
-            <strong>Skills</strong>
+            <strong>Tags / Skills</strong>
             <SkillPicker value={skills} onChange={setSkills} placeholder="Add skills" />
           </div>
 
+          <h3>Pricing (3 packages)</h3>
+          {(["basic", "standard", "premium"] as const).map((key) => (
+            <div key={key} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14, marginBottom: 12 }}>
+              <strong style={{ textTransform: "capitalize" }}>{key} package</strong>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginTop: 8 }}>
+                <input value={packages[key].name} onChange={(e) => setPackage(key, { name: e.target.value })} placeholder="Name" style={inputStyle} />
+                <input value={packages[key].price} onChange={(e) => setPackage(key, { price: e.target.value })} placeholder="Price ($)" type="number" style={inputStyle} />
+                <input value={packages[key].delivery} onChange={(e) => setPackage(key, { delivery: e.target.value })} placeholder="Days" type="number" style={inputStyle} />
+                <input value={packages[key].revisions} onChange={(e) => setPackage(key, { revisions: e.target.value })} placeholder="Revisions" type="number" style={inputStyle} />
+              </div>
+              <textarea rows={2} value={packages[key].description} onChange={(e) => setPackage(key, { description: e.target.value })} placeholder="What this package includes" style={{ ...inputStyle, marginTop: 8, resize: "vertical" }} />
+            </div>
+          ))}
+
+          <h3>Extras (optional add-ons)</h3>
+          {extras.map((extra, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: 10, marginBottom: 8 }}>
+              <input value={extra.label} onChange={(e) => setExtras((cur) => cur.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x)))} placeholder='e.g. "Extra fast delivery"' style={inputStyle} />
+              <input value={extra.price} onChange={(e) => setExtras((cur) => cur.map((x, idx) => (idx === i ? { ...x, price: e.target.value } : x)))} placeholder="+ $ charge" type="number" style={inputStyle} />
+              <button className="btn-ghost" type="button" onClick={() => setExtras((cur) => cur.filter((_, idx) => idx !== i))}>Remove</button>
+            </div>
+          ))}
+          <button className="btn-ghost" type="button" onClick={() => setExtras((cur) => [...cur, { label: "", price: "" }])} style={{ marginBottom: 14 }}>+ Add extra</button>
+
+          <h3>Description & FAQ</h3>
           <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
             <strong>Description</strong>
             <textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is included, your process, what you need from the buyer..." style={{ ...inputStyle, resize: "vertical" }} />
           </label>
-
-          <strong style={{ display: "block", marginBottom: 8 }}>Packages</strong>
-          {(["basic", "standard", "premium"] as const).map((key) => (
-            <div key={key} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14, marginBottom: 12 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", gap: 10 }}>
-                <input value={packages[key].name} onChange={(e) => setPackage(key, { name: e.target.value })} placeholder="Name" style={inputStyle} />
-                <input value={packages[key].price} onChange={(e) => setPackage(key, { price: e.target.value })} placeholder="Price ($)" type="number" style={inputStyle} />
-                <input value={packages[key].delivery} onChange={(e) => setPackage(key, { delivery: e.target.value })} placeholder="Days" type="number" style={inputStyle} />
-                <input value={packages[key].note} onChange={(e) => setPackage(key, { note: e.target.value })} placeholder="What is included" style={inputStyle} />
-              </div>
+          {faq.map((item, i) => (
+            <div key={i} style={{ display: "grid", gap: 8, marginBottom: 10 }}>
+              <input value={item.question} onChange={(e) => setFaq((cur) => cur.map((f, idx) => (idx === i ? { ...f, question: e.target.value } : f)))} placeholder="Question" style={inputStyle} />
+              <input value={item.answer} onChange={(e) => setFaq((cur) => cur.map((f, idx) => (idx === i ? { ...f, answer: e.target.value } : f)))} placeholder="Answer" style={inputStyle} />
             </div>
           ))}
+          <button className="btn-ghost" type="button" onClick={() => setFaq((cur) => [...cur, { question: "", answer: "" }])} style={{ marginBottom: 14 }}>+ Add FAQ</button>
 
-          <strong style={{ display: "block", marginBottom: 8 }}>Photos (up to 3, from your device)</strong>
+          <h3>Requirements from buyer</h3>
+          <textarea rows={3} value={requirements} onChange={(e) => setRequirements(e.target.value)} placeholder="Details the buyer must provide before you start" style={{ ...inputStyle, marginBottom: 14, resize: "vertical" }} />
+
+          <h3>Gallery</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 14 }}>
             {photoFiles.map((file, i) => (
               <label key={i} style={{ border: "1px dashed var(--line)", borderRadius: 12, padding: 12, textAlign: "center", cursor: "pointer", display: "block" }}>
@@ -192,9 +233,8 @@ export default function PostProjectPage() {
               </label>
             ))}
           </div>
-
           <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
-            <strong>Showcase video URL (optional)</strong>
+            <strong>Video URL</strong>
             <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://... or YouTube link" style={inputStyle} />
           </label>
           <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
