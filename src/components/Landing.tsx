@@ -37,6 +37,13 @@ export default function Landing() {
       </div>
 
       <section className="section">
+        <div className="wrap" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <video src="/videos/demo-1.mp4" autoPlay muted loop playsInline style={{ width: "100%", borderRadius: 16, aspectRatio: "16 / 9", objectFit: "cover" }} />
+          <video src="/videos/demo-2.mp4" autoPlay muted loop playsInline style={{ width: "100%", borderRadius: 16, aspectRatio: "16 / 9", objectFit: "cover" }} />
+        </div>
+      </section>
+
+      <section className="section">
         <div className="wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
           <h1 style={{ fontSize: "clamp(2rem, 4vw, 3.2rem)", lineHeight: 1.15, maxWidth: 640 }}>
             Make it all happen with <span style={{ color: "var(--accent)" }}>freelancers</span>
