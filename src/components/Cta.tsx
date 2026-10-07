@@ -47,6 +47,24 @@ export default function Cta() {
             <source src="/videos/showcase-2.mp4" type="video/mp4" />
           </video>
           <span className="cta-media-scrim" aria-hidden="true" />
+          <span
+            style={{
+              position: "absolute",
+              right: 10,
+              bottom: 10,
+              zIndex: 3,
+              background: "rgba(17,17,17,0.72)",
+              color: "#fff",
+              padding: "4px 10px",
+              borderRadius: 7,
+              fontSize: "0.68rem",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              pointerEvents: "none",
+            }}
+          >
+            Apex
+          </span>
         </div>
       </div>
     </div>

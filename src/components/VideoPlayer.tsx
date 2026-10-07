@@ -11,6 +11,30 @@ import { parseVideo } from "@/lib/video";
    (YouTube / Vimeo) so buyers can watch right inside the profile card.
    ========================================================================== */
 
+function BrandMark() {
+  return (
+    <span
+      style={{
+        position: "absolute",
+        right: 10,
+        bottom: 10,
+        zIndex: 3,
+        background: "rgba(17,17,17,0.72)",
+        color: "#fff",
+        padding: "4px 10px",
+        borderRadius: 7,
+        fontSize: "0.68rem",
+        fontWeight: 800,
+        letterSpacing: "0.08em",
+        pointerEvents: "none",
+        backdropFilter: "blur(2px)",
+      }}
+    >
+      Apex
+    </span>
+  );
+}
+
 function PlayGlyph({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -28,6 +52,7 @@ export function VideoThumb({
   onPlay,
   label,
 }: {
+
   src: string;
   poster?: string;
   title?: string;
@@ -42,7 +67,7 @@ export function VideoThumb({
     <button
       type="button"
       className={"video-thumb " + className}
-      style={ratio ? { aspectRatio: ratio } : undefined}
+      style={ratio ? { aspectRatio: ratio, position: "relative" } : { position: "relative" }}
       onClick={onPlay}
       aria-label={label ?? title ?? "Play video"}
     >
@@ -72,6 +97,7 @@ export function VideoThumb({
         <PlayGlyph />
       </span>
       {title ? <span className="video-thumb-title">{title}</span> : null}
+      <BrandMark />
     </button>
   );
 }
@@ -96,7 +122,7 @@ export default function VideoPlayer({
 
   if (active) {
     return (
-      <div className={"video-player is-active " + className}>
+      <div className={"video-player is-active " + className} style={{ position: "relative" }}>
         {media.kind === "embed" ? (
           <iframe
             className="video-player-media"
@@ -115,12 +141,13 @@ export default function VideoPlayer({
             playsInline
           />
         )}
+        <BrandMark />
       </div>
     );
   }
 
   return (
-    <div className={"video-player " + className} style={{ aspectRatio: ratio }}>
+    <div className={"video-player " + className} style={{ aspectRatio: ratio, position: "relative" }}>
       <VideoThumb
         src={src}
         poster={poster}

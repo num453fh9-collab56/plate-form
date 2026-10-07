@@ -11,6 +11,7 @@ import { useMessaging } from "@/lib/messaging";
 import { useUI } from "@/lib/ui";
 import { translationKeyForCategory } from "@/lib/taxonomy";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/favorites";
+import { topicVideoFor } from "@/lib/video-topic";
 
 export default function GigCard({ gig }: { gig: Gig }) {
   const { t } = useI18n();
@@ -96,13 +97,16 @@ export default function GigCard({ gig }: { gig: Gig }) {
               )}
             </div>
           </div>
-          {gig.video ? (
+          {(gig.video || topicVideoFor(`${gig.category} ${gig.title}`)) ? (
             <button
               className="gig-watch"
               type="button"
               aria-label={t("card.watchIntro")}
               onClick={() =>
-                openVideo({ src: gig.video as string, title: gig.videoName || gig.title })
+                openVideo({
+                  src: (gig.video || topicVideoFor(`${gig.category} ${gig.title}`)) as string,
+                  title: gig.videoName || gig.title,
+                })
               }
             >
               <span className="gig-watch-icon" aria-hidden="true">

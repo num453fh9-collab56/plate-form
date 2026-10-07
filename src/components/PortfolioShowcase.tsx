@@ -11,6 +11,7 @@ import {
   portfolioGlyph,
 } from "@/lib/portfolio";
 import VideoPlayer from "./VideoPlayer";
+import { topicVideoFor } from "@/lib/video-topic";
 /* ==========================================================================
    APEX · PORTFOLIO SHOWCASE
    A clean, light-mode grid of digital projects from Apex professionals.
@@ -50,7 +51,8 @@ function ProjectCard({
   watchLabel: string;
 }) {
   const { openVideo } = useUI();
-  const hasVideo = Boolean(project.video);
+  const videoSrc = project.video || topicVideoFor(`${project.category} ${project.title}`);
+  const hasVideo = Boolean(videoSrc);
 
   const coverInner = (
     <>
@@ -87,7 +89,7 @@ function ProjectCard({
           aria-label={watchLabel}
           onClick={() =>
             openVideo({
-              src: project.video as string,
+              src: videoSrc as string,
               title: project.videoName || project.title,
             })
           }

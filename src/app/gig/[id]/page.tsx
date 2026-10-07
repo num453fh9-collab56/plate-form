@@ -18,6 +18,7 @@ import { useMessaging } from "@/lib/messaging";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import { startCheckout } from "@/lib/checkout";
+import { topicVideoFor } from "@/lib/video-topic";
 import VideoPlayer from "@/components/VideoPlayer";
 import GigCard from "@/components/GigCard";
 
@@ -154,9 +155,12 @@ export default function GigDetailPage() {
               </div>
             </div>
 
-            {gig.video ? (
+            {(gig.video || topicVideoFor(`${gig.category} ${gig.title}`)) ? (
               <div className="gig-detail-video">
-                <VideoPlayer src={gig.video} title={gig.videoName || gig.title} />
+                <VideoPlayer
+                  src={gig.video || topicVideoFor(`${gig.category} ${gig.title}`) || ""}
+                  title={gig.videoName || gig.title}
+                />
               </div>
             ) : null}
 
