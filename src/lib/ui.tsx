@@ -41,6 +41,9 @@ interface UIValue {
   isAccountOpen: boolean;
   openAccount: () => void;
   closeAccount: () => void;
+  isMessagesOpen: boolean;
+  openMessages: () => void;
+  closeMessages: () => void;
 }
 
 const UIContext = createContext<UIValue | null>(null);
@@ -51,6 +54,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [authMode, setAuthMode] = useState<AuthModalMode>("signup");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [video, setVideo] = useState<VideoPayload | null>(null);
@@ -88,6 +92,14 @@ export function UIProvider({ children }: { children: ReactNode }) {
   }, []);
   const closeAccount = useCallback(() => setIsAccountOpen(false), []);
 
+  const openMessages = useCallback(() => {
+    setIsAuthOpen(false);
+    setIsProfileOpen(false);
+    setIsAccountOpen(false);
+    setIsMessagesOpen(true);
+  }, []);
+  const closeMessages = useCallback(() => setIsMessagesOpen(false), []);
+
   const openVideo = useCallback((payload: VideoPayload) => {
     setVideo({
       src: payload.src,
@@ -121,6 +133,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
       isAccountOpen,
       openAccount,
       closeAccount,
+      isMessagesOpen,
+      openMessages,
+      closeMessages,
     }),
     [
       toast,
@@ -142,6 +157,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
       isAccountOpen,
       openAccount,
       closeAccount,
+      isMessagesOpen,
+      openMessages,
+      closeMessages,
     ],
   );
 

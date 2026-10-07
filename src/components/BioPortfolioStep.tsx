@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useUI } from "@/lib/ui";
-import { PORTFOLIO_CATEGORIES, portfolioGlyph, projectCoverStyle } from "@/lib/portfolio";
+import {
+  PORTFOLIO_CATEGORIES,
+  deletePortfolioProject,
+  portfolioGlyph,
+  projectCoverStyle,
+  savePortfolioProject,
+} from "@/lib/portfolio";
 import type { PortfolioProject } from "@/lib/types";
 import IntroVideo from "./IntroVideo";
 
@@ -52,6 +59,7 @@ export default function BioPortfolioStep({
 }) {
   const { t } = useI18n();
   const { toast } = useUI();
+  const { account } = useAuth();
   const [draft, setDraft] = useState<PortfolioProject>(EMPTY_PROJECT);
   const [tagText, setTagText] = useState("");
 
@@ -78,6 +86,7 @@ export default function BioPortfolioStep({
       updatedAt: Date.now(),
     };
     onChange({ portfolioProjects: [project, ...values.portfolioProjects] });
+    if (account?.id) void savePortfolioProject(account.id, project);
     setDraft(EMPTY_PROJECT);
     setTagText("");
     toast(t("account.projectAdded"));
@@ -87,6 +96,7 @@ export default function BioPortfolioStep({
     onChange({
       portfolioProjects: values.portfolioProjects.filter((item) => item.id !== id),
     });
+    void deletePortfolioProject(id);
     toast(t("account.projectRemoved"));
   };
 

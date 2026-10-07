@@ -4,49 +4,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
-import { createExternalStore } from "./external-store";
-import { CATEGORY_OPTIONS, createGig, SEED_GIGS } from "./gigs";
-import { isAllowedCategory } from "./taxonomy";
+import { CATEGORY_OPTIONS } from "./gigs";
+import { isAllowedCategory, normalizeSkills } from "./taxonomy";
+import { getSupabase } from "./supabase";
+import { rowToGig } from "./gig-model";
+import type { GigRow } from "./gig-model";
 import type { Gig, GigDraft } from "./types";
-
-const POSTED_KEY = "wv_posted_gigs";
-const EMPTY_GIGS: Gig[] = [];
-
-function readPostedGigs(): Gig[] {
-  try {
-    const raw = window.localStorage.getItem(POSTED_KEY);
-    if (!raw) return EMPTY_GIGS;
-    const parsed = JSON.parse(raw) as Gig[];
-    if (!Array.isArray(parsed)) return EMPTY_GIGS;
-    return parsed
-      .filter((gig) => gig && typeof gig.title === "string")
-      .map((gig) => ({
-        ...gig,
-        skills: Array.isArray(gig.skills) ? gig.skills : [],
-        category: isAllowedCategory(gig.category) ? gig.category : CATEGORY_OPTIONS[0],
-      }));
-  } catch {
-    return EMPTY_GIGS;
-  }
-}
-
-const postedStore = createExternalStore<Gig[]>(readPostedGigs, EMPTY_GIGS);
-
-function persistPosted(gigs: Gig[]): void {
-  try {
-    window.localStorage.setItem(POSTED_KEY, JSON.stringify(gigs));
-  } catch {
-    /* storage unavailable */
-  }
-}
 
 interface MarketplaceValue {
   gigs: Gig[];
+  loading: boolean;
+  error: string | null;
   query: string;
   setQuery: (value: string) => void;
   category: string;
@@ -55,22 +28,85 @@ interface MarketplaceValue {
   toggleSkill: (skill: string) => void;
   setSkills: (skills: string[]) => void;
   clearFilters: () => void;
-  addGig: (draft: GigDraft) => Gig;
+  addGig: (draft: GigDraft) => Promise<Gig | null>;
+  refresh: () => Promise<void>;
 }
 
 const MarketplaceContext = createContext<MarketplaceValue | null>(null);
 
 export function MarketplaceProvider({ children }: { children: ReactNode }) {
-  const posted = useSyncExternalStore(
-    postedStore.subscribe,
-    postedStore.getSnapshot,
-    postedStore.getServerSnapshot,
+  const [gigs, setGigs] = useState<Gig[]>([]);
+  const [loading, setLoading] = useState(() => Boolean(getSupabase()));
+  const [error, setError] = useState<string | null>(() =>
+    getSupabase() ? null : "Backend not configured",
   );
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
-  const gigs = useMemo(() => [...posted, ...SEED_GIGS], [posted]);
+  const refresh = useCallback(async () => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setGigs([]);
+      setError("Backend not configured");
+      setLoading(false);
+      return;
+    }
+    const { data, error: fetchError } = await supabase
+      .from("gigs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (fetchError) {
+      setError(fetchError.message);
+      setLoading(false);
+      return;
+    }
+    setGigs((data ?? []).map((row) => rowToGig(row as GigRow)));
+    setError(null);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    let cancelled = false;
+    supabase
+      .from("gigs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data, error: fetchError }) => {
+        if (cancelled) return;
+        if (fetchError) {
+          setError(fetchError.message);
+          setLoading(false);
+          return;
+        }
+        setGigs((data ?? []).map((row) => rowToGig(row as GigRow)));
+        setError(null);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const channel = supabase
+      .channel("gigs-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gigs" },
+        () => {
+          void refresh();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [refresh]);
 
   const toggleSkill = useCallback((skill: string) => {
     setSelectedSkills((current) =>
@@ -86,17 +122,52 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     setSelectedSkills([]);
   }, []);
 
-  const addGig = useCallback((draft: GigDraft) => {
-    const gig = createGig(draft);
-    const next = [gig, ...postedStore.getSnapshot()];
-    postedStore.set(next);
-    persistPosted(next);
+  const addGig = useCallback(async (draft: GigDraft): Promise<Gig | null> => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setError("Backend not configured");
+      return null;
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Sign in to publish a gig");
+      return null;
+    }
+    const category = isAllowedCategory(draft.category)
+      ? draft.category
+      : CATEGORY_OPTIONS[0];
+    const { data, error: insertError } = await supabase
+      .from("gigs")
+      .insert({
+        seller_id: user.id,
+        title: draft.title,
+        description: draft.description,
+        category,
+        skills: normalizeSkills(draft.skills, category),
+        price: draft.price,
+        delivery_days: draft.deliveryDays,
+        seller_name: draft.seller,
+        video: draft.video?.trim() || null,
+        video_name: draft.videoName?.trim() || null,
+      })
+      .select("*")
+      .single();
+    if (insertError || !data) {
+      setError(insertError?.message ?? "Could not publish gig");
+      return null;
+    }
+    const gig = rowToGig(data as GigRow);
+    setGigs((current) => [gig, ...current.filter((item) => item.id !== gig.id)]);
     return gig;
   }, []);
 
   const value = useMemo<MarketplaceValue>(
     () => ({
       gigs,
+      loading,
+      error,
       query,
       setQuery,
       category,
@@ -106,8 +177,9 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setSkills: setSelectedSkills,
       clearFilters,
       addGig,
+      refresh,
     }),
-    [gigs, query, category, selectedSkills, toggleSkill, clearFilters, addGig],
+    [gigs, loading, error, query, category, selectedSkills, toggleSkill, clearFilters, addGig, refresh],
   );
 
   return (

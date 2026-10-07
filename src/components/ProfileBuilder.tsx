@@ -11,6 +11,8 @@ import type { TranslationKey } from "@/lib/i18n";
 import { initials } from "@/lib/format";
 import { isAllowedCategory } from "@/lib/taxonomy";
 import { MAX_AVATAR_SOURCE_BYTES, resizeImageToSquare } from "@/lib/media";
+import { uploadDataUrl } from "@/lib/storage";
+import { analyzeResume, composeBio, extractResumeText } from "@/lib/resume";
 import type { Profile } from "@/lib/types";
 import BasicInformationStep from "./BasicInformationStep";
 import type { BasicInformationValues } from "./BasicInformationStep";
@@ -19,20 +21,23 @@ import type { SkillsValues } from "./SkillsStep";
 import BioPortfolioStep from "./BioPortfolioStep";
 import type { BioPortfolioValues } from "./BioPortfolioStep";
 import ReviewStep from "./ReviewStep";
+import OnboardingPreview from "./OnboardingPreview";
 
 /* ==========================================================================
-   APEX · PROFILE WIZARD
-   The profile settings surface, broken into four progressive steps:
+   APEX · ELITE ONBOARDING
+   Full-page immersive profile setup — not a modal. Deep obsidian canvas,
+   white typography, emerald accents.
 
-     1 · Basic info              identity, location, contact
-     2 · Skills & expertise      category, skills, availability
-     3 · Bio & portfolio         bio, website, intro video, projects
-     4 · Review                  read-only summary, then publish
+     Entry   Upload resume (AI auto-parsing)  vs  Precision manual setup
+     Flow    1 · Basic info        identity, photo, contact
+             2 · Skills            category, skills, availability
+             3 · Bio & portfolio   bio, rates, video, projects
+             4 · Review            read-only summary, then publish
 
-   Every keystroke writes through `updateProfile`, which persists to
-   localStorage immediately — so progress is never lost when moving between
-   steps, closing the modal, or reloading the page. The active step index is
-   persisted separately so reopening the wizard resumes where the user left off.
+   A sticky live preview renders the exact card clients see, fed by a merged
+   draft (persisted profile + in-flight step state) so every keystroke is
+   reflected in real time. Progress persists per account, so the flow resumes
+   where the user left off.
    ========================================================================== */
 
 const AVAILABILITY: {
@@ -129,6 +134,21 @@ function persistStep(accountId: string, step: number): void {
   if (accountId) stepStore(accountId).set(step);
 }
 
+/* ------------------------- resume parsing engine -------------------------
+   Real client-side extraction lives in `@/lib/resume` (pdfjs for PDF, mammoth
+   for DOCX, plain read for text files). The staged progress copy reflects the
+   actual pipeline: upload → text extraction → analysis → draft composition. */
+
+const RESUME_MAX_BYTES = 10 * 1048576;
+const PARSE_STAGES = [
+  "onboarding.parsing1",
+  "onboarding.parsing2",
+  "onboarding.parsing3",
+  "onboarding.parsing4",
+] as const;
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 /* ------------------------------ primitives ------------------------------ */
 
 function Field({
@@ -169,6 +189,23 @@ function CheckMark() {
   );
 }
 
+function SparkIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+      <path d="m12 8 1.2 2.8L16 12l-2.8 1.2L12 16l-1.2-2.8L8 12l2.8-1.2Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function PenIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>
+  );
+}
+
 /* ============================== the wizard ============================== */
 
 function ProfileWizard() {
@@ -189,6 +226,11 @@ function ProfileWizard() {
   /* Steps the user has visited — their errors stay visible until fixed. */
   const [revealed, setRevealed] = useState<number[]>([]);
   const avatarRef = useRef<HTMLInputElement>(null);
+  const resumeRef = useRef<HTMLInputElement>(null);
+  /* The entry screen only appears for fresh setups — a persisted step means
+     the user is resuming, so we drop them straight back into the flow. */
+  const [entered, setEntered] = useState(() => step > 0);
+  const [parseStage, setParseStage] = useState<number>(-1);
   const [basicInfo, setBasicInfo] = useState<BasicInformationValues>(() => ({
     fullName: profile.fullName,
     headline: profile.title,
@@ -229,18 +271,39 @@ function ProfileWizard() {
     [accountId],
   );
 
+  /** The live draft — persisted profile merged with in-flight step state, so
+   *  the preview and validation react to every keystroke, not just commits. */
+  const draft = useMemo<Profile>(
+    () => ({
+      ...profile,
+      fullName: basicInfo.fullName,
+      title: basicInfo.headline,
+      avatar: basicInfo.profilePictureUrl,
+      primaryCategory: skillsInfo.primaryCategory,
+      skills: skillsInfo.skills,
+      bio: bioInfo.bio,
+      hourlyRate: bioInfo.hourlyRate,
+      projectRate: bioInfo.projectRate,
+      portfolio: bioInfo.portfolio,
+      introVideo: bioInfo.introVideo,
+      introVideoName: bioInfo.introVideoName,
+      portfolioProjects: bioInfo.portfolioProjects,
+    }),
+    [profile, basicInfo, skillsInfo, bioInfo],
+  );
+
   const errorFor = useCallback(
     (key: keyof Profile): string => {
       const requirement = requirementFor(key);
       if (!revealed.includes(requirement.step)) return "";
-      return requirement.valid(profile) ? "" : t("profile.fieldRequired");
+      return requirement.valid(draft) ? "" : t("profile.fieldRequired");
     },
-    [revealed, profile, t],
+    [revealed, draft, t],
   );
 
   const missingRequired = useMemo(
-    () => REQUIREMENTS.filter((item) => !item.valid(profile)),
-    [profile],
+    () => REQUIREMENTS.filter((item) => !item.valid(draft)),
+    [draft],
   );
 
   const onAvatar = async (file: File) => {
@@ -252,6 +315,13 @@ function ProfileWizard() {
       const dataUrl = await resizeImageToSquare(file);
       setBasicInfo((prev) => ({ ...prev, profilePictureUrl: dataUrl }));
       updateProfile({ avatar: dataUrl });
+      if (accountId) {
+        const url = await uploadDataUrl("avatars", accountId, dataUrl, "avatar");
+        if (url) {
+          setBasicInfo((prev) => ({ ...prev, profilePictureUrl: url }));
+          updateProfile({ avatar: url });
+        }
+      }
     } catch {
       toast(t("video.errRead"));
     }
@@ -302,6 +372,23 @@ function ProfileWizard() {
     }
   };
 
+  /** Advance is gated: the current step's required fields must validate
+   *  against the live draft, otherwise errors surface inline and we stay. */
+  const goNext = () => {
+    setRevealed((prev) => (prev.includes(step) ? prev : [...prev, step]));
+    const blockers = REQUIREMENTS.filter(
+      (item) => item.step === step && !item.valid(draft),
+    );
+    if (blockers.length > 0) return;
+    commitStep(step);
+    gotoStep(step + 1);
+  };
+
+  const goBack = () => {
+    commitStep(step);
+    gotoStep(step - 1);
+  };
+
   const finish = () => {
     const persisted = updateProfile({
       fullName: basicInfo.fullName,
@@ -323,11 +410,64 @@ function ProfileWizard() {
     closeProfile();
   };
 
-if (!user) return null;
+  /* ---------------------------- resume parsing ---------------------------- */
 
-const active = STEPS[step];
-const progress = Math.round(((step + 1) / STEPS.length) * 100);
-const fallbackInitials = initials(profile.fullName || user.name);
+  const onResume = async (file: File) => {
+    if (file.size > RESUME_MAX_BYTES) {
+      toast(t("video.tooLarge", { max: 10 }));
+      return;
+    }
+    setParseStage(0);
+
+    /* Stage 1 → real text extraction (PDF / DOCX / TXT) */
+    let text = "";
+    try {
+      text = await extractResumeText(file);
+    } catch {
+      text = "";
+    }
+
+    /* Stages 2-3 → analysis; stage timing keeps the UI honest and readable */
+    setParseStage(1);
+    const analysis = analyzeResume(text);
+    await delay(700);
+    setParseStage(2);
+    await delay(700);
+    setParseStage(3);
+    await delay(500);
+
+    const fullName = profile.fullName.trim() || analysis.fullName || user?.name || "";
+    const category = analysis.category;
+    const headline = profile.title.trim() || analysis.headline;
+    const skills = analysis.skills;
+    const phone = profile.phone.trim() || analysis.phone;
+    const bio =
+      profile.bio.trim().length >= 40
+        ? profile.bio
+        : composeBio({
+            fullName,
+            headline,
+            skills,
+            years: analysis.years,
+          });
+
+    setBasicInfo((prev) => ({ ...prev, fullName, headline }));
+    setSkillsInfo({ primaryCategory: category, skills });
+    setBioInfo((prev) => ({ ...prev, bio }));
+    updateProfile({ fullName, title: headline, primaryCategory: category, skills, bio, phone });
+
+    setParseStage(-1);
+    setEntered(true);
+    gotoStep(BASIC_STEP);
+    toast(t("onboarding.parsed"));
+  };
+
+  if (!user) return null;
+
+  const active = STEPS[step];
+  const progress = Math.round(((step + 1) / STEPS.length) * 100);
+  const fallbackInitials = initials(profile.fullName || user.name);
+  const parsing = parseStage >= 0;
 
   /* ------------------------------ step 1 ------------------------------ */
   function renderBasic() {
@@ -350,7 +490,7 @@ const fallbackInitials = initials(profile.fullName || user.name);
             <div className="avatar-actions">
               <button
                 type="button"
-                className="btn-ghost btn-sm"
+                className="ob-btn-ghost btn-sm"
                 onClick={() => avatarRef.current?.click()}
               >
                 {profile.avatar ? t("profile.photoChange") : t("profile.photoUpload")}
@@ -358,7 +498,7 @@ const fallbackInitials = initials(profile.fullName || user.name);
               {profile.avatar && (
                 <button
                   type="button"
-                  className="btn-ghost btn-sm danger"
+                  className="ob-btn-ghost btn-sm danger"
                   onClick={() => {
                     setBasicInfo((prev) => ({ ...prev, profilePictureUrl: "" }));
                     updateProfile({ avatar: "" });
@@ -483,7 +623,7 @@ const fallbackInitials = initials(profile.fullName || user.name);
           <p className="wiz-review-note">{t("wizard.reviewIncomplete")}</p>
         )}
         <ReviewStep
-          profile={profile}
+          profile={draft}
           strength={strength}
           onEdit={(section) => {
             if (section === "basic") gotoStep(BASIC_STEP);
@@ -503,91 +643,203 @@ const fallbackInitials = initials(profile.fullName || user.name);
     review: renderReview,
   };
 
-  return (
-    <div
-      className="modal-overlay profile-overlay open"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="profileTitle"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeProfile();
-      }}
-    >
-      <div className="profile-modal wiz-modal">
-        <div className="wiz-head">
-          <div className="wiz-head-copy">
-            <span className="wiz-kicker">
-              {t("wizard.kicker")} ·{" "}
-              {t("wizard.stepOf", { current: step + 1, total: STEPS.length })}
+  /* ----------------------------- entry screen ----------------------------- */
+  function renderEntry() {
+    return (
+      <div className="ob-entry">
+        <div className="ob-entry-head">
+          <span className="ob-kicker">
+            <span className="ob-kicker-dot" aria-hidden="true" />
+            {t("onboarding.kicker")}
+          </span>
+          <h1>{t("onboarding.entryTitle")}</h1>
+          <p>{t("onboarding.entrySub")}</p>
+        </div>
+
+        <div className="ob-choices">
+          <div className={"ob-choice ob-choice-ai" + (parsing ? " parsing" : "")}>
+            <span className="ob-choice-badge">{t("onboarding.aiBadge")}</span>
+            <span className="ob-choice-icon" aria-hidden="true">
+              <SparkIcon />
             </span>
-            <h2 id="profileTitle">{t(active.titleKey)}</h2>
-            <p>{t(active.subKey)}</p>
-          </div>
-          <button className="modal-close" type="button" aria-label={t("common.close")} onClick={closeProfile}>
-            &times;
-          </button>
-        </div>
-
-        <div
-          className="wiz-progress"
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={STEPS.length}
-          aria-valuenow={step + 1}
-          aria-valuetext={t("wizard.stepOf", { current: step + 1, total: STEPS.length })}
-          aria-label={t("profile.strength")}
-        >
-          <span className="wiz-progress-fill" style={{ width: `${progress}%` }} />
-        </div>
-
-        <nav className="wiz-steps" aria-label={t("wizard.kicker")}>
-          {STEPS.map((item, index) => {
-            const state =
-              index === step ? "active" : revealed.includes(index) ? "done" : "todo";
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={"wiz-step " + state}
-                aria-current={index === step ? "step" : undefined}
-                onClick={() => {
-                  commitStep(step);
-                  gotoStep(index);
-                }}
-              >
-                <span className="wiz-step-index">
-                  {state === "done" ? <CheckMark /> : index + 1}
+            <h2>{t("onboarding.aiTitle")}</h2>
+            <p>{t("onboarding.aiSub")}</p>
+            <ul>
+              <li>{t("onboarding.aiPoint1")}</li>
+              <li>{t("onboarding.aiPoint2")}</li>
+              <li>{t("onboarding.aiPoint3")}</li>
+            </ul>
+            {parsing ? (
+              <div className="ob-parse" role="status" aria-live="polite">
+                <span className="ob-parse-bar">
+                  <span
+                    className="ob-parse-fill"
+                    style={{ width: `${((parseStage + 1) / PARSE_STAGES.length) * 100}%` }}
+                  />
                 </span>
-                <span className="wiz-step-label">{t(item.titleKey)}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="wiz-body" key={active.id}>
-          {panels[active.id]()}
-        </div>
-
-        <div className="wiz-foot">
-          <span className="wiz-foot-note">{t("wizard.autosaved")}</span>
-          <div className="wiz-foot-actions">
-            {step > 0 && (
-              <button type="button" className="btn-ghost" onClick={() => { commitStep(step); gotoStep(step - 1); }}>
-                {t("wizard.back")}
-              </button>
-            )}
-            {step < LAST_STEP ? (
-              <button type="button" className="btn-publish" onClick={() => { commitStep(step); gotoStep(step + 1); }}>
-                {t("wizard.next")}
-              </button>
+                <span className="ob-parse-label">
+                  <span className="ob-parse-spinner" aria-hidden="true" />
+                  {t(PARSE_STAGES[parseStage])}
+                </span>
+              </div>
             ) : (
-              <button type="button" className="btn-publish" onClick={finish}>
-                {t("wizard.publish")}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="ob-btn-primary ob-choice-cta"
+                  onClick={() => resumeRef.current?.click()}
+                >
+                  {t("onboarding.aiCta")}
+                </button>
+                <span className="ob-choice-hint">{t("onboarding.aiHint")}</span>
+              </>
             )}
+            <input
+              ref={resumeRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.md,.rtf"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void onResume(file);
+                event.target.value = "";
+              }}
+            />
+          </div>
+
+          <div className="ob-choice">
+            <span className="ob-choice-badge ob-choice-badge-alt">{t("onboarding.manualBadge")}</span>
+            <span className="ob-choice-icon" aria-hidden="true">
+              <PenIcon />
+            </span>
+            <h2>{t("onboarding.manualTitle")}</h2>
+            <p>{t("onboarding.manualSub")}</p>
+            <ul>
+              <li>{t("onboarding.manualPoint1")}</li>
+              <li>{t("onboarding.manualPoint2")}</li>
+              <li>{t("onboarding.manualPoint3")}</li>
+            </ul>
+            <button
+              type="button"
+              className="ob-btn-ghost ob-choice-cta"
+              onClick={() => setEntered(true)}
+              disabled={parsing}
+            >
+              {t("onboarding.manualCta")}
+            </button>
           </div>
         </div>
       </div>
+    );
+  }
+
+  /* ------------------------------ the shell ------------------------------ */
+  return (
+    <div className="ob-shell" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+      <div className="ob-aurora" aria-hidden="true" />
+
+      <header className="ob-topbar">
+        <span className="ob-brand">
+          <svg className="ob-brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <circle cx="20" cy="20" r="18.4" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M20 8L30 28H25L20 18L15 28H10L20 8Z" fill="currentColor" />
+            <path d="M16 23H24" stroke="#0b0d0c" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <b>
+            Ap<span>ex</span>
+          </b>
+          <span className="ob-brand-tag">{t("onboarding.kicker")}</span>
+        </span>
+        <div className="ob-topbar-actions">
+          {entered && (
+            <button type="button" className="ob-btn-ghost btn-sm" onClick={() => setEntered(false)}>
+              {t("onboarding.backToStart")}
+            </button>
+          )}
+          <button type="button" className="ob-exit" onClick={closeProfile}>
+            {t("onboarding.exit")}
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      </header>
+
+      {entered ? (
+        <div className="ob-main">
+          <div className="ob-flow">
+            <div className="ob-flow-head">
+              <span className="ob-kicker">
+                {t("wizard.kicker")} · {t("wizard.stepOf", { current: step + 1, total: STEPS.length })}
+              </span>
+              <h1 id="profileTitle">{t(active.titleKey)}</h1>
+              <p>{t(active.subKey)}</p>
+            </div>
+
+            <div
+              className="ob-progress"
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={STEPS.length}
+              aria-valuenow={step + 1}
+              aria-valuetext={t("wizard.stepOf", { current: step + 1, total: STEPS.length })}
+              aria-label={t("onboarding.stepRail")}
+            >
+              <span className="ob-progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+
+            <nav className="ob-steps" aria-label={t("wizard.kicker")}>
+              {STEPS.map((item, index) => {
+                const state =
+                  index === step ? "active" : revealed.includes(index) ? "done" : "todo";
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={"ob-step " + state}
+                    aria-current={index === step ? "step" : undefined}
+                    onClick={() => {
+                      commitStep(step);
+                      gotoStep(index);
+                    }}
+                  >
+                    <span className="ob-step-index">
+                      {state === "done" ? <CheckMark /> : index + 1}
+                    </span>
+                    <span className="ob-step-label">{t(item.titleKey)}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="ob-panel" key={active.id}>
+              {panels[active.id]()}
+            </div>
+
+            <div className="ob-foot">
+              <span className="ob-foot-note">{t("wizard.autosaved")}</span>
+              <div className="ob-foot-actions">
+                {step > 0 && (
+                  <button type="button" className="ob-btn-ghost" onClick={goBack}>
+                    {t("wizard.back")}
+                  </button>
+                )}
+                {step < LAST_STEP ? (
+                  <button type="button" className="ob-btn-primary" onClick={goNext}>
+                    {t("wizard.next")}
+                  </button>
+                ) : (
+                  <button type="button" className="ob-btn-primary" onClick={finish}>
+                    {t("wizard.publish")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <OnboardingPreview profile={draft} />
+        </div>
+      ) : (
+        renderEntry()
+      )}
     </div>
   );
 }

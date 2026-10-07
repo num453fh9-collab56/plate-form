@@ -100,18 +100,14 @@ export const FOOTER_CATEGORIES: NavCategory[] = [
   },
 ];
 
-/** The four link columns shown beside the brand block. */
+/** Link columns shown beside the brand block — only links that lead somewhere real. */
 export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     id: "clients",
     titleKey: "footer.forClients",
     links: [
-      { labelKey: "footer.howItWorks", href: "#experience" },
-      { labelKey: "footer.customerStories", href: "#work" },
-      { labelKey: "footer.qualityGuide", href: "#experience" },
-      { labelKey: "footer.buyingGuide", href: "#portfolio" },
-      { labelKey: "footer.trustSafety", href: "#" },
-      { labelKey: "footer.apexAnswers", href: "#" },
+      { labelKey: "footer.howItWorks", href: "/search" },
+      { labelKey: "footer.buyingGuide", href: "/#portfolio" },
     ],
   },
   {
@@ -119,22 +115,13 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     titleKey: "footer.forFreelancers",
     links: [
       { labelKey: "footer.becomeFreelancer", action: "becomeFreelancer" },
-      { labelKey: "footer.communityHub", href: "#" },
-      { labelKey: "footer.forum", href: "#" },
-      { labelKey: "footer.freelancerAcademy", href: "#experience" },
-      { labelKey: "footer.logoMaker", href: "#" },
-      { labelKey: "footer.sellerPlus", href: "#" },
+      { labelKey: "footer.freelancerAcademy", href: "/search" },
     ],
   },
   {
     id: "business",
     titleKey: "footer.businessSolutions",
     links: [
-      { labelKey: "footer.apexBusiness", href: "#" },
-      { labelKey: "footer.apexPro", href: "#" },
-      { labelKey: "footer.projectManagement", href: "#" },
-      { labelKey: "footer.enterprise", href: "#" },
-      { labelKey: "footer.contentStudio", href: "#" },
       { labelKey: "footer.hireTalent", action: "postGig" },
     ],
   },
@@ -142,13 +129,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     id: "company",
     titleKey: "footer.companySupport",
     links: [
-      { labelKey: "footer.about", href: "#" },
-      { labelKey: "footer.helpCenter", href: "#" },
-      { labelKey: "footer.trustSafety", href: "#" },
-      { labelKey: "footer.terms", href: "#" },
-      { labelKey: "footer.privacy", href: "#" },
-      { labelKey: "footer.accessibility", href: "#" },
-      { labelKey: "footer.contact", href: "#" },
+      { labelKey: "footer.helpCenter", href: "/search" },
     ],
   },
 ];

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
@@ -18,7 +19,8 @@ type IconName =
   | "improve"
   | "certified"
   | "promote"
-  | "rewards";
+  | "rewards"
+  | "chat";
 
 const ICON_PATHS: Record<IconName, ReactNode> = {
   manage: (
@@ -96,6 +98,11 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
       <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
     </>
   ),
+  chat: (
+    <>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </>
+  ),
 };
 
 function Icon({ name }: { name: IconName }) {
@@ -128,42 +135,17 @@ interface DashItem {
 
 const DASH_ITEMS: DashItem[] = [
   { id: "manage", labelKey: "account.settings", icon: "manage", color: "#0066cc", soft: "rgba(0,102,204,0.12)" },
-  { id: "groups", labelKey: "account.groups", icon: "groups", color: "#7c3aed", soft: "rgba(124,58,237,0.12)" },
-  {
-    id: "notifications",
-    labelKey: "account.notifications",
-    icon: "bell",
-    color: "#e11d48",
-    soft: "rgba(225,29,72,0.12)",
-    badge: "13",
-  },
   { id: "post", labelKey: "account.postProject", icon: "post", color: "#059669", soft: "rgba(5,150,105,0.12)" },
-  {
-    id: "wallet",
-    labelKey: "account.wallet",
-    icon: "wallet",
-    color: "#d97706",
-    soft: "rgba(217,119,6,0.13)",
-    value: "$0.00 USD",
-  },
   { id: "profile", labelKey: "account.myProfile", icon: "profile", color: "#4f46e5", soft: "rgba(79,70,229,0.12)" },
   { id: "improve", labelKey: "account.improveProfile", icon: "improve", color: "#0891b2", soft: "rgba(8,145,178,0.12)" },
-  {
-    id: "certified",
-    labelKey: "account.getCertified",
-    icon: "certified",
-    color: "#ca8a04",
-    soft: "rgba(202,138,4,0.14)",
-  },
-  { id: "promote", labelKey: "account.promoteProfile", icon: "promote", color: "#db2777", soft: "rgba(219,39,119,0.12)" },
-  { id: "rewards", labelKey: "account.myRewards", icon: "rewards", color: "#ea580c", soft: "rgba(234,88,12,0.12)" },
 ];
 
 export default function AccountMenu() {
   const { user, signOut, strength } = useAuth();
-  const { openPost, openProfile, openAccount, toast } = useUI();
+  const { openPost, openProfile, openAccount, openMessages, toast } = useUI();
   const requireAuth = useRequireAuth();
   const { t } = useI18n();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -276,6 +258,79 @@ export default function AccountMenu() {
             </span>
             <span className="account-strength-value">{strength.percent}%</span>
           </button>
+        )}
+
+        {user && (
+          <>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                openMessages();
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#0066cc", background: "rgba(0,102,204,0.12)" }}
+              >
+                <Icon name="chat" />
+              </span>
+              <span className="dash-text">Messages</span>
+            </button>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                router.push("/orders");
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#d97706", background: "rgba(217,119,6,0.13)" }}
+              >
+                <Icon name="wallet" />
+              </span>
+              <span className="dash-text">Orders</span>
+            </button>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                router.push("/earnings");
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}
+              >
+                <Icon name="wallet" />
+              </span>
+              <span className="dash-text">Earnings</span>
+            </button>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                router.push("/notifications");
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#2563eb", background: "rgba(37,99,235,0.12)" }}
+              >
+                <Icon name="chat" />
+              </span>
+              <span className="dash-text">Notifications</span>
+            </button>
+          </>
         )}
 
         <div className="dash-label">{t("account.dashboard")}</div>

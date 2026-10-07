@@ -1,38 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Gig } from "@/lib/types";
 import { formatPrice, initials, stars } from "@/lib/format";
+import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useMarketplace } from "@/lib/marketplace";
+import { useMessaging } from "@/lib/messaging";
 import { useUI } from "@/lib/ui";
 import { translationKeyForCategory } from "@/lib/taxonomy";
 
 export default function GigCard({ gig }: { gig: Gig }) {
   const { t } = useI18n();
-  const { openVideo } = useUI();
+  const { user } = useAuth();
+  const { startConversation } = useMessaging();
+  const requireAuth = useRequireAuth();
+  const { openVideo, openMessages } = useUI();
   const { selectedSkills, toggleSkill } = useMarketplace();
-  const [saved, setSaved] = useState(false);
-  const [ordering, setOrdering] = useState(false);
+  const router = useRouter();
 
   const handleOrder = () => {
-    setOrdering(true);
-    window.setTimeout(() => setOrdering(false), 1100);
+    router.push(`/gig/${gig.id}`);
+  };
+
+  const openConversation = async () => {
+    if (!gig.sellerId) return;
+    const id = await startConversation({
+      gigId: gig.id,
+      sellerId: gig.sellerId,
+      sellerName: gig.seller,
+    });
+    if (id) openMessages();
   };
 
   return (
     <article className={"gig" + (gig.isNew ? " is-new" : "")} data-category={gig.category}>
       <div className="gig-head">
         <span className="gig-eyebrow">{t(translationKeyForCategory(gig.category))}</span>
-        <button
-          className={"fav" + (saved ? " on" : "")}
-          type="button"
-          aria-label={t("card.saveAria")}
-          aria-pressed={saved}
-          onClick={() => setSaved((value) => !value)}
-        >
-          {saved ? "♥" : "♡"}
-        </button>
       </div>
 
       <div className="gig-body">
@@ -113,9 +117,19 @@ export default function GigCard({ gig }: { gig: Gig }) {
           </span>
         </div>
 
-        <button className="btn-order" type="button" onClick={handleOrder} disabled={ordering}>
-          {ordering ? t("card.openingOrder") : t("card.viewGig")}
+        <button className="btn-order" type="button" onClick={handleOrder}>
+          {t("card.viewGig")}
         </button>
+
+        {gig.sellerId && gig.sellerId !== user?.sub ? (
+          <button
+            className="btn-ghost btn-sm"
+            type="button"
+            onClick={() => requireAuth(() => void openConversation())}
+          >
+            Message seller
+          </button>
+        ) : null}
       </div>
     </article>
   );

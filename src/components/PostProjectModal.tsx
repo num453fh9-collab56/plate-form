@@ -113,6 +113,7 @@ function PostProjectForm() {
   }));
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
+  const [submitting, setSubmitting] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -156,8 +157,9 @@ function PostProjectForm() {
     }
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submitting) return;
     const nextErrors = validate(values, t);
     setErrors(nextErrors);
     setTouched({
@@ -175,7 +177,8 @@ function PostProjectForm() {
       return;
     }
 
-    const gig = addGig({
+    setSubmitting(true);
+    const gig = await addGig({
       title: values.title.trim(),
       description: values.description.trim(),
       category: values.category,
@@ -186,6 +189,12 @@ function PostProjectForm() {
       video: values.video,
       videoName: values.videoName,
     });
+    setSubmitting(false);
+
+    if (!gig) {
+      toast("Could not publish your gig. Please sign in and try again.");
+      return;
+    }
 
     closePost();
     const shortTitle = `${gig.title.slice(0, 42)}${gig.title.length > 42 ? "…" : ""}`;
@@ -364,6 +373,7 @@ function PostProjectForm() {
               <IntroVideo
                 src={values.video}
                 name={values.videoName}
+                bucket="gig-media"
                 onChange={(src, name) =>
                   setValues((current) => ({ ...current, video: src, videoName: name }))
                 }
@@ -374,7 +384,7 @@ function PostProjectForm() {
             <button className="btn-ghost" type="button" onClick={closePost}>
               {t("post.cancel")}
             </button>
-            <button className="btn-publish" type="submit">
+            <button className="btn-publish" type="submit" disabled={submitting}>
               {t("post.publish")}
             </button>
           </div>

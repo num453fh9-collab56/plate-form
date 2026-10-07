@@ -108,18 +108,18 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     return Object.keys(next).length === 0;
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!validate()) return;
 
     const result =
       mode === "signup"
-        ? signUpWithEmail({
+        ? await signUpWithEmail({
             name: values.name.trim(),
             email: values.email,
             password: values.password,
           })
-        : signInWithEmail({ email: values.email, password: values.password });
+        : await signInWithEmail({ email: values.email, password: values.password });
 
     if (!result.ok) {
       setFormError(result.error);

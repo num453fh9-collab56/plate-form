@@ -15,7 +15,7 @@ import { initials, maskEmail } from "@/lib/format";
    portfolio projects — lives in the profile wizard.
    ========================================================================== */
 
-type Tab = "personal" | "security" | "verification" | "privacy";
+type Tab = "personal" | "security";
 
 const TABS: { id: Tab; labelKey: TranslationKey; icon: ReactNode }[] = [
   {
@@ -37,26 +37,6 @@ const TABS: { id: Tab; labelKey: TranslationKey; icon: ReactNode }[] = [
       </>
     ),
   },
-  {
-    id: "verification",
-    labelKey: "account.tabVerification",
-    icon: (
-      <>
-        <path d="M9 12l2 2 4-4" />
-        <circle cx="12" cy="12" r="9" />
-      </>
-    ),
-  },
-  {
-    id: "privacy",
-    labelKey: "account.tabPrivacy",
-    icon: (
-      <>
-        <rect x="3" y="11" width="18" height="10" rx="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </>
-    ),
-  },
 ];
 
 function TabIcon({ children }: { children: ReactNode }) {
@@ -64,29 +44,6 @@ function TabIcon({ children }: { children: ReactNode }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {children}
     </svg>
-  );
-}
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      className={"toggle" + (checked ? " on" : "")}
-      onClick={() => onChange(!checked)}
-    >
-      <span className="toggle-knob" />
-    </button>
   );
 }
 
@@ -120,9 +77,7 @@ function AccountSettingsModal() {
   const masked = maskEmail(account.email);
   const isGoogle = account.provider === "google" && !account.passwordHash;
 
-  const phoneVerified = profile.phone.replace(/\D/g, "").length >= 7;
-
-  const submitPassword = () => {
+  const submitPassword = async () => {
     if (!pwCurrent) {
       setPwError(t("account.errCurrentPassword"));
       return;
@@ -135,7 +90,7 @@ function AccountSettingsModal() {
       setPwError(t("account.errPasswordMismatch"));
       return;
     }
-    const result = changePassword({ current: pwCurrent, next: pwNext });
+    const result = await changePassword({ current: pwCurrent, next: pwNext });
     if (!result.ok) {
       setPwError(t(result.error));
       return;
@@ -360,130 +315,9 @@ function AccountSettingsModal() {
                   </div>
                 )}
 
-                <div className="account-row">
-                  <div>
-                    <strong>{t("account.twoFactor")}</strong>
-                    <p>{t("account.twoFactorSub")}</p>
-                  </div>
-                  <Toggle
-                    checked={profile.twoFactor}
-                    label={t("account.twoFactor")}
-                    onChange={(value) => updateProfile({ twoFactor: value })}
-                  />
-                </div>
               </>
             )}
 
-            {tab === "verification" && (
-              <>
-                <div className="account-section-head">
-                  <h3>{t("account.verificationTitle")}</h3>
-                  <p>{t("account.verificationSub")}</p>
-                </div>
-                <div className="verify-grid">
-                  {[
-                    { id: "email", label: t("account.verEmail"), note: masked, done: true },
-                    {
-                      id: "phone",
-                      label: t("account.verPhone"),
-                      note: phoneVerified ? profile.phone : t("account.addPhone"),
-                      done: phoneVerified,
-                    },
-                    {
-                      id: "identity",
-                      label: t("account.verIdentity"),
-                      note: profile.idVerified ? t("account.verified") : t("account.notVerifiedNote"),
-                      done: profile.idVerified,
-                    },
-                    {
-                      id: "payment",
-                      label: t("account.verPayment"),
-                      note: profile.paymentVerified ? t("account.verified") : t("account.notVerifiedNote"),
-                      done: profile.paymentVerified,
-                    },
-                  ].map((item) => (
-                    <div className="verify-card" key={item.id}>
-                      <span className={"verify-icon" + (item.done ? " ok" : "")} aria-hidden="true">
-                        {item.done ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 6 9 17l-5-5" />
-                          </svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                            <path d="M12 8v5" />
-                            <path d="M12 16h.01" />
-                          </svg>
-                        )}
-                      </span>
-                      <div className="verify-info">
-                        <strong>{item.label}</strong>
-                        <span>{item.note}</span>
-                      </div>
-                      <span className={"status-pill " + (item.done ? "ok" : "warn")}>
-                        {item.done ? t("account.verified") : t("account.notVerified")}
-                      </span>
-                      {!item.done && item.id !== "phone" && (
-                        <button
-                          className="btn-ghost account-inline-btn"
-                          type="button"
-                          onClick={() => {
-                            if (item.id === "identity") {
-                              updateProfile({ idVerified: true });
-                              toast(t("account.identitySubmitted"));
-                            } else {
-                              updateProfile({ paymentVerified: true });
-                              toast(t("account.paymentAdded"));
-                            }
-                          }}
-                        >
-                          {t("account.verifyNow")}
-                        </button>
-                      )}
-                      {!item.done && item.id === "phone" && (
-                        <button
-                          className="btn-ghost account-inline-btn"
-                          type="button"
-                          onClick={() => setTab("personal")}
-                        >
-                          {t("account.addPhone")}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {tab === "privacy" && (
-              <>
-                <div className="account-section-head">
-                  <h3>{t("account.privacyTitle")}</h3>
-                  <p>{t("account.privacySub")}</p>
-                </div>
-                <div className="account-row">
-                  <div>
-                    <strong>{t("account.maskEmail")}</strong>
-                    <p>{t("account.maskEmailSub")}</p>
-                  </div>
-                  <Toggle
-                    checked={profile.emailMasked}
-                    label={t("account.maskEmail")}
-                    onChange={(value) => updateProfile({ emailMasked: value })}
-                  />
-                </div>
-                <div className="account-row">
-                  <div>
-                    <strong>{t("account.publicProfile")}</strong>
-                    <p>{t("account.publicProfileSub")}</p>
-                  </div>
-                  <Toggle
-                    checked={profile.profilePublic}
-                    label={t("account.publicProfile")}
-                    onChange={(value) => updateProfile({ profilePublic: value })}
-                  />
-                </div>
-              </>
-            )}
           </div>
         </div>
       </div>

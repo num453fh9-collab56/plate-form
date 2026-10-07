@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useMarketplace } from "@/lib/marketplace";
 import { useUI } from "@/lib/ui";
+import { useRequireAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS } from "@/lib/gigs";
 import { POPULAR_SKILLS } from "@/lib/taxonomy";
@@ -12,6 +13,7 @@ import SkillPicker from "./SkillPicker";
 export default function GigGrid() {
   const {
     gigs,
+    loading,
     query,
     category,
     setCategory,
@@ -21,6 +23,7 @@ export default function GigGrid() {
     clearFilters,
   } = useMarketplace();
   const { openPost } = useUI();
+  const requireAuth = useRequireAuth();
   const { t } = useI18n();
 
   const visibleGigs = useMemo(() => {
@@ -57,7 +60,7 @@ export default function GigGrid() {
             <a href="#gigs" className="link-all">
               {t("grid.browseAll")} <span>&rarr;</span>
             </a>
-            <button className="btn-post" type="button" onClick={openPost}>
+            <button className="btn-post" type="button" onClick={() => requireAuth(openPost)}>
               + {t("grid.postGig")}
             </button>
           </div>
@@ -139,17 +142,22 @@ export default function GigGrid() {
           {visibleGigs.map((gig) => (
             <GigCard key={gig.id} gig={gig} />
           ))}
-          {visibleGigs.length === 0 && (
-            <div className="empty">
-              <h3>{t("grid.emptyTitle")}</h3>
-              <p>{t("grid.emptyText")}</p>
-              {hasFilters && (
-                <button type="button" className="btn-ghost btn-sm" onClick={clearFilters}>
-                  {t("grid.clearFilters")}
-                </button>
-              )}
-            </div>
-          )}
+          {visibleGigs.length === 0 &&
+            (loading ? (
+              <div className="empty" role="status">
+                <p>Loading gigs…</p>
+              </div>
+            ) : (
+              <div className="empty">
+                <h3>{t("grid.emptyTitle")}</h3>
+                <p>{t("grid.emptyText")}</p>
+                {hasFilters && (
+                  <button type="button" className="btn-ghost btn-sm" onClick={clearFilters}>
+                    {t("grid.clearFilters")}
+                  </button>
+                )}
+              </div>
+            ))}
         </div>
       </div>
     </section>

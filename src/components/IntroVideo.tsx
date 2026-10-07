@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useUI } from "@/lib/ui";
 import {
@@ -10,6 +11,8 @@ import {
   MAX_VIDEO_BYTES,
   readFileAsDataUrl,
 } from "@/lib/media";
+import { uploadBlob, uploadFile } from "@/lib/storage";
+import type { MediaBucket } from "@/lib/storage";
 import VideoPlayer from "./VideoPlayer";
 
 const MAX_MB = Math.round(MAX_VIDEO_BYTES / 1048576);
@@ -35,11 +38,18 @@ interface IntroVideoProps {
   src: string;
   name: string;
   onChange: (src: string, name: string) => void;
+  bucket?: MediaBucket;
 }
 
-export default function IntroVideo({ src, name, onChange }: IntroVideoProps) {
+export default function IntroVideo({
+  src,
+  name,
+  onChange,
+  bucket = "intro-videos",
+}: IntroVideoProps) {
   const { t } = useI18n();
   const { toast } = useUI();
+  const { account } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const liveRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -97,6 +107,13 @@ export default function IntroVideo({ src, name, onChange }: IntroVideoProps) {
     }
     try {
       const dataUrl = await readFileAsDataUrl(file);
+      if (account?.id) {
+        const url = await uploadFile(bucket, account.id, file);
+        if (url) {
+          onChange(url, file.name);
+          return;
+        }
+      }
       onChange(dataUrl, file.name);
     } catch {
       toast(t("video.errRead"));
@@ -146,6 +163,13 @@ export default function IntroVideo({ src, name, onChange }: IntroVideoProps) {
           if (dataUrlBytes(dataUrl) > MAX_VIDEO_BYTES) {
             toast(t("video.tooLarge", { max: MAX_MB }));
             return;
+          }
+          if (account?.id) {
+            const url = await uploadBlob(bucket, account.id, blob, "intro");
+            if (url) {
+              onChange(url, "apex-intro.webm");
+              return;
+            }
           }
           onChange(dataUrl, "apex-intro.webm");
         } catch {

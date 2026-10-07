@@ -5,6 +5,7 @@ import "./globals.css";
 import { UIProvider } from "@/lib/ui";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
+import { MessagingProvider } from "@/lib/messaging";
 import { MarketplaceProvider } from "@/lib/marketplace";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -33,12 +34,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <I18nProvider>
           <UIProvider>
             <AuthProvider>
-              <MarketplaceProvider>
-                <Header />
-                {children}
-                <Footer />
-                <Overlays />
-              </MarketplaceProvider>
+              <MessagingProvider>
+                <MarketplaceProvider>
+                  <Header />
+                  {children}
+                  <Footer />
+                  <Overlays />
+                </MarketplaceProvider>
+              </MessagingProvider>
             </AuthProvider>
           </UIProvider>
         </I18nProvider>

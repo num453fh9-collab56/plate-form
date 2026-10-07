@@ -2,6 +2,7 @@ export type GigColorPair = [string, string];
 
 export interface Gig {
   id: string;
+  sellerId?: string;
   title: string;
   description: string;
   seller: string;
@@ -44,6 +45,7 @@ export type AuthProvider = "google" | "email";
 
 export interface PortfolioProject {
   id: string;
+  userId?: string;
   title: string;
   category: string;
   summary: string;

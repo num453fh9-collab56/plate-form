@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMarketplace } from "@/lib/marketplace";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
@@ -19,16 +20,18 @@ export default function Hero() {
   const { user } = useAuth();
   const { openAuth, openProfile } = useUI();
   const { t } = useI18n();
+  const router = useRouter();
+
+  const submitSearch = () => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (category && category !== "All") params.set("category", category);
+    router.push(`/search${params.toString() ? `?${params.toString()}` : ""}`);
+  };
 
   const scrollToShowcase = () => {
     document
       .getElementById("work")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const scrollToGigs = () => {
-    document
-      .getElementById("gigs")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -78,7 +81,7 @@ export default function Hero() {
             className="search-bar hero-search-bar"
             onSubmit={(event) => {
               event.preventDefault();
-              scrollToGigs();
+              submitSearch();
             }}
           >
             <label className="field">

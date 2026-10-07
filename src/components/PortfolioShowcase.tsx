@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PortfolioProject } from "@/lib/types";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import {
-  SEED_PROJECTS,
+  fetchPortfolioProjects,
   coverStyle,
   portfolioGlyph,
 } from "@/lib/portfolio";
@@ -133,12 +133,32 @@ export default function PortfolioShowcase() {
   const requireAuth = useRequireAuth();
   const { t } = useI18n();
 
+  const userId = user?.sub;
+  const [allProjects, setAllProjects] = useState<PortfolioProject[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPortfolioProjects().then((list) => {
+      if (!cancelled) {
+        setAllProjects(list);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const mine = useMemo(
-    () => (user && Array.isArray(profile.portfolioProjects) ? profile.portfolioProjects : []),
-    [user, profile.portfolioProjects],
+    () => (userId ? allProjects.filter((project) => project.userId === userId) : []),
+    [allProjects, userId],
   );
 
-  const projects = useMemo(() => [...mine, ...SEED_PROJECTS], [mine]);
+  const projects = useMemo(() => {
+    const others = allProjects.filter((project) => project.userId !== userId);
+    return [...mine, ...others];
+  }, [allProjects, mine, userId]);
 
   return (
     <section className="section portfolio" id="portfolio">
@@ -182,6 +202,16 @@ export default function PortfolioShowcase() {
               watchLabel={t("portfolio.watch")}
             />
           ))}
+          {projects.length === 0 && (
+            <div className="empty" role="status">
+              <h3>{t("grid.emptyTitle")}</h3>
+              <p>
+                {loading
+                  ? "Loading portfolio…"
+                  : "No portfolio projects yet. Be the first to add one."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>

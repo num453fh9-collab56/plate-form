@@ -12,6 +12,8 @@ import {
 } from "react";
 import { createExternalStore } from "./external-store";
 import { isAllowedCategory } from "./taxonomy";
+import { getSupabase } from "./supabase";
+import { fetchMyPortfolioProjects } from "./portfolio";
 import type { Account, AuthState, Profile, User } from "./types";
 import type { TranslationKey } from "./i18n";
 import { useUI } from "./ui";
@@ -309,9 +311,9 @@ interface AuthValue {
     name: string;
     email: string;
     password: string;
-  }) => AuthResult;
-  signInWithEmail: (input: { email: string; password: string }) => AuthResult;
-  changePassword: (input: { current: string; next: string }) => AuthResult;
+  }) => Promise<AuthResult>;
+  signInWithEmail: (input: { email: string; password: string }) => Promise<AuthResult>;
+  changePassword: (input: { current: string; next: string }) => Promise<AuthResult>;
   updateProfile: (patch: Partial<Profile>) => boolean;
 }
 
@@ -436,9 +438,111 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [handleCredentialResponse]);
 
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled || !data.session) return;
+      const u = data.session.user;
+      const current = authStore.getSnapshot();
+      let account = current.accounts.find((a) => a.id === u.id);
+      if (!account) {
+        account = makeAccount({
+          name: (u.user_metadata?.full_name as string) || u.email || "User",
+          email: u.email || "",
+          provider: "email",
+          passwordHash: "",
+          profile: { fullName: (u.user_metadata?.full_name as string) || "" },
+        });
+        account = { ...account, id: u.id };
+        applyState({
+          ...current,
+          accounts: [...current.accounts, account],
+          sessionId: u.id,
+          updatedAt: Date.now(),
+        });
+      } else {
+        applyState({ ...current, sessionId: u.id, updatedAt: Date.now() });
+      }
+      void (async () => {
+        const [{ data }, projects] = await Promise.all([
+          supabase.from("profiles").select("*").eq("user_id", u.id).maybeSingle(),
+          fetchMyPortfolioProjects(u.id),
+        ]);
+        if (cancelled) return;
+        const current2 = authStore.getSnapshot();
+        const acc = current2.accounts.find((a) => a.id === u.id);
+        if (!acc) return;
+        const merged: Profile = {
+          ...acc.profile,
+          fullName: data?.full_name ?? acc.profile.fullName,
+          title: data?.title ?? acc.profile.title,
+          primaryCategory: data?.primary_category ?? acc.profile.primaryCategory,
+          bio: data?.bio ?? acc.profile.bio,
+          phone: data?.phone ?? acc.profile.phone,
+          country: data?.country ?? acc.profile.country,
+          languages: data?.languages ?? acc.profile.languages,
+          avatar: data?.avatar ?? acc.profile.avatar,
+          skills: data && Array.isArray(data.skills) ? data.skills : acc.profile.skills,
+          hourlyRate:
+            data?.hourly_rate != null ? String(data.hourly_rate) : acc.profile.hourlyRate,
+          availability: data?.availability ?? acc.profile.availability,
+          portfolio: data?.portfolio ?? acc.profile.portfolio,
+          introVideo: data?.intro_video ?? acc.profile.introVideo,
+          introVideoName: data?.intro_video_name ?? acc.profile.introVideoName,
+          portfolioProjects:
+            projects.length > 0 ? projects : acc.profile.portfolioProjects,
+        };
+        applyState({
+          ...current2,
+          accounts: current2.accounts.map((a) =>
+            a.id === u.id ? { ...a, profile: merged } : a,
+          ),
+          updatedAt: Date.now(),
+        });
+      })();
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        const current = authStore.getSnapshot();
+        applyState({ ...current, sessionId: null, updatedAt: Date.now() });
+      } else if (session?.user) {
+        const u = session.user;
+        const current = authStore.getSnapshot();
+        if (current.sessionId !== u.id) {
+          const exists = current.accounts.find((a) => a.id === u.id);
+          if (!exists) {
+            const account = makeAccount({
+              name: (u.user_metadata?.full_name as string) || u.email || "User",
+              email: u.email || "",
+              provider: "email",
+              passwordHash: "",
+              profile: { fullName: (u.user_metadata?.full_name as string) || "" },
+            });
+            applyState({
+              ...current,
+              accounts: [...current.accounts, { ...account, id: u.id }],
+              sessionId: u.id,
+              updatedAt: Date.now(),
+            });
+          } else {
+            applyState({ ...current, sessionId: u.id, updatedAt: Date.now() });
+          }
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [applyState]);
+
   const signOut = useCallback(() => {
     const google = getGoogle();
     if (google?.accounts.id) google.accounts.id.disableAutoSelect();
+    const supabase = getSupabase();
+    if (supabase) void supabase.auth.signOut();
     const current = authStore.getSnapshot();
     applyState({ ...current, sessionId: null, updatedAt: Date.now() });
   }, [applyState]);
@@ -473,8 +577,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUpWithEmail = useCallback<AuthValue["signUpWithEmail"]>(
-    ({ name, email, password }) => {
+    async ({ name, email, password }): Promise<AuthResult> => {
       const cleanEmail = normalizeEmail(email);
+      const supabase = getSupabase();
+      if (supabase) {
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: { data: { full_name: name } },
+        });
+        if (error || !data.user) {
+          return {
+            ok: false,
+            error: error?.message?.toLowerCase().includes("registered")
+              ? "auth.errExists"
+              : "auth.errWrongPassword",
+          };
+        }
+        const current = authStore.getSnapshot();
+        const nextAccount = makeAccount({
+          name,
+          email: cleanEmail,
+          provider: "email",
+          passwordHash: "",
+          profile: { fullName: name.trim() },
+        });
+        applyState({
+          ...current,
+          accounts: [...current.accounts, { ...nextAccount, id: data.user.id }],
+          sessionId: data.user.id,
+          updatedAt: Date.now(),
+        });
+        void supabase.from("profiles").upsert(
+          { user_id: data.user.id, full_name: name.trim() },
+          { onConflict: "user_id" },
+        );
+        return { ok: true };
+      }
       const current = authStore.getSnapshot();
       if (current.accounts.some((item) => item.email === cleanEmail)) {
         return { ok: false, error: "auth.errExists" };
@@ -498,8 +637,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithEmail = useCallback<AuthValue["signInWithEmail"]>(
-    ({ email, password }) => {
+    async ({ email, password }): Promise<AuthResult> => {
       const cleanEmail = normalizeEmail(email);
+      const supabase = getSupabase();
+      if (supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (error || !data.user) {
+          return {
+            ok: false,
+            error: error?.message?.toLowerCase().includes("no user")
+              ? "auth.errNoAccount"
+              : "auth.errWrongPassword",
+          };
+        }
+        const current = authStore.getSnapshot();
+        const existing = current.accounts.find((item) => item.id === data.user.id);
+        if (existing) {
+          applyState({ ...current, sessionId: existing.id, updatedAt: Date.now() });
+        } else {
+          const account = makeAccount({
+            name: (data.user.user_metadata?.full_name as string) || cleanEmail,
+            email: cleanEmail,
+            provider: "email",
+            passwordHash: "",
+            profile: {
+              fullName: (data.user.user_metadata?.full_name as string) || "",
+            },
+          });
+          applyState({
+            ...current,
+            accounts: [...current.accounts, { ...account, id: data.user.id }],
+            sessionId: data.user.id,
+            updatedAt: Date.now(),
+          });
+        }
+        return { ok: true };
+      }
       const current = authStore.getSnapshot();
       const existing = current.accounts.find((item) => item.email === cleanEmail);
       if (!existing) return { ok: false, error: "auth.errNoAccount" };
@@ -516,7 +692,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const changePassword = useCallback<AuthValue["changePassword"]>(
-    ({ current, next }) => {
+    async ({ current, next }): Promise<AuthResult> => {
+      const supabase = getSupabase();
+      if (supabase) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email:
+            authStore.getSnapshot().accounts.find(
+              (item) => item.id === authStore.getSnapshot().sessionId,
+            )?.email ?? "",
+          password: current,
+        });
+        if (signInError) return { ok: false, error: "auth.errWrongPassword" };
+        const { error } = await supabase.auth.updateUser({ password: next });
+        if (error) return { ok: false, error: "auth.errWrongPassword" };
+        return { ok: true };
+      }
       const state = authStore.getSnapshot();
       const id = state.sessionId;
       if (!id) return { ok: false, error: "auth.errNoAccount" };
@@ -558,10 +748,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const next = { ...current, accounts: nextAccounts, updatedAt: Date.now() };
       authStore.set(next);
-      return persistState(next);
-    },
-    [],
-  );
+      persistState(next);
+        const supabase = getSupabase();
+        if (supabase && id) {
+          const patched = nextAccounts.find((item) => item.id === id)?.profile;
+        if (patched) {
+          void supabase.from("profiles").upsert(
+            {
+              user_id: id,
+              full_name: patched.fullName,
+              title: patched.title,
+              primary_category: patched.primaryCategory,
+              bio: patched.bio,
+              phone: patched.phone,
+              country: patched.country,
+              languages: patched.languages,
+              avatar: patched.avatar,
+              skills: patched.skills,
+              hourly_rate: Number(patched.hourlyRate) || null,
+              availability: patched.availability,
+              portfolio: patched.portfolio,
+              intro_video: patched.introVideo,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" },
+            );
+          }
+        }
+        return true;
+      },
+      [],
+    );
 
   const value = useMemo<AuthValue>(
     () => ({
