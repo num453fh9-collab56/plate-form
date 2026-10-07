@@ -372,37 +372,58 @@ export default function AccountMenu() {
           </>
         )}
 
-        <div className="dash-label">{t("account.dashboard")}</div>
-        <ul className="dash-list">
-          {DASH_ITEMS.map((item) => (
-            <li key={item.id}>
-              <button
-                className="dash-item"
-                type="button"
-                role="menuitem"
-                onClick={() => handleItem(item)}
-              >
-                <span className="dash-icon" style={{ color: item.color, background: item.soft }}>
-                  <Icon name={item.icon} />
-                </span>
-                <span className="dash-text">{t(item.labelKey)}</span>
-                {item.badge && (
-                  <span className="dash-badge" style={{ background: item.color }}>
-                    {item.badge}
-                  </span>
-                )}
-                {item.value && (
-                  <span
-                    className="dash-value"
-                    style={{ color: item.color, background: item.soft }}
+        {user ? (
+          <>
+            <div className="dash-label">{t("account.dashboard")}</div>
+            <ul className="dash-list">
+              {DASH_ITEMS.map((item) => (
+                <li key={item.id}>
+                  <button
+                    className="dash-item"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => handleItem(item)}
                   >
-                    {item.value}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+                    <span className="dash-icon" style={{ color: item.color, background: item.soft }}>
+                      <Icon name={item.icon} />
+                    </span>
+                    <span className="dash-text">{t(item.labelKey)}</span>
+                    {item.badge && (
+                      <span className="dash-badge" style={{ background: item.color }}>
+                        {item.badge}
+                      </span>
+                    )}
+                    {item.value && (
+                      <span
+                        className="dash-value"
+                        style={{ color: item.color, background: item.soft }}
+                      >
+                        {item.value}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div style={{ padding: "12px 16px" }}>
+            <p style={{ color: "var(--muted)", marginBottom: 10, fontSize: "0.85rem" }}>
+              Sign in or join to manage gigs, orders and messages.
+            </p>
+            <button
+              className="btn-primary"
+              type="button"
+              style={{ width: "100%" }}
+              onClick={() => {
+                setOpen(false);
+                requireAuth(() => undefined);
+              }}
+            >
+              Sign in / Join
+            </button>
+          </div>
+        )}
 
         {user && (
           <button
