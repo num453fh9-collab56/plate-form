@@ -32,7 +32,7 @@ export interface TaxonomyCategory {
 export const CATEGORIES: TaxonomyCategory[] = [
   {
     id: "web-development",
-    label: "Web Development",
+    label: "Programming & Tech",
     translationKey: "cat.webdev",
     glyph: "WD",
     tagline: "Websites, web apps, APIs & e-commerce",
@@ -77,13 +77,13 @@ export const CATEGORIES: TaxonomyCategory[] = [
   },
   {
     id: "mobile-apps",
-    label: "Mobile App Development",
+    label: "Mobile Apps",
     translationKey: "cat.mobile",
     glyph: "MB",
     tagline: "Native & cross-platform iOS and Android apps",
     colors: ["#156fc0", "#0a3f72"],
     skills: [
-      { id: "mobile-app-dev", label: "Mobile App Development" },
+      { id: "mobile-app-dev", label: "Mobile Apps" },
       { id: "react-native", label: "React Native" },
       { id: "flutter", label: "Flutter" },
       { id: "swift-ios", label: "Swift (iOS)" },
@@ -102,13 +102,13 @@ export const CATEGORIES: TaxonomyCategory[] = [
   },
   {
     id: "ai-agents",
-    label: "AI Agents",
+    label: "AI Services",
     translationKey: "cat.ai",
     glyph: "AI",
     tagline: "LLM apps, autonomous agents & automation",
     colors: ["#1a6fbf", "#0b3f73"],
     skills: [
-      { id: "ai-agents", label: "AI Agents" },
+      { id: "ai-agents", label: "AI Services" },
       { id: "llm-integration", label: "LLM Integration" },
       { id: "rag", label: "Retrieval-Augmented Generation (RAG)", keywords: ["rag"] },
       { id: "prompt-engineering", label: "Prompt Engineering" },
@@ -165,7 +165,7 @@ export const CATEGORIES: TaxonomyCategory[] = [
   },
   {
     id: "branding",
-    label: "Graphic Design & Branding",
+    label: "Graphics & Design",
     translationKey: "cat.branding",
     glyph: "BR",
     tagline: "Logos, identity systems & visual assets",
@@ -191,7 +191,7 @@ export const CATEGORIES: TaxonomyCategory[] = [
   },
   {
     id: "video-production",
-    label: "Video Production",
+    label: "Video & Animation",
     translationKey: "cat.video",
     glyph: "VE",
     tagline: "Editing, motion, color & sound",
@@ -217,7 +217,7 @@ export const CATEGORIES: TaxonomyCategory[] = [
   },
   {
     id: "paid-marketing",
-    label: "Paid Marketing",
+    label: "Digital Marketing",
     translationKey: "cat.marketing",
     glyph: "DM",
     tagline: "Campaigns, funnels, analytics & growth",
@@ -251,7 +251,7 @@ export const CATEGORIES: TaxonomyCategory[] = [
   },
   {
     id: "writing",
-    label: "Writing & Copywriting",
+    label: "Writing & Translation",
     translationKey: "cat.writing",
     glyph: "WR",
     tagline: "Long-form, technical, SEO & conversion copy",
