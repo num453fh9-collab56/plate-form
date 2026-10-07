@@ -62,6 +62,9 @@ export async function POST(request: Request) {
       body,
       link: `/orders`,
     });
+    const { getEmailForUser, sendEmail } = await import("@/lib/email");
+    const email = await getEmailForUser(admin, userId);
+    await sendEmail(email, `Apex — ${title}`, `<p><strong>${title}</strong></p><p>${body}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/orders">View your orders</a></p>`);
   };
 
   if (action === "deliver") {
