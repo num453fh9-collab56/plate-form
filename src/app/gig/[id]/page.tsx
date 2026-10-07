@@ -155,6 +155,15 @@ export default function GigDetailPage() {
               </div>
             </div>
 
+            {gig.images && gig.images.length > 0 ? (
+              <div className="gig-detail-gallery" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(gig.images.length, 3)}, 1fr)`, gap: 10, marginBottom: 18 }}>
+                {gig.images.map((url, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={i} src={url} alt={`${gig.title} photo ${i + 1}`} style={{ width: "100%", borderRadius: 12, aspectRatio: "4 / 3", objectFit: "cover" }} />
+                ))}
+              </div>
+            ) : null}
+
             {(gig.video || topicVideoFor(`${gig.category} ${gig.title}`)) ? (
               <div className="gig-detail-video">
                 <VideoPlayer
@@ -168,6 +177,28 @@ export default function GigDetailPage() {
               <h2>About this gig</h2>
               <p className="gig-detail-desc">{gig.description}</p>
             </div>
+
+            {gig.packages ? (
+              <div className="gig-detail-block">
+                <h2>Packages</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                  {(["basic", "standard", "premium"] as const).map((key) => {
+                    const pkg = gig.packages?.[key];
+                    if (!pkg) return null;
+                    return (
+                      <div key={key} className="order-row">
+                        <div className="order-title" style={{ textTransform: "capitalize" }}>{key}</div>
+                        <div className="order-meta">
+                          <span>${pkg.price}</span>
+                          <span>{pkg.delivery} day{pkg.delivery === 1 ? "" : "s"}</span>
+                        </div>
+                        <p className="order-note">{pkg.note}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             {gig.skills.length > 0 ? (
               <div className="gig-detail-block">

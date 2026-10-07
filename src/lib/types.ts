@@ -19,6 +19,8 @@ export interface Gig {
   glyph: string;
   video?: string;
   videoName?: string;
+  images?: string[];
+  packages?: Record<string, { price: number; delivery: number; note: string }>;
   isNew?: boolean;
 }
 
@@ -39,6 +41,7 @@ export interface GigDraft {
   seller: string;
   video?: string;
   videoName?: string;
+  images?: string[];
 }
 
 export type AuthProvider = "google" | "email";

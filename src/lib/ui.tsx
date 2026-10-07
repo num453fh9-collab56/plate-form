@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -67,7 +68,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
     timer.current = setTimeout(() => setToastVisible(false), duration);
   }, []);
 
-  const openPost = useCallback(() => setIsPostOpen(true), []);
+  const router = useRouter();
+  const openPost = useCallback(() => router.push("/post-project"), [router]);
   const closePost = useCallback(() => setIsPostOpen(false), []);
 
   const openAuth = useCallback((mode: AuthModalMode = "signup") => {

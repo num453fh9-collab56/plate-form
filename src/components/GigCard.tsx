@@ -80,6 +80,10 @@ export default function GigCard({ gig }: { gig: Gig }) {
       </div>
 
       <div className="gig-body">
+        {gig.images && gig.images[0] ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={gig.images[0]} alt={gig.title} style={{ width: "100%", aspectRatio: "16 / 10", objectFit: "cover", borderRadius: 12, marginBottom: 10 }} />
+        ) : null}
         <h3 className="gig-title">{gig.title}</h3>
         {gig.description && <p className="gig-desc">{gig.description}</p>}
 

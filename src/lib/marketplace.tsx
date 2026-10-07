@@ -151,6 +151,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
         seller_name: draft.seller,
         video: draft.video?.trim() || null,
         video_name: draft.videoName?.trim() || null,
+        images: (draft.images ?? []).filter((u) => u.trim()),
       })
       .select("*")
       .single();
