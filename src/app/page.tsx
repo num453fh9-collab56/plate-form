@@ -1,15 +1,5 @@
-import Hero from "@/components/Hero";
-import GigGrid from "@/components/GigGrid";
-import PortfolioShowcase from "@/components/PortfolioShowcase";
-import Cta from "@/components/Cta";
+import HomeView from "@/components/HomeView";
 
 export default function Home() {
-  return (
-    <>
-      <Hero />
-      <GigGrid />
-      <PortfolioShowcase />
-      <Cta />
-    </>
-  );
+  return <HomeView />;
 }
