@@ -227,6 +227,7 @@ interface GoogleIdApi {
     auto_select?: boolean;
     cancel_on_tap_outside?: boolean;
     use_fedcm_for_prompt?: boolean;
+    nonce?: string;
   }): void;
   renderButton(parent: HTMLElement, options: GoogleButtonOptions): void;
   prompt(): void;
@@ -345,6 +346,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authStore.getServerSnapshot,
   );
   const googleSuccessRef = useRef<(() => void) | null>(null);
+  /* Raw nonce for Google sign-in; Google receives its SHA-256 hash and
+     Supabase checks the pair, so a stolen ID token cannot be replayed. */
+  const rawNonceRef = useRef("");
+  const { toast } = useUI();
 
   const account = useMemo(
     () => state.accounts.find((item) => item.id === state.sessionId) ?? null,
@@ -377,6 +382,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!response.credential) return;
       const claims = decodeJwt(response.credential);
       if (!claims) return;
+
+      const supabase = getSupabase();
+      if (supabase) {
+        // Exchange the Google ID token for a real Supabase session so the
+        // user can actually post gigs, order and chat (RLS needs auth.uid()).
+        void supabase.auth
+          .signInWithIdToken({
+            provider: "google",
+            token: response.credential,
+            nonce: rawNonceRef.current || undefined,
+          })
+          .then(({ data, error }) => {
+            if (error || !data.user) {
+              toast(`Google sign-in failed: ${error?.message ?? "please try again"}`);
+              return;
+            }
+            const u = data.user;
+            const googleName =
+              (claims.name as string) || (u.user_metadata?.full_name as string) || u.email || "Google user";
+            const googlePicture = (claims.picture as string) || (u.user_metadata?.avatar_url as string) || "";
+            const current = authStore.getSnapshot();
+            const existing = current.accounts.find((item) => item.id === u.id);
+            const base: Account = existing ?? {
+              ...makeAccount({
+                name: googleName,
+                email: u.email || "",
+                provider: "google",
+                picture: googlePicture,
+                passwordHash: "",
+                profile: { fullName: googleName, avatar: googlePicture },
+              }),
+              id: u.id,
+            };
+            const next: Account = {
+              ...base,
+              provider: "google",
+              name: base.name || googleName,
+              picture: base.picture || googlePicture,
+              profile: {
+                ...base.profile,
+                fullName: base.profile.fullName || googleName,
+                avatar: base.profile.avatar || googlePicture,
+              },
+              updatedAt: Date.now(),
+            };
+            applyState({
+              ...current,
+              accounts: existing
+                ? current.accounts.map((item) => (item.id === u.id ? next : item))
+                : [...current.accounts, next],
+              sessionId: u.id,
+              updatedAt: Date.now(),
+            });
+            googleSuccessRef.current?.();
+          });
+        return;
+      }
+
+      // No backend configured: local demo account only.
 
       const email = normalizeEmail(
         (claims.email as string) || `${uid()}@google.local`,
@@ -426,7 +490,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       googleSuccessRef.current?.();
     },
-    [applyState],
+    [applyState, toast],
   );
 
   useEffect(() => {
@@ -437,12 +501,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       const google = getGoogle();
       if (google?.accounts.id) {
-        google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          use_fedcm_for_prompt: true,
+        const raw = crypto.randomUUID() + crypto.randomUUID();
+        void crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)).then((buffer) => {
+          if (cancelled) return;
+          const hashed = Array.from(new Uint8Array(buffer))
+            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .join("");
+          rawNonceRef.current = raw;
+          google.accounts.id.initialize({
+            client_id: CLIENT_ID,
+            callback: handleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            use_fedcm_for_prompt: true,
+            nonce: hashed,
+          });
         });
         return;
       }

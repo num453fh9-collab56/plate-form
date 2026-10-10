@@ -24,7 +24,6 @@ import { useI18n } from "@/lib/i18n";
 import { getSupabase } from "@/lib/supabase";
 import { startCheckout } from "@/lib/checkout";
 import { offeredPackages, quoteOrder } from "@/lib/gig-model";
-import { topicVideoFor } from "@/lib/video-topic";
 import VideoPlayer from "@/components/VideoPlayer";
 import GigCard from "@/components/GigCard";
 
@@ -136,7 +135,6 @@ export default function GigDetailPage() {
   const images = gig.images ?? [];
   const imageIndex = Math.min(activeImage, Math.max(0, images.length - 1));
   const currentPkg = pkgKey ? gig.packages?.[pkgKey] : undefined;
-  const fallbackVideo = topicVideoFor(`${gig.category} ${gig.title}`);
 
   const openConversation = async () => {
     if (!gig.sellerId) return;
@@ -287,9 +285,9 @@ export default function GigDetailPage() {
               </div>
             ) : null}
 
-            {gig.video || fallbackVideo ? (
+            {gig.video ? (
               <div className="gig-detail-video">
-                <VideoPlayer src={gig.video || fallbackVideo || ""} title={gig.videoName || gig.title} />
+                <VideoPlayer src={gig.video} title={gig.videoName || gig.title} />
               </div>
             ) : null}
 

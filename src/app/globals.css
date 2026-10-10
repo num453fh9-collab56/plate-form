@@ -6164,3 +6164,24 @@ textarea.gw-input { resize: vertical; }
   .prop-head { grid-template-columns: auto minmax(0, 1fr); }
   .prop-price { grid-column: 1 / -1; text-align: left; display: flex; gap: 10px; align-items: baseline; }
 }
+
+/* ======================= INFO / LEGAL PAGES ======================= */
+.info-page { display: grid; gap: 18px; }
+.info-h { font-size: 1.25rem; margin-top: 10px; scroll-margin-top: 96px; }
+.info-steps { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.info-steps li { display: grid; gap: 6px; padding: 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--card); }
+.info-steps p { color: var(--muted); font-size: 0.9rem; }
+.info-step-num { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 800; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.info-grid > div { padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+.info-grid p { color: var(--muted); font-size: 0.88rem; margin-top: 4px; }
+.info-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.info-faq { scroll-margin-top: 96px; }
+.info-contact { margin-top: 8px; }
+.legal { max-width: 760px; display: grid; gap: 10px; }
+.legal h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); }
+.legal h2 { font-size: 1.15rem; margin-top: 14px; }
+.legal p, .legal li { color: var(--ink-2); line-height: 1.7; }
+.legal ul { padding-left: 20px; display: grid; gap: 6px; }
+.auth-forgot { justify-self: end; border: 0; background: none; padding: 0; color: var(--accent); font-weight: 600; font-size: 0.86rem; cursor: pointer; margin: -4px 0 4px auto; display: block; }
+.auth-forgot:hover { text-decoration: underline; }

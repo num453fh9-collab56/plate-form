@@ -106,8 +106,9 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     id: "clients",
     titleKey: "footer.forClients",
     links: [
-      { labelKey: "footer.howItWorks", href: "/search" },
-      { labelKey: "footer.buyingGuide", href: "/#portfolio" },
+      { labelKey: "footer.howItWorks", href: "/how-it-works" },
+      { labelKey: "footer.buyingGuide", href: "/how-it-works#buyers" },
+      { labelKey: "footer.trustSafety", href: "/help#cancellations-refunds-disputes" },
     ],
   },
   {
@@ -115,7 +116,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     titleKey: "footer.forFreelancers",
     links: [
       { labelKey: "footer.becomeFreelancer", action: "becomeFreelancer" },
-      { labelKey: "footer.freelancerAcademy", href: "/search" },
+      { labelKey: "footer.freelancerAcademy", href: "/how-it-works#sellers" },
     ],
   },
   {
@@ -129,7 +130,9 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     id: "company",
     titleKey: "footer.companySupport",
     links: [
-      { labelKey: "footer.helpCenter", href: "/search" },
+      { labelKey: "footer.helpCenter", href: "/help" },
+      { labelKey: "footer.terms", href: "/terms" },
+      { labelKey: "footer.privacy", href: "/privacy" },
     ],
   },
 ];

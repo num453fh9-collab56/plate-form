@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
+import { getSupabase } from "@/lib/supabase";
 
 type Mode = "signup" | "login";
 
@@ -298,6 +299,28 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
                 />
                 <span className="error-msg">{errors.confirm && t(errors.confirm)}</span>
               </div>
+            )}
+
+            {mode === "login" && (
+              <button
+                type="button"
+                className="auth-forgot"
+                onClick={async () => {
+                  const email = values.email.trim();
+                  if (!EMAIL_RE.test(email)) {
+                    setErrors((cur) => ({ ...cur, email: "auth.errEmail" }));
+                    return;
+                  }
+                  const supabase = getSupabase();
+                  if (!supabase) return;
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                  });
+                  toast(error ? error.message : "If an account exists, a reset link is on its way to your inbox.");
+                }}
+              >
+                Forgot password?
+              </button>
             )}
 
             {formError && <div className="auth-form-error">{t(formError)}</div>}

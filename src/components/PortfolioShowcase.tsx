@@ -11,7 +11,6 @@ import {
   portfolioGlyph,
 } from "@/lib/portfolio";
 import VideoPlayer from "./VideoPlayer";
-import { topicVideoFor } from "@/lib/video-topic";
 /* ==========================================================================
    HIRELYX · PORTFOLIO SHOWCASE
    A clean, light-mode grid of digital projects from Hirelyx professionals.
@@ -51,7 +50,7 @@ function ProjectCard({
   watchLabel: string;
 }) {
   const { openVideo } = useUI();
-  const videoSrc = project.video || topicVideoFor(`${project.category} ${project.title}`);
+  const videoSrc = project.video || null;
   const hasVideo = Boolean(videoSrc);
 
   const coverInner = (
