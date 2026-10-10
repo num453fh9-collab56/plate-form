@@ -3,6 +3,7 @@
 import { useRequireAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
+import { CTA_VIDEO } from "@/lib/site-media";
 
 export default function Cta() {
   const { openPost, openProfile } = useUI();
@@ -36,16 +37,20 @@ export default function Cta() {
         </div>
 
         <div className="cta-media">
-          <video
-            className="cta-video"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          >
-            <source src="/videos/showcase-2.mp4" type="video/mp4" />
-          </video>
+          {CTA_VIDEO ? (
+            <video
+              className="cta-video"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            >
+              <source src={CTA_VIDEO} type="video/mp4" />
+            </video>
+          ) : (
+            <div className="cta-video cta-fallback" aria-hidden="true" />
+          )}
           <span className="cta-media-scrim" aria-hidden="true" />
           <span
             style={{

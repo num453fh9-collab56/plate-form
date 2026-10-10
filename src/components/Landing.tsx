@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useUI } from "@/lib/ui";
 import { useRouter } from "next/navigation";
 import { CATEGORY_OPTIONS } from "@/lib/gigs";
+import { LANDING_VIDEOS } from "@/lib/site-media";
 
 function Playlist({ srcs }: { srcs: string[] }) {
   const [index, setIndex] = useState(0);
@@ -54,7 +55,11 @@ export default function Landing() {
 
       <section className="section" style={{ padding: 0 }}>
         <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", maxHeight: "85vh", overflow: "hidden" }}>
-          <Playlist srcs={["/videos/video-1.mp4", "/videos/demo-1.mp4", "/videos/demo-2.mp4"]} />
+          {LANDING_VIDEOS.length > 0 ? (
+            <Playlist srcs={LANDING_VIDEOS} />
+          ) : (
+            <div className="landing-hero-fallback" aria-hidden="true" />
+          )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.45))" }} />
           <div style={{ position: "absolute", left: "6%", bottom: "10%", color: "#fff", maxWidth: 560 }}>
             <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 3rem)", lineHeight: 1.15, marginBottom: 10 }}>
