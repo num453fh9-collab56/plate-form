@@ -5,12 +5,21 @@ import { rowToGig } from "./gig-model";
 import type { GigRow } from "./gig-model";
 import type { Gig } from "./types";
 
-export async function fetchFavoriteIds(): Promise<Set<string>> {
-  const supabase = getSupabase();
-  if (!supabase) return new Set();
-  const { data, error } = await supabase.from("favorites").select("gig_id");
-  if (error || !data) return new Set();
-  return new Set((data as { gig_id: string }[]).map((r) => r.gig_id));
+/* Every GigCard asks for favourites; share one request (30s) instead of
+   firing one per card. */
+let favoritesRequest: { at: number; promise: Promise<Set<string>> } | null = null;
+
+export function fetchFavoriteIds(): Promise<Set<string>> {
+  if (favoritesRequest && Date.now() - favoritesRequest.at < 30000) return favoritesRequest.promise;
+  const promise = (async () => {
+    const supabase = getSupabase();
+    if (!supabase) return new Set<string>();
+    const { data, error } = await supabase.from("favorites").select("gig_id");
+    if (error || !data) return new Set<string>();
+    return new Set((data as { gig_id: string }[]).map((r) => r.gig_id));
+  })();
+  favoritesRequest = { at: Date.now(), promise };
+  return promise;
 }
 
 export async function toggleFavorite(gigId: string, currentlySaved: boolean): Promise<boolean> {
@@ -19,6 +28,7 @@ export async function toggleFavorite(gigId: string, currentlySaved: boolean): Pr
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user?.id;
   if (!uid) return currentlySaved;
+  favoritesRequest = null;
 
   if (currentlySaved) {
     await supabase.from("favorites").delete().eq("user_id", uid).eq("gig_id", gigId);

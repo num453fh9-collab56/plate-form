@@ -13,7 +13,9 @@ import {
   reviewAverage,
 } from "@/lib/api";
 import type { GigReview, PublicProfile } from "@/lib/api";
-import { formatPrice, initials, stars } from "@/lib/format";
+import { initials, stars } from "@/lib/format";
+import { useCurrency } from "@/lib/currency";
+import { LevelBadge } from "@/lib/seller-levels";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useMessaging } from "@/lib/messaging";
 import { useMarketplace } from "@/lib/marketplace";
@@ -35,7 +37,8 @@ export default function GigDetailPage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { startConversation } = useMessaging();
-  const { gigs: cachedGigs } = useMarketplace();
+  const { gigs: cachedGigs, sellerStats } = useMarketplace();
+  const { format, converted } = useCurrency();
   const { openMessages, toast } = useUI();
   const requireAuth = useRequireAuth();
   const [requirements, setRequirements] = useState("");
@@ -128,6 +131,7 @@ export default function GigDetailPage() {
   }
 
   const isOwner = Boolean(gig.sellerId && gig.sellerId === user?.sub);
+  const sellerLevel = gig.sellerId ? sellerStats[gig.sellerId] : undefined;
   const status: GigStatus = gig.status ?? "published";
   const images = gig.images ?? [];
   const imageIndex = Math.min(activeImage, Math.max(0, images.length - 1));
@@ -218,9 +222,10 @@ export default function GigDetailPage() {
                 ) : (
                   <span className="seller-name">{gig.seller}</span>
                 )}
-                {seller?.title ? (
-                  <div style={{ color: "var(--muted-2)", fontSize: "0.82rem" }}>
-                    {seller.title}
+                {seller?.title || sellerLevel ? (
+                  <div className="gd-seller-sub">
+                    {sellerLevel ? <LevelBadge level={sellerLevel.level} /> : null}
+                    {seller?.title ? <span>{seller.title}</span> : null}
                   </div>
                 ) : null}
                 <div className="gig-detail-rating">
@@ -310,7 +315,7 @@ export default function GigDetailPage() {
                       <tr>
                         <td>Price</td>
                         {packages.map(([key, pkg]) => (
-                          <td key={key}><strong>${formatPrice(pkg.price)}</strong></td>
+                          <td key={key}><strong>{format(pkg.price)}</strong></td>
                         ))}
                       </tr>
                       <tr>
@@ -388,6 +393,18 @@ export default function GigDetailPage() {
               </div>
             ) : null}
 
+            {sellerLevel ? (
+              <div className="gig-detail-block">
+                <h2>About the seller</h2>
+                <div className="gd-seller-stats">
+                  <div><span>Level</span><strong><LevelBadge level={sellerLevel.level} compact /></strong></div>
+                  <div><span>Orders completed</span><strong>{sellerLevel.completed}</strong></div>
+                  <div><span>On-time delivery</span><strong>{sellerLevel.onTime == null ? "—" : `${sellerLevel.onTime}%`}</strong></div>
+                  <div><span>Member since</span><strong>{sellerLevel.memberSince ? new Date(sellerLevel.memberSince).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "—"}</strong></div>
+                </div>
+              </div>
+            ) : null}
+
             <div className="gig-detail-block">
               <h2>Reviews {stats.count > 0 ? `(${stats.count})` : ""}</h2>
               {reviews.length === 0 ? (
@@ -436,7 +453,7 @@ export default function GigDetailPage() {
                 <>
                   <div className="gd-pkg-head">
                     <span className="gw-cap" style={{ fontWeight: 700 }}>{currentPkg.name || pkgKey}</span>
-                    <strong>${formatPrice(currentPkg.price)}</strong>
+                    <strong>{format(currentPkg.price)}</strong>
                   </div>
                   {currentPkg.description || currentPkg.note ? (
                     <p className="gd-pkg-desc">{currentPkg.description || currentPkg.note}</p>
@@ -457,7 +474,7 @@ export default function GigDetailPage() {
                 <>
                   <div className="price-card-row">
                     <span>{t("card.startingAt")}</span>
-                    <strong>${formatPrice(gig.price)}</strong>
+                    <strong>{format(gig.price)}</strong>
                   </div>
                   <div className="price-card-row muted">
                     <span>Delivery</span>
@@ -480,7 +497,7 @@ export default function GigDetailPage() {
                         {extra.label}
                         {extra.days ? ` (${extra.days > 0 ? "+" : ""}${extra.days}d)` : ""}
                       </span>
-                      <span>+${formatPrice(extra.price)}</span>
+                      <span>+{format(extra.price)}</span>
                     </label>
                   ))}
                 </div>
@@ -488,7 +505,7 @@ export default function GigDetailPage() {
 
               <div className="gd-total">
                 <span>Total · {plural(quote.days, "day")}</span>
-                <span>${formatPrice(quote.total)}</span>
+                <span>{format(quote.total)}</span>
               </div>
 
               <textarea
@@ -512,7 +529,7 @@ export default function GigDetailPage() {
                   ? "Starting checkout…"
                   : status !== "published"
                     ? "Not available"
-                    : `Continue · $${formatPrice(quote.total)}`}
+                    : `Continue · ${format(quote.total)}`}
               </button>
               {gig.sellerId && !isOwner ? (
                 <button
@@ -523,6 +540,7 @@ export default function GigDetailPage() {
                   Message seller
                 </button>
               ) : null}
+              {converted ? <p className="price-card-note">You&apos;ll be charged ${quote.total} USD.</p> : null}
               <p className="price-card-note">
                 Secure payment &amp; buyer protection. Funds are released to the
                 seller after you approve the delivery.

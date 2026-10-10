@@ -2,11 +2,17 @@
 
 import { getSupabase } from "./supabase";
 
-export async function startCheckout(
-  gigId: string,
-  requirements: string,
-  choice: { packageKey?: string | null; extras?: string[] } = {},
-): Promise<{ url?: string; error?: string }> {
+export interface CheckoutTarget {
+  gigId?: string;
+  offerId?: string;
+  proposalId?: string;
+  packageKey?: string | null;
+  extras?: string[];
+  requirements?: string;
+}
+
+/** Starts Stripe Checkout for a gig package, custom offer or proposal. */
+export async function startCheckoutFor(target: CheckoutTarget): Promise<{ url?: string; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Backend not configured." };
 
@@ -21,12 +27,7 @@ export async function startCheckout(
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({
-      gigId,
-      requirements,
-      packageKey: choice.packageKey ?? undefined,
-      extras: choice.extras ?? [],
-    }),
+    body: JSON.stringify({ ...target, packageKey: target.packageKey ?? undefined }),
   });
 
   let payload: { url?: string; error?: string } = {};
@@ -40,4 +41,12 @@ export async function startCheckout(
     return { error: payload.error ?? "Could not start checkout." };
   }
   return { url: payload.url };
+}
+
+export function startCheckout(
+  gigId: string,
+  requirements: string,
+  choice: { packageKey?: string | null; extras?: string[] } = {},
+): Promise<{ url?: string; error?: string }> {
+  return startCheckoutFor({ gigId, requirements, ...choice });
 }

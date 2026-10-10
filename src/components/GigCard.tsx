@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Gig } from "@/lib/types";
-import { formatPrice, initials, stars } from "@/lib/format";
+import { initials, stars } from "@/lib/format";
+import { useCurrency } from "@/lib/currency";
+import { LevelBadge } from "@/lib/seller-levels";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useMarketplace } from "@/lib/marketplace";
@@ -19,7 +21,11 @@ export default function GigCard({ gig }: { gig: Gig }) {
   const { startConversation } = useMessaging();
   const requireAuth = useRequireAuth();
   const { openVideo, openMessages } = useUI();
-  const { selectedSkills, toggleSkill } = useMarketplace();
+  const { selectedSkills, toggleSkill, sellerStats } = useMarketplace();
+  const { format } = useCurrency();
+  const stats = gig.sellerId ? sellerStats[gig.sellerId] : undefined;
+  const rating = stats?.reviews ? stats.rating : gig.rating;
+  const reviewCount = stats?.reviews ?? gig.reviews;
   const router = useRouter();
   const [saved, setSaved] = useState<boolean | null>(null);
 
@@ -100,6 +106,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
                 </span>
               )}
             </div>
+            {stats ? <LevelBadge level={stats.level} compact /> : null}
           </div>
           {(gig.video || topicVideoFor(`${gig.category} ${gig.title}`)) ? (
             <button
@@ -145,10 +152,10 @@ export default function GigCard({ gig }: { gig: Gig }) {
         )}
 
         <div className="gig-trade">
-          {gig.reviews > 0 ? (
+          {reviewCount > 0 ? (
             <span className="rating">
-              <span className="stars">{stars(gig.rating)}</span>
-              {gig.rating.toFixed(1)} <span className="count">({gig.reviews})</span>
+              <span className="stars">{stars(rating)}</span>
+              {rating.toFixed(1)} <span className="count">({reviewCount})</span>
             </span>
           ) : (
             <span className="rating">
@@ -157,10 +164,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
           )}
           <span className="price">
             <span className="from">{t("card.startingAt")}</span>
-            <span className="amount">
-              <span>$</span>
-              {formatPrice(gig.price)}
-            </span>
+            <span className="amount">{format(gig.price)}</span>
           </span>
         </div>
 

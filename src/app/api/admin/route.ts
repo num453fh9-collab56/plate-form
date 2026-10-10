@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 /* Admin API. Every request re-checks `public.admins` on the server with the
    service-role client — the browser's claim to be admin is never trusted. */
 
-type View = "overview" | "gigs" | "users" | "orders" | "errors";
+type View = "overview" | "gigs" | "users" | "orders" | "disputes" | "errors";
 type Action = "pause-gig" | "publish-gig" | "delete-gig" | "ban-user" | "unban-user";
 
 async function requireAdmin(
@@ -41,12 +41,13 @@ export async function GET(request: Request) {
 
   if (view === "overview") {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const [users, gigs, liveGigs, orders, banned, paid, errors24h] = await Promise.all([
+    const [users, gigs, liveGigs, orders, banned, openDisputes, paid, errors24h] = await Promise.all([
       count(admin, "profiles"),
       count(admin, "gigs"),
       count(admin, "gigs", ["status", "published"]),
       count(admin, "orders"),
       count(admin, "banned_users"),
+      count(admin, "disputes", ["status", "open"]),
       admin.from("orders").select("amount").in("status", ["paid", "delivered", "completed"]),
       admin.from("error_logs").select("*", { count: "exact", head: true }).gte("created_at", since),
     ]);
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
       liveGigs,
       orders,
       banned,
+      openDisputes,
       revenue: Math.round(revenue * 100) / 100,
       errors24h: errors24h.count ?? 0,
     });
@@ -110,6 +112,45 @@ export async function GET(request: Request) {
       .limit(100);
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ items: data ?? [] });
+  }
+
+  if (view === "disputes") {
+    const { data, error } = await admin
+      .from("disputes")
+      .select("id, order_id, opened_by, reason, details, status, resolution, refund_amount, admin_note, created_at, resolved_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    const disputes = data ?? [];
+    const orderIds = disputes.map((d) => d.order_id as string);
+    const disputeIds = disputes.map((d) => d.id as string);
+    const [{ data: orders }, { data: messages }] = await Promise.all([
+      orderIds.length
+        ? admin.from("orders").select("id, title, amount, buyer_id, seller_id, status").in("id", orderIds)
+        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+      disputeIds.length
+        ? admin.from("dispute_messages").select("id, dispute_id, sender_id, body, is_admin, created_at").in("dispute_id", disputeIds).order("created_at")
+        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    ]);
+    const userIds = [
+      ...new Set((orders ?? []).flatMap((o) => [o.buyer_id as string, o.seller_id as string]).filter(Boolean)),
+    ];
+    const { data: names } = userIds.length
+      ? await admin.from("profiles").select("user_id, full_name").in("user_id", userIds)
+      : { data: [] as { user_id: string; full_name: string | null }[] };
+    const nameOf = new Map((names ?? []).map((n) => [n.user_id as string, (n.full_name as string | null) ?? "User"]));
+    return Response.json({
+      items: disputes.map((d) => {
+        const order = (orders ?? []).find((o) => o.id === d.order_id) ?? null;
+        return {
+          ...d,
+          order,
+          buyerName: order ? nameOf.get(order.buyer_id as string) ?? "Buyer" : "Buyer",
+          sellerName: order ? nameOf.get(order.seller_id as string) ?? "Seller" : "Seller",
+          messages: (messages ?? []).filter((m) => m.dispute_id === d.id),
+        };
+      }),
+    });
   }
 
   if (view === "errors") {

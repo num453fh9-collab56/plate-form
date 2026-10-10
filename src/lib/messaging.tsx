@@ -28,6 +28,25 @@ export interface ChatMessage {
   senderId: string;
   body: string;
   createdAt: string;
+  /** "text" | "offer" | "call" */
+  kind: string;
+  meta: { offer_id?: string; url?: string };
+}
+
+export interface Offer {
+  id: string;
+  conversationId: string;
+  sellerId: string;
+  buyerId: string;
+  title: string;
+  description: string;
+  amount: number;
+  deliveryDays: number;
+  revisions: number;
+  milestones: { title: string; amount: number; days: number }[];
+  status: "pending" | "accepted" | "declined" | "withdrawn" | "expired";
+  expiresAt: string | null;
+  orderId: string | null;
 }
 
 interface ConversationRow {
@@ -44,6 +63,55 @@ interface MessageRow {
   sender_id: string;
   body: string;
   created_at: string;
+  kind?: string | null;
+  meta?: { offer_id?: string; url?: string } | null;
+}
+
+interface OfferRow {
+  id: string;
+  conversation_id: string;
+  seller_id: string;
+  buyer_id: string;
+  title: string;
+  description: string;
+  amount: number;
+  delivery_days: number;
+  revisions: number;
+  milestones: { title: string; amount: number; days: number }[] | null;
+  status: Offer["status"];
+  expires_at: string | null;
+  order_id: string | null;
+}
+
+function rowToMessage(row: MessageRow): ChatMessage {
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    senderId: row.sender_id,
+    body: row.body,
+    createdAt: row.created_at,
+    kind: row.kind ?? "text",
+    meta: row.meta ?? {},
+  };
+}
+
+function rowToOffer(row: OfferRow): Offer {
+  const expired = row.status === "pending" && row.expires_at && new Date(row.expires_at).getTime() < Date.now();
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    sellerId: row.seller_id,
+    buyerId: row.buyer_id,
+    title: row.title,
+    description: row.description,
+    amount: Number(row.amount),
+    deliveryDays: row.delivery_days,
+    revisions: row.revisions,
+    milestones: Array.isArray(row.milestones) ? row.milestones : [],
+    status: expired ? "expired" : row.status,
+    expiresAt: row.expires_at,
+    orderId: row.order_id,
+  };
 }
 
 interface MessagingValue {
@@ -51,9 +119,13 @@ interface MessagingValue {
   activeId: string | null;
   setActiveId: (id: string | null) => void;
   messages: ChatMessage[];
+  /** Custom offers in the active conversation, keyed by id. */
+  offers: Record<string, Offer>;
   loading: boolean;
   starting: boolean;
   send: (body: string) => Promise<boolean>;
+  /** Posts a video-call link into the active conversation. */
+  sendCall: () => Promise<string | null>;
   startConversation: (input: {
     gigId?: string;
     sellerId: string;
@@ -109,6 +181,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [offers, setOffers] = useState<Record<string, Offer>>({});
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
 
@@ -134,28 +207,25 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     };
   }, [userId]);
 
-  /* load messages whenever the active conversation changes */
+  /* load messages + offers whenever the active conversation changes */
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase || !activeId) return;
     let cancelled = false;
-    void supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", activeId)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (cancelled) return;
-        setMessages(
-          ((data ?? []) as MessageRow[]).map((row) => ({
-            id: row.id,
-            conversationId: row.conversation_id,
-            senderId: row.sender_id,
-            body: row.body,
-            createdAt: row.created_at,
-          })),
-        );
-      });
+    void Promise.all([
+      supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", activeId)
+        .order("created_at", { ascending: true }),
+      supabase.from("offers").select("*").eq("conversation_id", activeId),
+    ]).then(([{ data }, { data: offerRows }]) => {
+      if (cancelled) return;
+      setMessages(((data ?? []) as MessageRow[]).map(rowToMessage));
+      setOffers(
+        Object.fromEntries(((offerRows ?? []) as OfferRow[]).map((row) => [row.id, rowToOffer(row)])),
+      );
+    });
 
     const channel = supabase
       .channel(`messages-${activeId}`)
@@ -168,21 +238,33 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           filter: `conversation_id=eq.${activeId}`,
         },
         (payload) => {
-          const row = payload.new as MessageRow;
+          const message = rowToMessage(payload.new as MessageRow);
           setMessages((current) =>
-            current.some((m) => m.id === row.id)
-              ? current
-              : [
-                  ...current,
-                  {
-                    id: row.id,
-                    conversationId: row.conversation_id,
-                    senderId: row.sender_id,
-                    body: row.body,
-                    createdAt: row.created_at,
-                  },
-                ],
+            current.some((m) => m.id === message.id) ? current : [...current, message],
           );
+          if (message.kind === "offer" && message.meta.offer_id) {
+            void supabase
+              .from("offers")
+              .select("*")
+              .eq("id", message.meta.offer_id)
+              .maybeSingle()
+              .then(({ data: row }) => {
+                if (row) setOffers((cur) => ({ ...cur, [row.id]: rowToOffer(row as OfferRow) }));
+              });
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "offers",
+          filter: `conversation_id=eq.${activeId}`,
+        },
+        (payload) => {
+          const offer = rowToOffer(payload.new as OfferRow);
+          setOffers((cur) => ({ ...cur, [offer.id]: offer }));
         },
       )
       .subscribe();
@@ -229,6 +311,27 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     },
     [userId, activeId],
   );
+
+  const sendCall = useCallback(async (): Promise<string | null> => {
+    const supabase = getSupabase();
+    if (!supabase || !userId || !activeId) return null;
+    // Jitsi Meet: free, no account needed; the random room name is the secret.
+    const room = `Hirelyx-${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
+    const url = `https://meet.jit.si/${room}`;
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: activeId,
+      sender_id: userId,
+      body: "Started a video call",
+      kind: "call",
+      meta: { url },
+    });
+    if (error) return null;
+    void supabase
+      .from("conversations")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", activeId);
+    return url;
+  }, [userId, activeId]);
 
   const startConversation = useCallback(
     async ({
@@ -278,13 +381,15 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       activeId,
       setActiveId,
       messages,
+      offers,
       loading,
       starting,
       send,
+      sendCall,
       startConversation,
       refresh,
     }),
-    [conversations, activeId, messages, loading, starting, send, startConversation, refresh],
+    [conversations, activeId, messages, offers, loading, starting, send, sendCall, startConversation, refresh],
   );
 
   return <MessagingContext.Provider value={value}>{children}</MessagingContext.Provider>;

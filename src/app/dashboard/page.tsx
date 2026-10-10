@@ -7,6 +7,8 @@ import { useUI } from "@/lib/ui";
 import { getSupabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
 import type { GigStatus } from "@/lib/types";
+import { fetchSellerStats, LEVEL_META, LEVEL_RULES, LevelBadge } from "@/lib/seller-levels";
+import type { SellerStats } from "@/lib/seller-levels";
 
 interface GigRowData {
   id: string;
@@ -33,6 +35,19 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | GigStatus>("all");
+  const [myStats, setMyStats] = useState<SellerStats | null>(null);
+
+  useEffect(() => {
+    if (!user?.sub) return;
+    const uid = user.sub;
+    let cancelled = false;
+    void fetchSellerStats([uid]).then((stats) => {
+      if (!cancelled) setMyStats(stats[uid] ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.sub]);
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -121,6 +136,8 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {myStats ? <LevelProgress stats={myStats} /> : null}
+
         <div className="gd-summary-row">
           <div><span>Live gigs</span><strong>{totals.live}</strong></div>
           <div><span>Total views</span><strong>{totals.views}</strong></div>
@@ -202,5 +219,46 @@ export default function DashboardPage() {
         )}
       </div>
     </section>
+  );
+}
+
+function LevelProgress({ stats }: { stats: SellerStats }) {
+  const order = ["new", "level_1", "level_2", "top_rated"] as const;
+  const next = LEVEL_RULES.find((rule) => order.indexOf(rule.level) > order.indexOf(stats.level));
+  const [now] = useState(() => Date.now());
+  const days = stats.memberSince ? Math.floor((now - new Date(stats.memberSince).getTime()) / 86400000) : 0;
+  const checks = next
+    ? [
+        { label: `${next.orders} completed orders`, value: `${stats.completed}/${next.orders}`, pct: stats.completed / next.orders },
+        { label: `${next.rating}+ rating`, value: stats.reviews ? stats.rating.toFixed(2) : "No reviews", pct: stats.rating / next.rating },
+        { label: `${next.days} days on Hirelyx`, value: `${days}/${next.days}`, pct: days / next.days },
+        ...(next.onTime
+          ? [{ label: `${next.onTime}% on-time delivery`, value: stats.onTime == null ? "—" : `${stats.onTime}%`, pct: (stats.onTime ?? 100) / next.onTime }]
+          : []),
+      ]
+    : [];
+  return (
+    <div className="gw-card lvl-card">
+      <div className="gw-card-head">
+        <div>
+          <span className="gw-muted">Your seller level</span>
+          <h3><LevelBadge level={stats.level} /></h3>
+        </div>
+        {next ? <span className="gw-muted">Next: {LEVEL_META[next.level].label}</span> : <span className="gw-muted">Highest level reached 🎉</span>}
+      </div>
+      {next ? (
+        <div className="lvl-checks">
+          {checks.map((c) => (
+            <div key={c.label} className={c.pct >= 1 ? "done" : ""}>
+              <div className="lvl-check-head">
+                <span>{c.pct >= 1 ? "✓ " : ""}{c.label}</span>
+                <strong>{c.value}</strong>
+              </div>
+              <div className="gw-meter"><span style={{ width: `${Math.min(100, c.pct * 100)}%` }} /></div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

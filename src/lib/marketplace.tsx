@@ -15,6 +15,8 @@ import { getSupabase } from "./supabase";
 import { rowToGig } from "./gig-model";
 import type { GigRow } from "./gig-model";
 import type { Gig, GigDraft } from "./types";
+import { fetchSellerStats } from "./seller-levels";
+import type { SellerStats } from "./seller-levels";
 
 interface MarketplaceValue {
   gigs: Gig[];
@@ -28,6 +30,8 @@ interface MarketplaceValue {
   toggleSkill: (skill: string) => void;
   setSkills: (skills: string[]) => void;
   clearFilters: () => void;
+  /** Level, rating and delivery stats keyed by seller id. */
+  sellerStats: Record<string, SellerStats>;
   addGig: (draft: GigDraft) => Promise<Gig | null>;
   saveGig: (draft: GigDraft, id?: string) => Promise<Gig | null>;
   refresh: () => Promise<void>;
@@ -44,6 +48,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [sellerStats, setSellerStats] = useState<Record<string, SellerStats>>({});
 
   const refresh = useCallback(async () => {
     const supabase = getSupabase();
@@ -123,6 +128,22 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       void supabase.removeChannel(channel);
     };
   }, []);
+
+  /* One RPC for every seller on screen; refetched only when the set changes. */
+  const sellerKey = useMemo(
+    () => [...new Set(gigs.map((gig) => gig.sellerId).filter(Boolean) as string[])].sort().join(","),
+    [gigs],
+  );
+  useEffect(() => {
+    if (!sellerKey) return;
+    let cancelled = false;
+    void fetchSellerStats(sellerKey.split(",")).then((stats) => {
+      if (!cancelled) setSellerStats(stats);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellerKey]);
 
   const toggleSkill = useCallback((skill: string) => {
     setSelectedSkills((current) =>
@@ -210,11 +231,12 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       toggleSkill,
       setSkills: setSelectedSkills,
       clearFilters,
+      sellerStats,
       addGig,
       saveGig,
       refresh,
     }),
-    [publicGigs, loading, error, query, category, selectedSkills, toggleSkill, clearFilters, addGig, saveGig, refresh],
+    [publicGigs, loading, error, query, category, selectedSkills, sellerStats, toggleSkill, clearFilters, addGig, saveGig, refresh],
   );
 
   return (

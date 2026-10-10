@@ -20,6 +20,7 @@ interface OrderRow {
   delivery_note: string | null;
   revision_note: string | null;
   revision_count: number | null;
+  title?: string | null;
 }
 
 interface Order extends OrderRow {
@@ -35,6 +36,7 @@ const STATUS_CLASS: Record<string, string> = {
   revision: "warn",
   completed: "ok",
   cancelled: "muted",
+  disputed: "warn",
 };
 
 export default function OrdersPage() {
@@ -193,7 +195,7 @@ export default function OrdersPage() {
             return {
               ...row,
               role,
-              gigTitle: row.gig_id ? gigMap[row.gig_id] ?? "Gig" : "Gig",
+              gigTitle: row.title || (row.gig_id ? gigMap[row.gig_id] ?? "Gig" : "Custom order"),
               counterpart: counterpartId ? nameMap[counterpartId] ?? "User" : "User",
             };
           }),
@@ -266,7 +268,7 @@ export default function OrdersPage() {
                     </span>
                     <span>${formatPrice(order.amount)}</span>
                     {order.revision_count ? <span>Revisions: {order.revision_count}</span> : null}
-                    <Link href={`/orders/${order.id}`}>Details</Link>
+                    <Link className="btn-ghost btn-sm" href={`/orders/${order.id}`}>Open order →</Link>
                   </div>
                   {order.delivery_note && order.status !== "completed" ? (
                     <p className="order-note">Delivery note: {order.delivery_note}</p>
@@ -355,14 +357,14 @@ export default function OrdersPage() {
                       </div>
                     )
                   ) : null}
-                  {order.status !== "completed" && order.status !== "cancelled" ? (
+                  {order.status === "pending" ? (
                     <div className="order-actions">
                       <button
                         className="btn-ghost"
                         type="button"
                         disabled={busyId === order.id + "cancel"}
                         onClick={() => {
-                          if (window.confirm("Cancel this order? A refund will be issued if it was paid.")) {
+                          if (window.confirm("Cancel this unpaid order?")) {
                             void runAction(order.id, "cancel");
                           }
                         }}
@@ -370,6 +372,9 @@ export default function OrdersPage() {
                         {busyId === order.id + "cancel" ? "Cancelling..." : "Cancel order"}
                       </button>
                     </div>
+                  ) : null}
+                  {order.status === "disputed" ? (
+                    <p className="order-note">Under review in the resolution center.</p>
                   ) : null}
                   {actionError && busyId === null ? <p className="order-note">{actionError}</p> : null}
                 </div>

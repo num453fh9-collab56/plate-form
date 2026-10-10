@@ -7,6 +7,7 @@ import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import AccountMenu from "./AccountMenu";
 import LanguageSelector from "./LanguageSelector";
+import CurrencySelector from "./CurrencySelector";
 
 export default function Header() {
   const { user } = useAuth();
@@ -44,6 +45,9 @@ export default function Header() {
           <Link href="/search" onClick={() => setMenuOpen(false)}>
             {t("nav.project")}
           </Link>
+          <Link href="/requests" onClick={() => setMenuOpen(false)}>
+            Requests
+          </Link>
           <Link href="/#portfolio" onClick={() => setMenuOpen(false)}>
             {t("nav.resolutions")}
           </Link>
@@ -67,6 +71,7 @@ export default function Header() {
           </button>
 
           <LanguageSelector />
+          <CurrencySelector />
 
           {!user && (
             <button

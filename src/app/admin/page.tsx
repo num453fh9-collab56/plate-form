@@ -7,7 +7,7 @@ import { useUI } from "@/lib/ui";
 import { adminFetch, useIsAdmin } from "@/lib/admin";
 import { formatPrice } from "@/lib/format";
 
-type Tab = "overview" | "gigs" | "users" | "orders" | "errors";
+type Tab = "overview" | "gigs" | "users" | "orders" | "disputes" | "errors";
 
 interface Overview {
   users: number;
@@ -15,6 +15,7 @@ interface Overview {
   liveGigs: number;
   orders: number;
   banned: number;
+  openDisputes: number;
   revenue: number;
   errors24h: number;
 }
@@ -52,6 +53,23 @@ interface OrderItem {
   created_at: string;
 }
 
+interface DisputeItem {
+  id: string;
+  order_id: string;
+  opened_by: string;
+  reason: string;
+  details: string;
+  status: string;
+  resolution: string | null;
+  refund_amount: number | null;
+  admin_note: string | null;
+  created_at: string;
+  order: { id: string; title: string | null; amount: number; buyer_id: string; seller_id: string | null; status: string } | null;
+  buyerName: string;
+  sellerName: string;
+  messages: { id: string; sender_id: string; body: string; is_admin: boolean; created_at: string }[];
+}
+
 interface ErrorItem {
   id: number;
   created_at: string;
@@ -67,6 +85,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "gigs", label: "Gigs" },
   { key: "users", label: "Users" },
   { key: "orders", label: "Orders" },
+  { key: "disputes", label: "Disputes" },
   { key: "errors", label: "Errors" },
 ];
 
@@ -190,6 +209,7 @@ export default function AdminPage() {
             >
               {item.label}
               {item.key === "errors" && overview?.errors24h ? <span>{overview.errors24h}</span> : null}
+              {item.key === "disputes" && overview?.openDisputes ? <span>{overview.openDisputes}</span> : null}
             </button>
           ))}
         </div>
@@ -211,6 +231,7 @@ export default function AdminPage() {
               <Stat label="Orders" value={overview.orders} />
               <Stat label="Paid volume" value={`$${formatPrice(overview.revenue)}`} />
               <Stat label="Banned users" value={overview.banned} />
+              <Stat label="Open disputes" value={overview.openDisputes} tone={overview.openDisputes ? "bad" : "good"} />
               <Stat label="Errors (24h)" value={overview.errors24h} tone={overview.errors24h ? "bad" : "good"} />
             </div>
           ) : (
@@ -314,6 +335,14 @@ export default function AdminPage() {
           </ul>
         ) : null}
 
+        {tab === "disputes" ? (
+          <ul className="admin-list">
+            {(items as DisputeItem[]).map((d) => (
+              <DisputeCard key={d.id} dispute={d} onDone={() => void load()} />
+            ))}
+          </ul>
+        ) : null}
+
         {tab === "errors" ? (
           <ul className="admin-list">
             {(items as ErrorItem[]).map((e) => (
@@ -336,6 +365,99 @@ export default function AdminPage() {
         ) : null}
       </div>
     </section>
+  );
+}
+
+function DisputeCard({ dispute, onDone }: { dispute: DisputeItem; onDone: () => void }) {
+  const { toast } = useUI();
+  const [resolution, setResolution] = useState<"refund_full" | "refund_partial" | "release_seller">("refund_full");
+  const [refund, setRefund] = useState("");
+  const [note, setNote] = useState("");
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const order = dispute.order;
+  const openedByBuyer = order?.buyer_id === dispute.opened_by;
+
+  const post = async (body: Record<string, unknown>, success: string) => {
+    setBusy(true);
+    const { error } = await adminFetch("/api/disputes", { method: "POST", body: { disputeId: dispute.id, ...body } });
+    setBusy(false);
+    if (error) {
+      toast(error);
+      return;
+    }
+    toast(success);
+    setReply("");
+    onDone();
+  };
+
+  return (
+    <li className="admin-row admin-dispute">
+      <div className="admin-row-main">
+        <div className="order-meta">
+          <span className={`gd-status ${dispute.status === "open" ? "paused" : "published"}`}>{dispute.status}</span>
+          <span>{dispute.reason.replace(/_/g, " ")}</span>
+          <span>Opened by {openedByBuyer ? `buyer ${dispute.buyerName}` : `seller ${dispute.sellerName}`}</span>
+          <span>{when(dispute.created_at)}</span>
+        </div>
+        <Link href={`/orders/${dispute.order_id}`} className="admin-row-title">
+          {order?.title ?? "Order"} · ${formatPrice(Number(order?.amount ?? 0))}
+        </Link>
+        <p className="gw-muted">Buyer: {dispute.buyerName} · Seller: {dispute.sellerName}</p>
+        <p className="od-dispute-details">{dispute.details}</p>
+        {dispute.messages.length ? (
+          <ul className="od-thread">
+            {dispute.messages.map((m) => (
+              <li key={m.id} className={m.is_admin ? "admin" : ""}>
+                <strong>
+                  {m.is_admin ? "Admin" : m.sender_id === order?.buyer_id ? `Buyer · ${dispute.buyerName}` : `Seller · ${dispute.sellerName}`}
+                </strong>
+                <p>{m.body}</p>
+                <small>{when(m.created_at)}</small>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {dispute.status === "open" ? (
+          <div className="admin-resolve">
+            <div className="od-actions">
+              <input className="gw-input" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Message both parties…" />
+              <button className="btn-ghost btn-sm" type="button" disabled={busy || !reply.trim()} onClick={() => void post({ action: "message", body: reply }, "Message sent.")}>
+                Send
+              </button>
+            </div>
+            <div className="od-actions">
+              <select className="gw-input" value={resolution} onChange={(e) => setResolution(e.target.value as typeof resolution)}>
+                <option value="refund_full">Full refund to buyer</option>
+                <option value="refund_partial">Partial refund (rest to seller)</option>
+                <option value="release_seller">Release payment to seller</option>
+              </select>
+              {resolution === "refund_partial" ? (
+                <input className="gw-input" type="number" min={1} value={refund} onChange={(e) => setRefund(e.target.value)} placeholder="Refund $" />
+              ) : null}
+            </div>
+            <textarea className="gw-input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Decision note (shown to both parties)" />
+            <button
+              className="btn-primary btn-sm"
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (!window.confirm("Apply this decision? Money will move immediately.")) return;
+                void post({ action: "resolve", resolution, refundAmount: Number(refund), adminNote: note }, "Dispute resolved.");
+              }}
+            >
+              {busy ? "Working…" : "Resolve dispute"}
+            </button>
+          </div>
+        ) : (
+          <p className="gw-muted">
+            Resolution: {dispute.resolution?.replace(/_/g, " ")}
+            {dispute.refund_amount ? ` · refunded $${formatPrice(Number(dispute.refund_amount))}` : ""}
+            {dispute.admin_note ? ` · ${dispute.admin_note}` : ""}
+          </p>
+        )}
+      </div>
+    </li>
   );
 }
 
