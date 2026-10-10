@@ -1,4 +1,5 @@
 import { getAdminSupabase, getStripe, getUserFromRequest } from "@/lib/stripe-server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
+
+  const limited = await rateLimit(request, "stripe-connect", 10, 60, user.id);
+  if (limited) return limited;
 
   const { data: profile } = await admin
     .from("profiles")

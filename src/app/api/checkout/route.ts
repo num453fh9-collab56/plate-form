@@ -3,6 +3,7 @@ import {
   getStripe,
   getUserFromRequest,
 } from "@/lib/stripe-server";
+import { rateLimit } from "@/lib/rate-limit";
 import { PACKAGE_KEYS, quoteOrder } from "@/lib/gig-model";
 import type { GigExtra, GigPackage, PackageKey } from "@/lib/types";
 
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Please sign in to place an order." }, { status: 401 });
   }
+
+  const limited = await rateLimit(request, "checkout", 10, 60, user.id);
+  if (limited) return limited;
 
   let body: CheckoutBody;
   try {

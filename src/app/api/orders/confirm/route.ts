@@ -1,4 +1,5 @@
 import { getAdminSupabase, getStripe, getUserFromRequest } from "@/lib/stripe-server";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
+
+  const limited = await rateLimit(request, "order-confirm", 20, 60, user.id);
+  if (limited) return limited;
 
   let sessionId = "";
   try {

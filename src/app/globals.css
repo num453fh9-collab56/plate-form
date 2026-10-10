@@ -5918,3 +5918,55 @@ textarea.gw-input { resize: vertical; }
   .gd-gig-row .order-actions { grid-column: 1 / -1; }
   .gd-summary-row strong { font-size: 1.3rem; }
 }
+
+/* ======================= STATUS PAGES (error / 404) ======================= */
+.status-page { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 48px 16px; }
+.status-page-icon {
+  display: grid;
+  place-items: center;
+  min-width: 72px;
+  height: 72px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-soft), var(--emerald-soft));
+  color: var(--accent-dark);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+.status-page-code { font-size: 0.8rem; color: var(--muted-2); font-family: ui-monospace, Consolas, monospace; }
+.status-page-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+
+/* ======================= LOADING SKELETON ======================= */
+.skeleton {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--card-2) 25%, #e9eaee 37%, var(--card-2) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.skeleton-title { height: 32px; width: min(320px, 70%); margin-bottom: 12px; }
+.skeleton-line { height: 16px; width: min(520px, 90%); margin-bottom: 28px; }
+.skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.skeleton-card { height: 260px; }
+@keyframes skeleton-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* ======================= ADMIN PANEL ======================= */
+.admin-search { max-width: 420px; margin-bottom: 14px; }
+.admin-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.admin-stat { display: grid; gap: 4px; padding: 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--card); border-top: 4px solid var(--accent); }
+.admin-stat span { font-size: 0.8rem; font-weight: 600; color: var(--muted-2); }
+.admin-stat strong { font-size: 1.7rem; }
+.admin-stat.good { border-top-color: var(--emerald); }
+.admin-stat.bad { border-top-color: var(--danger); }
+.admin-stat.bad strong { color: var(--danger); }
+.admin-list { list-style: none; display: grid; gap: 8px; }
+.admin-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+.admin-row-main { min-width: 0; display: grid; gap: 4px; }
+.admin-row-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-row-actions { display: flex; gap: 8px; flex: none; }
+.admin-error-msg { border: 0; background: none; padding: 0; text-align: left; font: inherit; font-weight: 700; color: var(--danger); cursor: pointer; word-break: break-word; }
+.admin-stack { margin-top: 6px; padding: 10px; border-radius: 8px; background: var(--ink-2); color: #e5e7eb; font-size: 0.75rem; overflow-x: auto; white-space: pre-wrap; max-height: 260px; }
+@media (max-width: 640px) {
+  .admin-row { flex-direction: column; align-items: stretch; }
+  .admin-row-title { white-space: normal; }
+}

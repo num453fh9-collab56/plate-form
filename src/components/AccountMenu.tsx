@@ -8,6 +8,7 @@ import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import { initials } from "@/lib/format";
+import { useIsAdmin } from "@/lib/admin";
 
 type IconName =
   | "manage"
@@ -146,6 +147,7 @@ export default function AccountMenu() {
   const requireAuth = useRequireAuth();
   const { t } = useI18n();
   const router = useRouter();
+  const isAdmin = useIsAdmin(user?.sub);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -318,6 +320,25 @@ export default function AccountMenu() {
               </span>
               <span className="dash-text">Dashboard</span>
             </button>
+            {isAdmin ? (
+              <button
+                className="dash-item"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  router.push("/admin");
+                }}
+              >
+                <span
+                  className="dash-icon"
+                  style={{ color: "#dc2626", background: "rgba(220,38,38,0.12)" }}
+                >
+                  <Icon name="manage" />
+                </span>
+                <span className="dash-text">Admin panel</span>
+              </button>
+            ) : null}
             <button
               className="dash-item"
               type="button"
