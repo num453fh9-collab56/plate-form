@@ -2,7 +2,7 @@ import type { GigColorPair } from "./types";
 import type { TranslationKey } from "./i18n";
 
 /* ==========================================================================
-   APEX · SKILLS & CATEGORIES TAXONOMY
+   HIRELYX · SKILLS & CATEGORIES TAXONOMY
    --------------------------------------------------------------------------
    Single source of truth for every category and sub-skill a freelancer can be
    listed under and every skill a client can filter by. The eight categories

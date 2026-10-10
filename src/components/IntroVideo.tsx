@@ -167,11 +167,11 @@ export default function IntroVideo({
           if (account?.id) {
             const url = await uploadBlob(bucket, account.id, blob, "intro");
             if (url) {
-              onChange(url, "apex-intro.webm");
+              onChange(url, "hirelyx-intro.webm");
               return;
             }
           }
-          onChange(dataUrl, "apex-intro.webm");
+          onChange(dataUrl, "hirelyx-intro.webm");
         } catch {
           toast(t("video.errRead"));
         }

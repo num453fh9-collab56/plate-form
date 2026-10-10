@@ -1,6 +1,6 @@
 import { CATEGORY_OPTIONS, glyphFor } from "./gigs";
 import { categoryColors, isAllowedCategory } from "./taxonomy";
-import type { Gig } from "./types";
+import type { Gig, GigExtra, GigPackage, GigStatus, PackageKey, RequirementQuestion } from "./types";
 
 export interface GigRow {
   id: string;
@@ -15,10 +15,14 @@ export interface GigRow {
   video: string | null;
   video_name: string | null;
   images: string[] | null;
-  packages: Record<string, { name?: string; price: number; delivery: number; note?: string; description?: string; revisions?: number }> | null;
-  extras: { label: string; price: number }[] | null;
+  packages: Partial<Record<PackageKey, GigPackage>> | null;
+  extras: GigExtra[] | null;
   faq: { question: string; answer: string }[] | null;
   requirements: string | null;
+  requirement_questions?: RequirementQuestion[] | null;
+  tags?: string[] | null;
+  status?: string | null;
+  views?: number | null;
   created_at: string;
 }
 
@@ -50,6 +54,45 @@ export function rowToGig(row: GigRow): Gig {
     extras: Array.isArray(row.extras) ? row.extras : undefined,
     faq: Array.isArray(row.faq) ? row.faq : undefined,
     requirementsText: row.requirements ?? undefined,
+    requirementQuestions: Array.isArray(row.requirement_questions)
+      ? row.requirement_questions
+      : undefined,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    status: toStatus(row.status),
+    views: Number(row.views ?? 0),
+    createdAt: row.created_at,
     isNew: false,
   };
+}
+
+function toStatus(value: string | null | undefined): GigStatus {
+  return value === "draft" || value === "paused" ? value : "published";
+}
+
+export const PACKAGE_KEYS: PackageKey[] = ["basic", "standard", "premium"];
+
+/** Packages that actually have a price, in tier order. */
+export function offeredPackages(gig: Pick<Gig, "packages">): [PackageKey, GigPackage][] {
+  if (!gig.packages) return [];
+  return PACKAGE_KEYS.flatMap((key) => {
+    const pkg = gig.packages?.[key];
+    return pkg && Number(pkg.price) > 0 ? [[key, pkg] as [PackageKey, GigPackage]] : [];
+  });
+}
+
+/** Price + delivery for a package choice and extras (same math as checkout). */
+export function quoteOrder(
+  gig: Pick<Gig, "price" | "packages" | "extras" | "delivery">,
+  packageKey: PackageKey | null,
+  extraLabels: string[],
+): { total: number; days: number } {
+  const pkg = packageKey ? gig.packages?.[packageKey] : undefined;
+  let total = pkg && Number(pkg.price) > 0 ? Number(pkg.price) : Number(gig.price);
+  let days = pkg ? Number(pkg.delivery) || 1 : parseInt(gig.delivery, 10) || 1;
+  for (const extra of gig.extras ?? []) {
+    if (!extraLabels.includes(extra.label)) continue;
+    total += Number(extra.price) || 0;
+    days += Number(extra.days) || 0;
+  }
+  return { total: Math.round(total * 100) / 100, days: Math.max(1, days) };
 }

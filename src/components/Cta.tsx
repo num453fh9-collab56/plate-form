@@ -63,7 +63,7 @@ export default function Cta() {
               pointerEvents: "none",
             }}
           >
-            Apex
+            Hirelyx
           </span>
         </div>
       </div>

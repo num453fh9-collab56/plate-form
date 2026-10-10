@@ -4,7 +4,7 @@ import { useState } from "react";
 import { parseVideo } from "@/lib/video";
 
 /* ==========================================================================
-   APEX · VIDEO PLAYER
+   HIRELYX · VIDEO PLAYER
    A light-mode friendly 16:9 media frame. Until the visitor clicks, it shows
    a real first-frame / poster thumbnail behind a clean play button overlay.
    Clicking swaps in a native <video controls> (MP4/WebM) or an <iframe>
@@ -30,7 +30,7 @@ function BrandMark() {
         backdropFilter: "blur(2px)",
       }}
     >
-      Apex
+      Hirelyx
     </span>
   );
 }

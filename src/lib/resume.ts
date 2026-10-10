@@ -1,5 +1,5 @@
 /* ==========================================================================
-   APEX · RESUME ENGINE
+   HIRELYX · RESUME ENGINE
    Real client-side resume parsing — no server, no API key:
      PDF   → text via pdfjs-dist
      DOCX  → text via mammoth

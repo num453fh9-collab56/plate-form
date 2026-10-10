@@ -1,4 +1,5 @@
 import { getAdminSupabase, getStripe, getUserFromRequest } from "@/lib/stripe-server";
+import { sellerNet } from "@/lib/fees";
 
 export const runtime = "nodejs";
 
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     });
     const { getEmailForUser, sendEmail } = await import("@/lib/email");
     const email = await getEmailForUser(admin, userId);
-    await sendEmail(email, `Apex — ${title}`, `<p><strong>${title}</strong></p><p>${body}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/orders">View your orders</a></p>`);
+    await sendEmail(email, `Hirelyx — ${title}`, `<p><strong>${title}</strong></p><p>${body}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/orders">View your orders</a></p>`);
   };
 
   if (action === "deliver") {
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     await admin.from("orders").update({ status: "completed" }).eq("id", orderId);
 
     const gross = Number(order.amount ?? 0);
-    const sellerPayout = Math.max(0, gross * 0.9); // 10% platform fee
+    const sellerPayout = sellerNet(gross);
     let payoutStatus = "pending";
     let transferId: string | null = null;
 

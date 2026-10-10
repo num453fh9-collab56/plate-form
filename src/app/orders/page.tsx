@@ -228,7 +228,7 @@ export default function OrdersPage() {
           <div>
             <div className="kicker">Orders</div>
             <h2>Your orders</h2>
-            <p className="sub">Purchases and sales on Apex.</p>
+            <p className="sub">Purchases and sales on Hirelyx.</p>
           </div>
           <Link className="btn-post" href="/search">
             Browse gigs

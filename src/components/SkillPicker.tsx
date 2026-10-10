@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { getCategory, searchSkills } from "@/lib/taxonomy";
 
 /* ==========================================================================
-   APEX · SKILL PICKER
+   HIRELYX · SKILL PICKER
    A taxonomy-driven multi-select. Freelancers use it during onboarding; gig
    owners use it (scoped to the chosen category) when posting a service.
    Only platform-approved skills can be selected.

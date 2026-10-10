@@ -18,9 +18,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Apex — Hire Expert Freelance Talent",
+  title: "Hirelyx — Hire Expert Freelance Talent",
   description:
-    "Apex — the high-end global marketplace connecting expert freelancers with ambitious businesses.",
+    "Hirelyx — the high-end global marketplace connecting expert freelancers with ambitious businesses.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <Script
           src="https://accounts.google.com/gsi/client"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <I18nProvider>
           <UIProvider>

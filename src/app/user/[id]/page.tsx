@@ -66,7 +66,7 @@ export default function UserProfilePage() {
     );
   }
 
-  const displayName = profile.fullName || "Apex Professional";
+  const displayName = profile.fullName || "Hirelyx Professional";
 
   return (
     <section className="section user-profile">

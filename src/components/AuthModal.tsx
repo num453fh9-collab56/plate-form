@@ -158,12 +158,11 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
               <span className="mark" aria-hidden="true">
                 <svg className="apex" viewBox="0 0 40 40" fill="none" aria-hidden="true">
                   <circle cx="20" cy="20" r="18.4" stroke="#111111" strokeWidth="1.2" />
-                  <path d="M20 8L30 28H25L20 18L15 28H10L20 8Z" fill="#111111" />
-                  <path d="M16 23H24" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="#111111" />
                 </svg>
               </span>
               <b>
-                Ap<span className="accent">ex</span>
+                Hire<span className="accent">lyx</span>
               </b>
             </span>
             <h2 className="auth-aside-title">{t("auth.asideTitle")}</h2>

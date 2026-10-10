@@ -5,7 +5,7 @@ import { useUI } from "@/lib/ui";
 import VideoPlayer from "./VideoPlayer";
 
 /* ==========================================================================
-   APEX · VIDEO LIGHTBOX
+   HIRELYX · VIDEO LIGHTBOX
    A single, app-wide cinema overlay. Any card (gig, portfolio project, or a
    freelancer intro) can call `openVideo(...)` from the UI context and the
    visitor gets a distraction-free player without leaving the page.

@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { getSupabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
-import { CATEGORY_OPTIONS } from "@/lib/gigs";
+import type { GigStatus } from "@/lib/types";
 
 interface GigRowData {
   id: string;
@@ -14,28 +14,32 @@ interface GigRowData {
   category: string | null;
   price: number;
   delivery_days: number;
+  status?: GigStatus | null;
+  views?: number | null;
+  images?: string[] | null;
 }
+
+const STATUS_LABEL: Record<GigStatus, string> = {
+  published: "Live",
+  paused: "Paused",
+  draft: "Draft",
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { openAuth } = useUI();
+  const { openAuth, openPost, toast } = useUI();
   const [gigs, setGigs] = useState<GigRowData[]>([]);
   const [ordersCount, setOrdersCount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<GigRowData | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editPrice, setEditPrice] = useState("");
-  const [editDelivery, setEditDelivery] = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | GigStatus>("all");
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase || !user?.sub) return;
     const { data } = await supabase
       .from("gigs")
-      .select("id, title, category, price, delivery_days")
+      .select("*")
       .eq("seller_id", user.sub)
       .order("created_at", { ascending: false });
     const rows = (data ?? []) as GigRowData[];
@@ -59,35 +63,17 @@ export default function DashboardPage() {
     return () => clearTimeout(t);
   }, [load]);
 
-  const startEdit = (gig: GigRowData) => {
-    setEditing(gig);
-    setEditTitle(gig.title);
-    setEditPrice(String(gig.price));
-    setEditDelivery(String(gig.delivery_days));
-    setEditCategory(gig.category ?? CATEGORY_OPTIONS[0]);
-  };
-
-  const saveEdit = async () => {
+  const setStatus = async (gig: GigRowData, status: GigStatus) => {
     const supabase = getSupabase();
-    if (!supabase || !editing) return;
-    setSaving(true);
-    setError(null);
-    const { error: err } = await supabase
-      .from("gigs")
-      .update({
-        title: editTitle.trim(),
-        price: Number(editPrice) || 0,
-        delivery_days: Math.max(1, Number(editDelivery) || 1),
-        category: editCategory,
-      })
-      .eq("id", editing.id);
-    setSaving(false);
-    if (err) {
-      setError(err.message);
+    if (!supabase) return;
+    setBusyId(gig.id);
+    const { error } = await supabase.from("gigs").update({ status }).eq("id", gig.id);
+    setBusyId(null);
+    if (error) {
+      toast(error.message);
       return;
     }
-    setEditing(null);
-    void load();
+    setGigs((cur) => cur.map((g) => (g.id === gig.id ? { ...g, status } : g)));
   };
 
   const deleteGig = async (id: string) => {
@@ -113,6 +99,14 @@ export default function DashboardPage() {
     );
   }
 
+  const statusOf = (gig: GigRowData): GigStatus => gig.status ?? "published";
+  const visible = filter === "all" ? gigs : gigs.filter((g) => statusOf(g) === filter);
+  const totals = {
+    live: gigs.filter((g) => statusOf(g) === "published").length,
+    views: gigs.reduce((sum, g) => sum + Number(g.views ?? 0), 0),
+    orders: Object.values(ordersCount).reduce((sum, n) => sum + n, 0),
+  };
+
   return (
     <section className="section">
       <div className="wrap">
@@ -120,88 +114,90 @@ export default function DashboardPage() {
           <div>
             <div className="kicker">Seller dashboard</div>
             <h2>Your gigs</h2>
-            <p className="sub">Edit pricing, delivery time, category — or remove a gig.</p>
+            <p className="sub">Edit, pause or remove your gigs and track how they perform.</p>
           </div>
-          <Link className="btn-post" href="/search">
-            Browse marketplace
-          </Link>
+          <button className="btn-post" type="button" onClick={openPost}>
+            + Create gig
+          </button>
         </div>
 
-        {error ? <p className="order-note">{error}</p> : null}
+        <div className="gd-summary-row">
+          <div><span>Live gigs</span><strong>{totals.live}</strong></div>
+          <div><span>Total views</span><strong>{totals.views}</strong></div>
+          <div><span>Orders</span><strong>{totals.orders}</strong></div>
+        </div>
 
-        {editing ? (
-          <div className="order-row" style={{ marginBottom: 16 }}>
-            <div className="order-title">Edit gig</div>
-            <div className="order-actions">
-              <input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Title"
-                style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
-              />
-              <select
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
-              >
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                value={editPrice}
-                onChange={(e) => setEditPrice(e.target.value)}
-                placeholder="Price"
-                style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
-              />
-              <input
-                type="number"
-                value={editDelivery}
-                onChange={(e) => setEditDelivery(e.target.value)}
-                placeholder="Delivery days"
-                style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--card)" }}
-              />
-              <button className="btn-primary" type="button" disabled={saving} onClick={saveEdit}>
-                {saving ? "Saving..." : "Save"}
-              </button>
-              <button className="btn-ghost" type="button" onClick={() => setEditing(null)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : null}
+        <div className="gd-filter" role="tablist">
+          {(["all", "published", "paused", "draft"] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={filter === key}
+              className={filter === key ? "active" : ""}
+              onClick={() => setFilter(key)}
+            >
+              {key === "all" ? "All" : STATUS_LABEL[key]}
+              <span>{key === "all" ? gigs.length : gigs.filter((g) => statusOf(g) === key).length}</span>
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <p style={{ color: "var(--muted)" }}>Loading...</p>
-        ) : gigs.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="empty">
-            <h3>No gigs yet</h3>
-            <p>Post your first gig from the account menu → Post a project.</p>
+            <h3>{gigs.length === 0 ? "No gigs yet" : "Nothing here"}</h3>
+            <p>
+              {gigs.length === 0
+                ? "Create your first gig to start getting orders."
+                : "No gigs match this filter."}
+            </p>
           </div>
         ) : (
           <ul className="order-list">
-            {gigs.map((gig) => (
-              <li key={gig.id} className="order-row">
-                <div className="order-title">
-                  <Link href={`/gig/${gig.id}`}>{gig.title}</Link>
-                </div>
-                <div className="order-meta">
-                  <span className="status-pill ok">{gig.category}</span>
-                  <span>${formatPrice(gig.price)}</span>
-                  <span>{gig.delivery_days} day delivery</span>
-                  <span>{ordersCount[gig.id] ?? 0} orders</span>
-                </div>
-                <div className="order-actions" style={{ display: "flex", gap: 10 }}>
-                  <button className="btn-ghost btn-sm" type="button" onClick={() => startEdit(gig)}>
-                    Edit
-                  </button>
-                  <button className="btn-ghost btn-sm" type="button" onClick={() => deleteGig(gig.id)}>
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
+            {visible.map((gig) => {
+              const status = statusOf(gig);
+              return (
+                <li key={gig.id} className="order-row gd-gig-row">
+                  {gig.images?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="gd-gig-thumb" src={gig.images[0]} alt="" loading="lazy" />
+                  ) : (
+                    <span className="gd-gig-thumb placeholder" aria-hidden="true" />
+                  )}
+                  <div className="gd-gig-info">
+                    <div className="order-title">
+                      <Link href={`/gig/${gig.id}`}>{gig.title}</Link>
+                    </div>
+                    <div className="order-meta">
+                      <span className={`gd-status ${status}`}>{STATUS_LABEL[status]}</span>
+                      <span>{gig.category}</span>
+                      <span>From ${formatPrice(gig.price)}</span>
+                      <span>{Number(gig.views ?? 0)} views</span>
+                      <span>{ordersCount[gig.id] ?? 0} orders</span>
+                    </div>
+                  </div>
+                  <div className="order-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link className="btn-ghost btn-sm" href={`/post-project?edit=${gig.id}`}>
+                      Edit
+                    </Link>
+                    {status === "published" ? (
+                      <button className="btn-ghost btn-sm" type="button" disabled={busyId === gig.id} onClick={() => void setStatus(gig, "paused")}>
+                        Pause
+                      </button>
+                    ) : status === "paused" ? (
+                      <button className="btn-ghost btn-sm" type="button" disabled={busyId === gig.id} onClick={() => void setStatus(gig, "published")}>
+                        Resume
+                      </button>
+                    ) : null}
+                    <button className="btn-ghost btn-sm danger" type="button" onClick={() => void deleteGig(gig.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

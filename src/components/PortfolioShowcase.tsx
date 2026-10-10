@@ -13,8 +13,8 @@ import {
 import VideoPlayer from "./VideoPlayer";
 import { topicVideoFor } from "@/lib/video-topic";
 /* ==========================================================================
-   APEX · PORTFOLIO SHOWCASE
-   A clean, light-mode grid of digital projects from Apex professionals.
+   HIRELYX · PORTFOLIO SHOWCASE
+   A clean, light-mode grid of digital projects from Hirelyx professionals.
    Signed-in users see their own projects pinned to the front of the grid,
    plus a featured intro video buyers can play without leaving the page.
    ========================================================================== */

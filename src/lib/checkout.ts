@@ -5,6 +5,7 @@ import { getSupabase } from "./supabase";
 export async function startCheckout(
   gigId: string,
   requirements: string,
+  choice: { packageKey?: string | null; extras?: string[] } = {},
 ): Promise<{ url?: string; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Backend not configured." };
@@ -20,7 +21,12 @@ export async function startCheckout(
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ gigId, requirements }),
+    body: JSON.stringify({
+      gigId,
+      requirements,
+      packageKey: choice.packageKey ?? undefined,
+      extras: choice.extras ?? [],
+    }),
   });
 
   let payload: { url?: string; error?: string } = {};

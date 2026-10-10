@@ -34,6 +34,11 @@ export const EMPTY_PROFILE: Profile = {
   languages: "",
   avatar: "",
   skills: [],
+  skillLevels: {},
+  experienceYears: "",
+  weeklyHours: "",
+  responseTime: "",
+  socialLinks: {},
   hourlyRate: "",
   projectRate: "",
   availability: "",
@@ -108,7 +113,7 @@ function makeAccount(input: {
   return {
     id: uid(),
     email: normalizeEmail(input.email),
-    name: input.name.trim() || "Apex user",
+    name: input.name.trim() || "Hirelyx user",
     picture: input.picture ?? "",
     provider: input.provider,
     passwordHash: input.passwordHash,
@@ -128,6 +133,14 @@ function normalizeAccount(account: Account): Account {
       ...EMPTY_PROFILE,
       ...(account.profile ?? {}),
       skills: Array.isArray(account.profile?.skills) ? account.profile.skills : [],
+      skillLevels:
+        account.profile?.skillLevels && typeof account.profile.skillLevels === "object"
+          ? account.profile.skillLevels
+          : {},
+      socialLinks:
+        account.profile?.socialLinks && typeof account.profile.socialLinks === "object"
+          ? account.profile.socialLinks
+          : {},
       portfolioProjects: Array.isArray(account.profile?.portfolioProjects)
         ? account.profile.portfolioProjects
         : [],
@@ -158,7 +171,7 @@ function readState(): AuthState {
       const parsed = JSON.parse(legacy) as User;
       if (parsed && (parsed.email || parsed.name)) {
         const account = makeAccount({
-          name: parsed.name || "Apex user",
+          name: parsed.name || "Hirelyx user",
           email: parsed.email || `${uid()}@apex.local`,
           provider: "google",
           picture: parsed.picture,
@@ -284,7 +297,13 @@ export function computeProfileStrength(profile: Profile): ProfileStrength {
       done: profile.hourlyRate.trim().length > 0 && Number.isFinite(rate) && rate > 0,
     },
     { key: "availability", label: "Availability", done: profile.availability.trim().length > 0 },
-    { key: "portfolio", label: "Portfolio / website", done: profile.portfolio.trim().length >= 4 },
+    {
+      key: "portfolio",
+      label: "Portfolio / website",
+      done:
+        profile.portfolio.trim().length >= 4 ||
+        Object.values(profile.socialLinks ?? {}).some((value) => value.trim().length >= 4),
+    },
     {
       key: "portfolioProjects",
       label: "Portfolio project",
@@ -485,6 +504,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           languages: data?.languages ?? acc.profile.languages,
           avatar: data?.avatar ?? acc.profile.avatar,
           skills: data && Array.isArray(data.skills) ? data.skills : acc.profile.skills,
+          skillLevels:
+            data?.skill_levels && typeof data.skill_levels === "object"
+              ? data.skill_levels
+              : acc.profile.skillLevels,
+          experienceYears:
+            data?.experience_years != null
+              ? String(data.experience_years)
+              : acc.profile.experienceYears,
+          weeklyHours: data?.weekly_hours ?? acc.profile.weeklyHours,
+          responseTime: data?.response_time ?? acc.profile.responseTime,
+          socialLinks:
+            data?.social_links && typeof data.social_links === "object"
+              ? data.social_links
+              : acc.profile.socialLinks,
           hourlyRate:
             data?.hourly_rate != null ? String(data.hourly_rate) : acc.profile.hourlyRate,
           availability: data?.availability ?? acc.profile.availability,
@@ -753,7 +786,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (supabase && id) {
           const patched = nextAccounts.find((item) => item.id === id)?.profile;
         if (patched) {
-          void supabase.from("profiles").upsert(
+          const upsert = supabase.from("profiles").upsert(
             {
               user_id: id,
               full_name: patched.fullName,
@@ -773,6 +806,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
             { onConflict: "user_id" },
             );
+          /* Skill-step columns come from migration 0007. Sent as a follow-up
+             call (after the row exists) so a database without that migration
+             still saves every core field above — this one just fails quietly. */
+          void upsert.then(async () => {
+            await supabase
+              .from("profiles")
+              .update({
+                skill_levels: patched.skillLevels,
+                experience_years: Number(patched.experienceYears) || null,
+                weekly_hours: patched.weeklyHours || null,
+                response_time: patched.responseTime || null,
+              })
+              .eq("user_id", id);
+            /* Migration 0008 — its own call so 0007 fields save without it. */
+            await supabase
+              .from("profiles")
+              .update({ social_links: patched.socialLinks })
+              .eq("user_id", id);
+          });
           }
         }
         return true;

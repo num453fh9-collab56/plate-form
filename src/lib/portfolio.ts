@@ -2,7 +2,7 @@ import { getSupabase } from "./supabase";
 import type { PortfolioProject } from "./types";
 
 /* ==========================================================================
-   APEX · PORTFOLIO
+   HIRELYX · PORTFOLIO
    Portfolio projects now live in Supabase (`public.portfolio_projects`).
    Public read, owner-only write (enforced by RLS).
    ========================================================================== */
@@ -66,6 +66,7 @@ interface PortfolioRow {
   cover: string | null;
   video: string | null;
   video_name: string | null;
+  position?: number | null;
   created_at?: string;
 }
 
@@ -82,7 +83,20 @@ export function rowToProject(row: PortfolioRow): PortfolioProject {
     cover: row.cover ?? "",
     video: row.video ?? undefined,
     videoName: row.video_name ?? undefined,
+    position: typeof row.position === "number" ? row.position : undefined,
   };
+}
+
+/* Ordered client-side so a database without migration 0008 (no `position`
+   column) still works: projects without a position keep newest-first order. */
+function sortProjects(rows: PortfolioRow[]): PortfolioProject[] {
+  return [...rows]
+    .sort((a, b) => {
+      const byPosition = (a.position ?? 0) - (b.position ?? 0);
+      if (byPosition !== 0) return byPosition;
+      return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+    })
+    .map(rowToProject);
 }
 
 export async function fetchPortfolioProjects(): Promise<PortfolioProject[]> {
@@ -107,7 +121,7 @@ export async function fetchMyPortfolioProjects(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return data.map((row) => rowToProject(row as PortfolioRow));
+  return sortProjects(data as PortfolioRow[]);
 }
 
 export async function savePortfolioProject(
@@ -133,6 +147,18 @@ export async function savePortfolioProject(
     { onConflict: "id" },
   );
   return !error;
+}
+
+/** Persist display order (index = position). Needs migration 0008; until it
+ *  runs these updates fail quietly and projects stay newest-first. */
+export async function savePortfolioOrder(projects: PortfolioProject[]): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+  await Promise.all(
+    projects.map((project, index) =>
+      supabase.from("portfolio_projects").update({ position: index }).eq("id", project.id),
+    ),
+  );
 }
 
 export async function deletePortfolioProject(id: string): Promise<boolean> {

@@ -124,7 +124,7 @@ export default function Landing() {
             Create a free account to post projects, hire experts, and get work done.
           </p>
           <button className="btn-primary" type="button" onClick={() => openAuth("signup")}>
-            Join Apex for free
+            Join Hirelyx for free
           </button>
         </div>
       </section>

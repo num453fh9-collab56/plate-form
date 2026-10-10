@@ -3,12 +3,16 @@ import {
   getStripe,
   getUserFromRequest,
 } from "@/lib/stripe-server";
+import { PACKAGE_KEYS, quoteOrder } from "@/lib/gig-model";
+import type { GigExtra, GigPackage, PackageKey } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 interface CheckoutBody {
   gigId?: string;
   requirements?: string;
+  packageKey?: string;
+  extras?: string[];
 }
 
 export async function POST(request: Request) {
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
 
   const { data: gig, error: gigError } = await admin
     .from("gigs")
-    .select("id, title, price, seller_id")
+    .select("id, title, price, delivery_days, seller_id, status, packages, extras")
     .eq("id", gigId)
     .maybeSingle();
 
@@ -50,11 +54,34 @@ export async function POST(request: Request) {
   if (gig.seller_id && gig.seller_id === user.id) {
     return Response.json({ error: "You cannot order your own gig." }, { status: 400 });
   }
-  if (!gig.price || Number(gig.price) <= 0) {
+  if (gig.status && gig.status !== "published") {
+    return Response.json({ error: "This gig is not taking orders right now." }, { status: 400 });
+  }
+
+  const packages = (gig.packages ?? undefined) as Partial<Record<PackageKey, GigPackage>> | undefined;
+  const requestedKey = PACKAGE_KEYS.find((key) => key === body.packageKey) ?? null;
+  const packageKey =
+    requestedKey && Number(packages?.[requestedKey]?.price) > 0 ? requestedKey : null;
+  const gigExtras = (Array.isArray(gig.extras) ? gig.extras : []) as GigExtra[];
+  const extraLabels = (Array.isArray(body.extras) ? body.extras : []).filter((label) =>
+    gigExtras.some((extra) => extra.label === label),
+  );
+  const quote = quoteOrder(
+    {
+      price: Number(gig.price),
+      packages,
+      extras: gigExtras,
+      delivery: String(gig.delivery_days ?? 1),
+    },
+    packageKey,
+    extraLabels,
+  );
+  if (!quote.total || quote.total <= 0) {
     return Response.json({ error: "This gig has no price set." }, { status: 400 });
   }
 
-  const amount = Math.round(Number(gig.price) * 100);
+  const amount = Math.round(quote.total * 100);
+  const packageName = packageKey ? packages?.[packageKey]?.name || packageKey : null;
 
   const { data: order, error: orderError } = await admin
     .from("orders")
@@ -62,10 +89,13 @@ export async function POST(request: Request) {
       gig_id: gig.id,
       buyer_id: user.id,
       seller_id: gig.seller_id ?? null,
-      amount: Number(gig.price),
+      amount: quote.total,
       currency: "usd",
       status: "pending",
       requirements: (body.requirements ?? "").slice(0, 4000),
+      delivery_days: quote.days,
+      package_key: packageKey,
+      extras: gigExtras.filter((extra) => extraLabels.includes(extra.label)),
     })
     .select("*")
     .single();
@@ -88,7 +118,16 @@ export async function POST(request: Request) {
           price_data: {
             currency: "usd",
             unit_amount: amount,
-            product_data: { name: gig.title, description: "Apex marketplace order" },
+            product_data: {
+              name: gig.title,
+              description: [
+                packageName ? `${packageName} package` : null,
+                extraLabels.length ? `Extras: ${extraLabels.join(", ")}` : null,
+                `${quote.days}-day delivery`,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            },
           },
         },
       ],

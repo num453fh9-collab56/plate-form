@@ -9,7 +9,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { initials, maskEmail } from "@/lib/format";
 
 /* ==========================================================================
-   APEX · ACCOUNT & SETTINGS
+   HIRELYX · ACCOUNT & SETTINGS
    A secure, light-mode dashboard for personal information, security,
    identity verification and privacy controls. Profile editing — including
    portfolio projects — lives in the profile wizard.

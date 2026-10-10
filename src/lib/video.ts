@@ -1,7 +1,7 @@
 "use client";
 
 /* ==========================================================================
-   APEX · VIDEO HELPERS
+   HIRELYX · VIDEO HELPERS
    Resolve the many shapes a freelancer can paste or upload — data URLs,
    public MP4/WebM files, or a YouTube / Vimeo link — into something an
    HTML5 <video> or an <iframe> can actually play, plus a poster thumbnail.

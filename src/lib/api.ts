@@ -6,7 +6,7 @@ import type { GigRow } from "./gig-model";
 import type { Gig } from "./types";
 
 /* ==========================================================================
-   APEX · DATA API
+   HIRELYX · DATA API
    Small async helpers that read the public marketplace data from Supabase.
    ========================================================================== */
 
@@ -89,6 +89,13 @@ export async function fetchGigById(id: string): Promise<Gig | null> {
   return rowToGig(data as GigRow);
 }
 
+/** Count a gig page view (server function ignores drafts/paused gigs). */
+export async function recordGigView(id: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+  await supabase.rpc("increment_gig_views", { gig: id });
+}
+
 export async function fetchGigsBySeller(sellerId: string): Promise<Gig[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
@@ -96,6 +103,7 @@ export async function fetchGigsBySeller(sellerId: string): Promise<Gig[]> {
     .from("gigs")
     .select("*")
     .eq("seller_id", sellerId)
+    .eq("status", "published")
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map((row) => rowToGig(row as GigRow));
@@ -137,7 +145,10 @@ export async function searchGigs({
   const supabase = getSupabase();
   if (!supabase) return { items: [], count: 0 };
 
-  let query = supabase.from("gigs").select("*", { count: "exact" });
+  let query = supabase
+    .from("gigs")
+    .select("*", { count: "exact" })
+    .eq("status", "published");
 
   if (category && category !== "All") {
     query = query.eq("category", category);

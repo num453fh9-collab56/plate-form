@@ -1,7 +1,7 @@
 "use client";
 
 /* ==========================================================================
-   APEX · MEDIA HELPERS
+   HIRELYX · MEDIA HELPERS
    Browser-only helpers for turning uploaded / recorded files into persisted
    data URLs, plus the storage guards that keep LocalStorage from overflowing.
    ========================================================================== */
@@ -55,6 +55,92 @@ export async function resizeImageToSquare(
   const sx = (image.width - side) / 2;
   const sy = (image.height - side) / 2;
   context.drawImage(image, sx, sy, side, side, 0, 0, size, size);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+/* Centre-crop to a landscape cover (default 16:10) and downscale. */
+export async function resizeImageToCover(
+  file: File,
+  width = 1200,
+  height = 750,
+  quality = 0.85,
+): Promise<string> {
+  const dataUrl = await readFileAsDataUrl(file);
+  if (typeof document === "undefined") return dataUrl;
+  const image = await loadImage(dataUrl);
+  const targetRatio = width / height;
+  let sw = image.width;
+  let sh = image.width / targetRatio;
+  if (sh > image.height) {
+    sh = image.height;
+    sw = image.height * targetRatio;
+  }
+  /* Never upscale small images — keep their size, just crop to the ratio. */
+  const scale = Math.min(1, width / sw);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(sw * scale);
+  canvas.height = Math.round(sh * scale);
+  const context = canvas.getContext("2d");
+  if (!context) return dataUrl;
+  context.drawImage(
+    image,
+    (image.width - sw) / 2,
+    (image.height - sh) / 2,
+    sw,
+    sh,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+export const AVATAR_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+export const AVATAR_MIN_SIDE = 200;
+
+export interface SquareCrop {
+  /** 1 = the image's short side exactly fills the crop square. */
+  zoom: number;
+  /** Pan offset of the image centre from the crop centre, as a fraction of the crop side. */
+  offsetX: number;
+  offsetY: number;
+}
+
+/** Largest pan (fraction of the crop side) that still keeps the square covered. */
+export function maxCropOffset(
+  width: number,
+  height: number,
+  zoom: number,
+): { x: number; y: number } {
+  const side = Math.min(width, height);
+  return {
+    x: Math.max(0, ((width / side) * zoom - 1) / 2),
+    y: Math.max(0, ((height / side) * zoom - 1) / 2),
+  };
+}
+
+/* Render a user-chosen square crop (zoom + pan) to a small JPEG data URL. */
+export async function cropImageToSquare(
+  src: string,
+  crop: SquareCrop,
+  size = 400,
+  quality = 0.88,
+): Promise<string> {
+  const image = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) return src;
+
+  /* Source square side in image pixels, then its top-left after panning. */
+  const sourceSide = Math.min(image.width, image.height) / crop.zoom;
+  const sx = image.width / 2 - sourceSide / 2 - crop.offsetX * sourceSide;
+  const sy = image.height / 2 - sourceSide / 2 - crop.offsetY * sourceSide;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, size, size);
+  context.drawImage(image, sx, sy, sourceSide, sourceSide, 0, 0, size, size);
   return canvas.toDataURL("image/jpeg", quality);
 }
 

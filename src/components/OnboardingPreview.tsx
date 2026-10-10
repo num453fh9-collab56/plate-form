@@ -7,9 +7,12 @@ import { isAllowedCategory } from "@/lib/taxonomy";
 import { CATEGORY_LABEL_KEYS } from "@/lib/gigs";
 import type { TranslationKey } from "@/lib/i18n";
 import type { Profile } from "@/lib/types";
+import { flagUrl, parseLanguages, parseLocation } from "@/lib/countries";
+import { SOCIAL_NETWORKS, displayLink } from "@/lib/social";
+import { TOP_SKILLS, availabilityKey, experienceKey, levelFor, responseKey } from "@/lib/skills-meta";
 
 /* ==========================================================================
-   APEX · ONBOARDING LIVE PREVIEW
+   HIRELYX · ONBOARDING LIVE PREVIEW
    Sticky sidebar rendered inside the onboarding shell. Receives the merged
    live draft (profile + in-flight step state) so every keystroke is reflected
    instantly — this is the exact card a client sees before hiring.
@@ -24,12 +27,21 @@ export default function OnboardingPreview({ profile }: { profile: Profile }) {
   const category = isAllowedCategory(profile.primaryCategory)
     ? t(CATEGORY_LABEL_KEYS[profile.primaryCategory])
     : "";
-  const location = [profile.country.trim(), profile.languages.trim()]
-    .filter(Boolean)
-    .join(" · ");
+  const place = parseLocation(profile.country);
+  const location = place.country
+    ? [place.city, place.country.name].filter(Boolean).join(", ")
+    : place.raw;
+  const languages = parseLanguages(profile.languages);
   const hourly = profile.hourlyRate.trim();
   const project = profile.projectRate.trim();
-  const availability = profile.availability.trim();
+  const availabilityLabelKey = availabilityKey(profile.availability.trim());
+  const availability = availabilityLabelKey ? t(availabilityLabelKey) : profile.availability.trim();
+  const expKey = experienceKey(profile.experienceYears);
+  const links = SOCIAL_NETWORKS.map((network) => ({
+    network,
+    value: network.key === "website" ? profile.portfolio.trim() : (profile.socialLinks[network.key] ?? "").trim(),
+  })).filter((item) => item.value);
+  const respKey = responseKey(profile.responseTime);
 
   /* The badge is earned, not static — it reflects the live profile strength
      computed from the draft the user is editing right now. */
@@ -79,9 +91,40 @@ export default function OnboardingPreview({ profile }: { profile: Profile }) {
             {availability ? (
               <span className="ob-pv-badge ob-pv-badge-avail">{availability}</span>
             ) : null}
+            {expKey ? <span className="ob-pv-badge">{t(expKey)}</span> : null}
+            {respKey ? (
+              <span className="ob-pv-badge ob-pv-badge-resp">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M13 2 4 14h7l-1 8 9-12h-7Z" />
+                </svg>
+                {t(respKey)}
+              </span>
+            ) : null}
           </div>
 
-          {location ? <p className="ob-pv-meta">{location}</p> : null}
+          {location || languages.length > 0 ? (
+            <div className="ob-pv-meta">
+              {location ? (
+                <span className="ob-pv-loc">
+                  {place.country ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={flagUrl(place.country.code, 40)} alt="" width={16} height={12} />
+                  ) : null}
+                  {location}
+                </span>
+              ) : null}
+              {languages.length > 0 ? (
+                <span className="ob-pv-langs">
+                  {languages.slice(0, 4).map((item) => (
+                    <span key={item.name} title={item.level}>
+                      {item.name}
+                      <i className={"lvl-" + item.level.toLowerCase()} aria-hidden="true" />
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
 
           <p className={"ob-pv-bio" + (bio ? "" : " empty")}>
             {bio || t("onboarding.previewBioFallback")}
@@ -89,9 +132,14 @@ export default function OnboardingPreview({ profile }: { profile: Profile }) {
 
           <div className="ob-pv-skills">
             {profile.skills.length > 0 ? (
-              profile.skills.slice(0, 8).map((skill) => (
-                <span className="ob-pv-skill" key={skill}>
+              profile.skills.slice(0, 8).map((skill, index) => (
+                <span
+                  className={"ob-pv-skill" + (index < TOP_SKILLS ? " top" : "")}
+                  key={skill}
+                  title={levelFor(profile.skillLevels, skill)}
+                >
                   {skill}
+                  <i className={"lvl-" + levelFor(profile.skillLevels, skill).toLowerCase()} aria-hidden="true" />
                 </span>
               ))
             ) : (
@@ -113,6 +161,16 @@ export default function OnboardingPreview({ profile }: { profile: Profile }) {
               </div>
             ) : null}
           </div>
+
+          {links.length > 0 ? (
+            <div className="ob-pv-links">
+              {links.map(({ network, value }) => (
+                <span key={network.key} title={displayLink(value)}>
+                  {network.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
           {profile.portfolioProjects.length > 0 ? (
             <div className="ob-pv-projects">

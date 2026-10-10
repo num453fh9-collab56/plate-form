@@ -5,6 +5,15 @@ import type { ProfileStrength } from "@/lib/auth";
 import type { Profile } from "@/lib/types";
 import { isAllowedCategory } from "@/lib/taxonomy";
 import { CATEGORY_LABEL_KEYS } from "@/lib/gigs";
+import { SOCIAL_NETWORKS, displayLink } from "@/lib/social";
+import {
+  SKILL_LEVELS,
+  WEEKLY_HOURS,
+  availabilityKey,
+  experienceKey,
+  levelFor,
+  responseKey,
+} from "@/lib/skills-meta";
 
 function Row({ label, value }: { label: string; value: string }) {
   const { t } = useI18n();
@@ -47,6 +56,23 @@ export default function ReviewStep({
       ? t("wizard.uploaded")
       : profile.avatar
     : "";
+  const levelLabel = (skill: string) => {
+    const level = levelFor(profile.skillLevels, skill);
+    const key = SKILL_LEVELS.find((option) => option.value === level)?.key;
+    return key ? t(key) : level;
+  };
+  const skillsValue = profile.skills.map((skill) => `${skill} (${levelLabel(skill)})`).join(", ");
+  const expKey = experienceKey(profile.experienceYears);
+  const availKey = availabilityKey(profile.availability);
+  const hoursKey = WEEKLY_HOURS.find((option) => option.value === profile.weeklyHours)?.key;
+  const respKey = responseKey(profile.responseTime);
+  const respValue = respKey ? t(respKey) : "";
+  const linksValue = SOCIAL_NETWORKS.map((network) =>
+    network.key === "website" ? profile.portfolio.trim() : (profile.socialLinks[network.key] ?? "").trim(),
+  )
+    .filter(Boolean)
+    .map(displayLink)
+    .join(", ");
   const portfolioValue =
     profile.portfolioProjects.map((project) => project.title).join(", ") || "";
 
@@ -54,7 +80,7 @@ export default function ReviewStep({
     <section className="review-step" aria-labelledby="review-step-title">
       <div className="basic-info-card">
         <div className="basic-info-head">
-          <span className="basic-info-count">Step 4 of 4</span>
+          <span className="basic-info-count">{t("review.stepBadge")}</span>
           <h3 id="review-step-title">{t("wizard.step4Title")}</h3>
           <p>{t("wizard.step4Sub")}</p>
         </div>
@@ -85,8 +111,11 @@ export default function ReviewStep({
           </div>
           <div className="wiz-review-grid">
             <Row label={t("profile.primaryCategory")} value={categoryLabel} />
-            <Row label={t("profile.skills")} value={profile.skills.join(", ")} />
-            <Row label={t("profile.availability")} value={profile.availability} />
+            <Row label={t("skills.experience")} value={expKey ? t(expKey) : ""} />
+            <Row label={t("profile.skills")} value={skillsValue} />
+            <Row label={t("profile.availability")} value={availKey ? t(availKey) : profile.availability} />
+            <Row label={t("avail.hours")} value={hoursKey ? t(hoursKey) : ""} />
+            <Row label={t("avail.response")} value={respValue} />
           </div>
         </div>
 
@@ -99,9 +128,9 @@ export default function ReviewStep({
           </div>
           <div className="wiz-review-grid">
             <Row label={t("profile.bio")} value={profile.bio} />
-            <Row label={t("profile.rate")} value={profile.hourlyRate} />
-            <Row label={t("profile.projectRate")} value={profile.projectRate} />
-            <Row label={t("profile.portfolio")} value={profile.portfolio} />
+            <Row label={t("profile.rate")} value={profile.hourlyRate ? `${profile.hourlyRate}` : ""} />
+            <Row label={t("profile.projectRate")} value={profile.projectRate ? `${profile.projectRate}` : ""} />
+            <Row label={t("links.title")} value={linksValue} />
             <Row
               label={t("profile.video")}
               value={profile.introVideoName || (profile.introVideo ? t("wizard.uploaded") : "")}

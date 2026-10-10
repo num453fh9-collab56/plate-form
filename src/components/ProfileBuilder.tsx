@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useAuth } from "@/lib/auth";
+import { computeProfileStrength, useAuth } from "@/lib/auth";
 import { createExternalStore } from "@/lib/external-store";
 import type { ExternalStore } from "@/lib/external-store";
 import { useUI } from "@/lib/ui";
@@ -10,12 +10,19 @@ import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import { initials } from "@/lib/format";
 import { isAllowedCategory } from "@/lib/taxonomy";
-import { MAX_AVATAR_SOURCE_BYTES, resizeImageToSquare } from "@/lib/media";
+import { MIN_SKILLS } from "@/lib/skills-meta";
+import { BIO_GOOD, BIO_MIN } from "@/lib/bio";
 import { uploadDataUrl } from "@/lib/storage";
 import { analyzeResume, composeBio, extractResumeText } from "@/lib/resume";
 import type { Profile } from "@/lib/types";
 import BasicInformationStep from "./BasicInformationStep";
 import type { BasicInformationValues } from "./BasicInformationStep";
+import AvatarUploader from "./AvatarUploader";
+import ContactFields from "./ContactFields";
+import type { ContactValues } from "./ContactFields";
+import StepProgress from "./StepProgress";
+import AvailabilityCard from "./AvailabilityCard";
+import type { AvailabilityValues } from "./AvailabilityCard";
 import SkillsStep from "./SkillsStep";
 import type { SkillsValues } from "./SkillsStep";
 import BioPortfolioStep from "./BioPortfolioStep";
@@ -24,9 +31,9 @@ import ReviewStep from "./ReviewStep";
 import OnboardingPreview from "./OnboardingPreview";
 
 /* ==========================================================================
-   APEX · ELITE ONBOARDING
-   Full-page immersive profile setup — not a modal. Deep obsidian canvas,
-   white typography, emerald accents.
+   HIRELYX · ELITE ONBOARDING
+   Full-page immersive profile setup — not a modal. Clean white canvas,
+   blue primary accent, emerald for completion and progress.
 
      Entry   Upload resume (AI auto-parsing)  vs  Precision manual setup
      Flow    1 · Basic info        identity, photo, contact
@@ -39,16 +46,6 @@ import OnboardingPreview from "./OnboardingPreview";
    reflected in real time. Progress persists per account, so the flow resumes
    where the user left off.
    ========================================================================== */
-
-const AVAILABILITY: {
-  value: string;
-  key: "profile.availFull" | "profile.availPart" | "profile.availProject" | "profile.availNot";
-}[] = [
-  { value: "Full time", key: "profile.availFull" },
-  { value: "Part time", key: "profile.availPart" },
-  { value: "Project based", key: "profile.availProject" },
-  { value: "Not available right now", key: "profile.availNot" },
-];
 
 interface StepDef {
   id: "basic" | "skills" | "bio" | "review";
@@ -151,32 +148,6 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 /* ------------------------------ primitives ------------------------------ */
 
-function Field({
-  label,
-  required,
-  error,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  hint?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={"form-field" + (error ? " invalid" : "")}>
-      <label>
-        {label}
-        {required ? <span className="req"> *</span> : null}
-      </label>
-      {children}
-      {hint ? <span className="field-hint">{hint}</span> : null}
-      <span className="error-msg">{error}</span>
-    </div>
-  );
-}
-
 function WizardCard({ children }: { children: ReactNode }) {
   return <div className="wiz-card">{children}</div>;
 }
@@ -225,7 +196,6 @@ function ProfileWizard() {
   );
   /* Steps the user has visited — their errors stay visible until fixed. */
   const [revealed, setRevealed] = useState<number[]>([]);
-  const avatarRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLInputElement>(null);
   /* The entry screen only appears for fresh setups — a persisted step means
      the user is resuming, so we drop them straight back into the flow. */
@@ -239,12 +209,15 @@ function ProfileWizard() {
   const [skillsInfo, setSkillsInfo] = useState<SkillsValues>(() => ({
     primaryCategory: profile.primaryCategory,
     skills: profile.skills,
+    skillLevels: profile.skillLevels,
+    experienceYears: profile.experienceYears,
   }));
   const [bioInfo, setBioInfo] = useState<BioPortfolioValues>(() => ({
     bio: profile.bio,
     hourlyRate: profile.hourlyRate,
     projectRate: profile.projectRate,
     portfolio: profile.portfolio,
+    socialLinks: profile.socialLinks,
     introVideo: profile.introVideo,
     introVideoName: profile.introVideoName,
     portfolioProjects: profile.portfolioProjects,
@@ -281,10 +254,13 @@ function ProfileWizard() {
       avatar: basicInfo.profilePictureUrl,
       primaryCategory: skillsInfo.primaryCategory,
       skills: skillsInfo.skills,
+      skillLevels: skillsInfo.skillLevels,
+      experienceYears: skillsInfo.experienceYears,
       bio: bioInfo.bio,
       hourlyRate: bioInfo.hourlyRate,
       projectRate: bioInfo.projectRate,
       portfolio: bioInfo.portfolio,
+      socialLinks: bioInfo.socialLinks,
       introVideo: bioInfo.introVideo,
       introVideoName: bioInfo.introVideoName,
       portfolioProjects: bioInfo.portfolioProjects,
@@ -306,25 +282,29 @@ function ProfileWizard() {
     [draft],
   );
 
-  const onAvatar = async (file: File) => {
-    if (file.size > MAX_AVATAR_SOURCE_BYTES) {
-      toast(t("video.tooLarge", { max: Math.round(MAX_AVATAR_SOURCE_BYTES / 1048576) }));
-      return;
-    }
+  /** Receives the already-cropped 400×400 JPEG from the uploader, shows it
+   *  immediately, then swaps in the storage URL once the upload lands. */
+  const onAvatar = async (dataUrl: string) => {
+    setBasicInfo((prev) => ({ ...prev, profilePictureUrl: dataUrl }));
+    updateProfile({ avatar: dataUrl });
+    if (!accountId) return;
     try {
-      const dataUrl = await resizeImageToSquare(file);
-      setBasicInfo((prev) => ({ ...prev, profilePictureUrl: dataUrl }));
-      updateProfile({ avatar: dataUrl });
-      if (accountId) {
-        const url = await uploadDataUrl("avatars", accountId, dataUrl, "avatar");
-        if (url) {
-          setBasicInfo((prev) => ({ ...prev, profilePictureUrl: url }));
-          updateProfile({ avatar: url });
-        }
+      const url = await uploadDataUrl("avatars", accountId, dataUrl, "avatar");
+      if (url) {
+        setBasicInfo((prev) => ({ ...prev, profilePictureUrl: url }));
+        updateProfile({ avatar: url });
       }
     } catch {
-      toast(t("video.errRead"));
+      toast(t("avatar.uploadFailed"));
     }
+  };
+
+  const updateContact = (patch: Partial<ContactValues>) => {
+    updateProfile(patch);
+  };
+
+  const updateAvailability = (patch: Partial<AvailabilityValues>) => {
+    updateProfile(patch);
   };
 
   const updateBasicInfo = (patch: Partial<BasicInformationValues>) => {
@@ -357,6 +337,8 @@ function ProfileWizard() {
       updateProfile({
         primaryCategory: skillsInfo.primaryCategory,
         skills: skillsInfo.skills,
+        skillLevels: skillsInfo.skillLevels,
+        experienceYears: skillsInfo.experienceYears,
       });
     }
     if (stepIndex === BIO_STEP) {
@@ -365,6 +347,7 @@ function ProfileWizard() {
         hourlyRate: bioInfo.hourlyRate,
         projectRate: bioInfo.projectRate,
         portfolio: bioInfo.portfolio,
+      socialLinks: bioInfo.socialLinks,
         introVideo: bioInfo.introVideo,
         introVideoName: bioInfo.introVideoName,
         portfolioProjects: bioInfo.portfolioProjects,
@@ -396,10 +379,13 @@ function ProfileWizard() {
       avatar: basicInfo.profilePictureUrl,
       primaryCategory: skillsInfo.primaryCategory,
       skills: skillsInfo.skills,
+      skillLevels: skillsInfo.skillLevels,
+      experienceYears: skillsInfo.experienceYears,
       bio: bioInfo.bio,
       hourlyRate: bioInfo.hourlyRate,
       projectRate: bioInfo.projectRate,
       portfolio: bioInfo.portfolio,
+      socialLinks: bioInfo.socialLinks,
       introVideo: bioInfo.introVideo,
       introVideoName: bioInfo.introVideoName,
       portfolioProjects: bioInfo.portfolioProjects,
@@ -452,7 +438,7 @@ function ProfileWizard() {
           });
 
     setBasicInfo((prev) => ({ ...prev, fullName, headline }));
-    setSkillsInfo({ primaryCategory: category, skills });
+    setSkillsInfo((prev) => ({ ...prev, primaryCategory: category, skills }));
     setBioInfo((prev) => ({ ...prev, bio }));
     updateProfile({ fullName, title: headline, primaryCategory: category, skills, bio, phone });
 
@@ -471,60 +457,42 @@ function ProfileWizard() {
 
   /* ------------------------------ step 1 ------------------------------ */
   function renderBasic() {
+    const basicItems = [
+      { key: "avatar", label: t("progress.photo"), done: draft.avatar.trim().length > 0, required: true, targetId: "field-avatar" },
+      { key: "fullName", label: t("progress.name"), done: draft.fullName.trim().length >= 2, required: true, targetId: "field-fullName" },
+      { key: "title", label: t("progress.headline"), done: draft.title.trim().length >= 3, required: true, targetId: "field-title" },
+      { key: "phone", label: t("progress.phone"), done: draft.phone.replace(/D/g, "").length >= 7, required: true, targetId: "field-phone" },
+      { key: "country", label: t("progress.country"), done: draft.country.trim().length >= 2, targetId: "field-country" },
+      { key: "languages", label: t("progress.languages"), done: draft.languages.trim().length >= 2, targetId: "field-languages" },
+    ];
     return (
       <>
+        <StepProgress
+          title={t("progress.basicTitle")}
+          items={basicItems}
+          overallPercent={computeProfileStrength(draft).percent}
+        />
+
         <WizardCard>
           <div className="wiz-card-head">
             <h3>{t("profile.photo")}</h3>
             <p>{t("profile.photoSub")}</p>
           </div>
-          <div className="avatar-upload">
-            <div className="avatar-preview">
-              {profile.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatar} alt="" />
-              ) : (
-                fallbackInitials
-              )}
-            </div>
-            <div className="avatar-actions">
-              <button
-                type="button"
-                className="ob-btn-ghost btn-sm"
-                onClick={() => avatarRef.current?.click()}
-              >
-                {profile.avatar ? t("profile.photoChange") : t("profile.photoUpload")}
-              </button>
-              {profile.avatar && (
-                <button
-                  type="button"
-                  className="ob-btn-ghost btn-sm danger"
-                  onClick={() => {
-                    setBasicInfo((prev) => ({ ...prev, profilePictureUrl: "" }));
-                    updateProfile({ avatar: "" });
-                  }}
-                >
-                  {t("profile.remove")}
-                </button>
-              )}
-            </div>
-            {errorFor("avatar") ? <p className="wiz-inline-error">{errorFor("avatar")}</p> : null}
-            <input
-              ref={avatarRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void onAvatar(file);
-                event.target.value = "";
-              }}
-            />
-          </div>
+          <AvatarUploader
+            value={draft.avatar}
+            fallback={fallbackInitials}
+            error={errorFor("avatar")}
+            onSave={onAvatar}
+            onRemove={() => {
+              setBasicInfo((prev) => ({ ...prev, profilePictureUrl: "" }));
+              updateProfile({ avatar: "" });
+            }}
+          />
         </WizardCard>
 
         <BasicInformationStep
           values={basicInfo}
+          category={skillsInfo.primaryCategory}
           errors={{
             fullName: errorFor("fullName"),
             headline: errorFor("title"),
@@ -532,86 +500,85 @@ function ProfileWizard() {
           onChange={updateBasicInfo}
         />
 
-        <WizardCard>
-          <div className="wiz-card-head">
-            <h3>{t("profile.contact")}</h3>
-            <p>{t("profile.contactSub")}</p>
-          </div>
-          <div className="field-grid">
-            <Field label={t("profile.country")}>
-              <input
-                type="text"
-                value={profile.country}
-                placeholder={t("profile.countryPlaceholder")}
-                onChange={(event) => updateProfile({ country: event.target.value })}
-              />
-            </Field>
-            <Field label={t("profile.languages")}>
-              <input
-                type="text"
-                value={profile.languages}
-                placeholder={t("profile.languagesPlaceholder")}
-                onChange={(event) => updateProfile({ languages: event.target.value })}
-              />
-            </Field>
-            <Field label={t("profile.phone")} required error={errorFor("phone")}>
-              <input
-                type="tel"
-                autoComplete="tel"
-                value={profile.phone}
-                placeholder={t("profile.phonePlaceholder")}
-                onChange={(event) => updateProfile({ phone: event.target.value })}
-              />
-            </Field>
-          </div>
-        </WizardCard>
+        <ContactFields
+          values={{ country: profile.country, languages: profile.languages, phone: profile.phone }}
+          phoneError={errorFor("phone")}
+          onChange={updateContact}
+        />
       </>
     );
   }
 
   /* ------------------------------ step 2 ------------------------------ */
   function renderSkills() {
+    const skillItems = [
+      { key: "primaryCategory", label: t("progress.category"), done: isAllowedCategory(draft.primaryCategory), required: true, targetId: "field-primaryCategory" },
+      { key: "experienceYears", label: t("progress.experience"), done: draft.experienceYears !== "", targetId: "field-experienceYears" },
+      { key: "skills", label: t("progress.skills", { min: MIN_SKILLS }), done: draft.skills.length >= MIN_SKILLS, targetId: "field-skills" },
+      { key: "availability", label: t("progress.availability"), done: draft.availability.trim().length > 0, targetId: "field-availability" },
+      { key: "weeklyHours", label: t("progress.hours"), done: draft.weeklyHours !== "" || draft.availability === "Not available right now", targetId: "field-weeklyHours" },
+      { key: "responseTime", label: t("progress.response"), done: draft.responseTime !== "" || draft.availability === "Not available right now", targetId: "field-responseTime" },
+    ];
     return (
       <>
+        <StepProgress
+          title={t("progress.skillsTitle")}
+          items={skillItems}
+          overallPercent={computeProfileStrength(draft).percent}
+        />
+
         <SkillsStep
           values={skillsInfo}
           errors={{ primaryCategory: errorFor("primaryCategory") }}
           onChange={updateSkillsInfo}
         />
 
-        <WizardCard>
-          <div className="wiz-card-head">
-            <h3>{t("profile.work")}</h3>
-            <p>{t("profile.workSub")}</p>
-          </div>
-          <div className="field-grid">
-            <Field label={t("profile.availability")}>
-              <select
-                value={profile.availability}
-                onChange={(event) => updateProfile({ availability: event.target.value })}
-              >
-                <option value="">&mdash;</option>
-                {AVAILABILITY.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.key)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </WizardCard>
+        <AvailabilityCard
+          values={{
+            availability: profile.availability,
+            weeklyHours: profile.weeklyHours,
+            responseTime: profile.responseTime,
+          }}
+          onChange={updateAvailability}
+        />
       </>
     );
   }
 
   /* ------------------------------ step 3 ------------------------------ */
   function renderBio() {
+    const linkCount =
+      (draft.portfolio.trim() ? 1 : 0) +
+      Object.values(draft.socialLinks).filter((value) => value.trim()).length;
+    const bioItems = [
+      { key: "bio", label: t("progress.bio", { min: BIO_MIN }), done: draft.bio.trim().length >= BIO_MIN, required: true, targetId: "field-bio" },
+      { key: "bioGood", label: t("progress.bioGood"), done: draft.bio.trim().length >= BIO_GOOD, targetId: "field-bio" },
+      { key: "hourlyRate", label: t("progress.rate"), done: Number(draft.hourlyRate) > 0, targetId: "field-hourlyRate" },
+      { key: "introVideo", label: t("progress.video"), done: draft.introVideo.trim().length > 0, targetId: "field-introVideo" },
+      { key: "projects", label: t("progress.project"), done: draft.portfolioProjects.length > 0, targetId: "field-projects" },
+      { key: "links", label: t("progress.links"), done: linkCount > 0, targetId: "field-links" },
+    ];
     return (
-      <BioPortfolioStep
-        values={bioInfo}
-        errors={{ bio: errorFor("bio") }}
-        onChange={updateBioInfo}
-      />
+      <>
+        <StepProgress
+          title={t("progress.bioTitle")}
+          items={bioItems}
+          overallPercent={computeProfileStrength(draft).percent}
+        />
+        <BioPortfolioStep
+          values={bioInfo}
+          errors={{ bio: errorFor("bio") }}
+          context={{
+            fullName: draft.fullName,
+            headline: draft.title,
+            skills: draft.skills,
+            experienceYears: draft.experienceYears,
+            category: draft.primaryCategory,
+            weeklyHours: draft.weeklyHours,
+          }}
+          onChange={updateBioInfo}
+        />
+      </>
     );
   }
 
@@ -742,11 +709,10 @@ function ProfileWizard() {
         <span className="ob-brand">
           <svg className="ob-brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
             <circle cx="20" cy="20" r="18.4" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M20 8L30 28H25L20 18L15 28H10L20 8Z" fill="currentColor" />
-            <path d="M16 23H24" stroke="#0b0d0c" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="currentColor" />
           </svg>
           <b>
-            Ap<span>ex</span>
+            Hire<span>lyx</span>
           </b>
           <span className="ob-brand-tag">{t("onboarding.kicker")}</span>
         </span>

@@ -29,6 +29,7 @@ interface MarketplaceValue {
   setSkills: (skills: string[]) => void;
   clearFilters: () => void;
   addGig: (draft: GigDraft) => Promise<Gig | null>;
+  saveGig: (draft: GigDraft, id?: string) => Promise<Gig | null>;
   refresh: () => Promise<void>;
 }
 
@@ -90,6 +91,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  /* Apply realtime changes in place instead of re-downloading every gig. */
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
@@ -98,15 +100,29 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "gigs" },
-        () => {
-          void refresh();
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const removedId = (payload.old as { id?: string }).id;
+            if (removedId) {
+              setGigs((current) => current.filter((item) => item.id !== removedId));
+            }
+            return;
+          }
+          const gig = rowToGig(payload.new as GigRow);
+          setGigs((current) => {
+            const index = current.findIndex((item) => item.id === gig.id);
+            if (index === -1) return [gig, ...current];
+            const next = current.slice();
+            next[index] = gig;
+            return next;
+          });
         },
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [refresh]);
+  }, []);
 
   const toggleSkill = useCallback((skill: string) => {
     setSelectedSkills((current) =>
@@ -122,15 +138,17 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     setSelectedSkills([]);
   }, []);
 
-  const addGig = useCallback(async (draft: GigDraft): Promise<Gig | null> => {
+  /** Insert (no id) or update (id) a gig in one round trip. */
+  const saveGig = useCallback(async (draft: GigDraft, id?: string): Promise<Gig | null> => {
     const supabase = getSupabase();
     if (!supabase) {
       setError("Backend not configured");
       return null;
     }
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) {
       setError("Sign in to publish a gig");
       return null;
@@ -138,25 +156,31 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     const category = isAllowedCategory(draft.category)
       ? draft.category
       : CATEGORY_OPTIONS[0];
-    const { data, error: insertError } = await supabase
-      .from("gigs")
-      .insert({
-        seller_id: user.id,
-        title: draft.title,
-        description: draft.description,
-        category,
-        skills: normalizeSkills(draft.skills, category),
-        price: draft.price,
-        delivery_days: draft.deliveryDays,
-        seller_name: draft.seller,
-        video: draft.video?.trim() || null,
-        video_name: draft.videoName?.trim() || null,
-        images: (draft.images ?? []).filter((u) => u.trim()),
-      })
-      .select("*")
-      .single();
-    if (insertError || !data) {
-      setError(insertError?.message ?? "Could not publish gig");
+    const row = {
+      title: draft.title,
+      description: draft.description,
+      category,
+      skills: normalizeSkills(draft.skills, category),
+      price: draft.price,
+      delivery_days: draft.deliveryDays,
+      seller_name: draft.seller,
+      video: draft.video?.trim() || null,
+      video_name: draft.videoName?.trim() || null,
+      images: (draft.images ?? []).filter((u) => u.trim()),
+      packages: draft.packages ?? null,
+      extras: draft.extras ?? [],
+      faq: draft.faq ?? [],
+      requirements: draft.requirements?.trim() || null,
+      requirement_questions: draft.requirementQuestions ?? [],
+      tags: draft.tags ?? [],
+      status: draft.status ?? "published",
+    };
+    const request = id
+      ? supabase.from("gigs").update(row).eq("id", id).eq("seller_id", user.id)
+      : supabase.from("gigs").insert({ ...row, seller_id: user.id });
+    const { data, error: saveError } = await request.select("*").single();
+    if (saveError || !data) {
+      setError(saveError?.message ?? "Could not save gig");
       return null;
     }
     const gig = rowToGig(data as GigRow);
@@ -164,9 +188,18 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     return gig;
   }, []);
 
+  const addGig = useCallback((draft: GigDraft) => saveGig(draft), [saveGig]);
+
+  /* Drafts and paused gigs come back for their owner (RLS) but never belong in
+     the public marketplace lists. */
+  const publicGigs = useMemo(
+    () => gigs.filter((gig) => gig.status === "published"),
+    [gigs],
+  );
+
   const value = useMemo<MarketplaceValue>(
     () => ({
-      gigs,
+      gigs: publicGigs,
       loading,
       error,
       query,
@@ -178,9 +211,10 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setSkills: setSelectedSkills,
       clearFilters,
       addGig,
+      saveGig,
       refresh,
     }),
-    [gigs, loading, error, query, category, selectedSkills, toggleSkill, clearFilters, addGig, refresh],
+    [publicGigs, loading, error, query, category, selectedSkills, toggleSkill, clearFilters, addGig, saveGig, refresh],
   );
 
   return (

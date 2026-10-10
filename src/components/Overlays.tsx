@@ -3,17 +3,29 @@
 import { useEffect } from "react";
 import { useUI } from "@/lib/ui";
 import { computeProfileStrength, useAuth } from "@/lib/auth";
-import PostProjectModal from "./PostProjectModal";
-import AuthModal from "./AuthModal";
-import ProfileBuilder from "./ProfileBuilder";
-import AccountSettings from "./AccountSettings";
-import MessagesModal from "./MessagesModal";
-import VideoLightbox from "./VideoLightbox";
+import dynamic from "next/dynamic";
+
+/* Modals are heavy (the profile builder alone pulls in every onboarding step)
+   and closed on almost every page view, so load each bundle on first open. */
+const AuthModal = dynamic(() => import("./AuthModal"), { ssr: false });
+const ProfileBuilder = dynamic(() => import("./ProfileBuilder"), { ssr: false });
+const AccountSettings = dynamic(() => import("./AccountSettings"), { ssr: false });
+const MessagesModal = dynamic(() => import("./MessagesModal"), { ssr: false });
+const VideoLightbox = dynamic(() => import("./VideoLightbox"), { ssr: false });
 
 const ONBOARD_KEY = "wv_onboard_prompted";
 
 export default function Overlays() {
-  const { toastMessage, toastVisible, openProfile } = useUI();
+  const {
+    toastMessage,
+    toastVisible,
+    openProfile,
+    isAuthOpen,
+    isProfileOpen,
+    isAccountOpen,
+    isMessagesOpen,
+    isVideoOpen,
+  } = useUI();
   const { user, profile } = useAuth();
 
   useEffect(() => {
@@ -43,12 +55,11 @@ export default function Overlays() {
 
   return (
     <>
-      <PostProjectModal />
-      <AuthModal />
-      <ProfileBuilder />
-      <AccountSettings />
-      <MessagesModal />
-      <VideoLightbox />
+      {isAuthOpen ? <AuthModal /> : null}
+      {isProfileOpen ? <ProfileBuilder /> : null}
+      {isAccountOpen ? <AccountSettings /> : null}
+      {isMessagesOpen ? <MessagesModal /> : null}
+      {isVideoOpen ? <VideoLightbox /> : null}
       <div
         className={"toast" + (toastVisible ? " show" : "")}
         role="status"

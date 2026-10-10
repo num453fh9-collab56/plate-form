@@ -3,7 +3,7 @@
 import { getSupabase } from "./supabase";
 
 /* ==========================================================================
-   APEX · STORAGE
+   HIRELYX · STORAGE
    Upload media to Supabase Storage. Files always go under a folder named
    after the user's id (`<bucket>/<userId>/<file>`), which is exactly what the
    storage RLS policies allow.

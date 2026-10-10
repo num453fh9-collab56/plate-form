@@ -1,7 +1,7 @@
 import type { TranslationKey } from "./i18n";
 
 /* ==========================================================================
-   APEX · FOOTER NAVIGATION
+   HIRELYX · FOOTER NAVIGATION
    Data-driven category grid + footer link columns. Keeping this declarative
    means the footer markup stays small and every label is translatable.
    ========================================================================== */
@@ -34,43 +34,43 @@ export const FOOTER_CATEGORIES: NavCategory[] = [
     id: "programming",
     labelKey: "footer.catProgramming",
     glyph: "PT",
-    marketplaceCategory: "Web Development",
+    marketplaceCategory: "Programming & Tech",
   },
   {
     id: "ai",
     labelKey: "footer.catAi",
     glyph: "AI",
-    marketplaceCategory: "AI Agents",
+    marketplaceCategory: "AI Services",
   },
   {
     id: "marketing",
     labelKey: "footer.catMarketing",
     glyph: "DM",
-    marketplaceCategory: "Paid Marketing",
+    marketplaceCategory: "Digital Marketing",
   },
   {
     id: "video",
     labelKey: "footer.catVideo",
     glyph: "VA",
-    marketplaceCategory: "Video Production",
+    marketplaceCategory: "Video & Animation",
   },
   {
     id: "design",
     labelKey: "footer.catDesign",
     glyph: "GD",
-    marketplaceCategory: "Graphic Design & Branding",
+    marketplaceCategory: "Graphics & Design",
   },
   {
     id: "writing",
     labelKey: "footer.catWriting",
     glyph: "WT",
-    marketplaceCategory: "Writing & Copywriting",
+    marketplaceCategory: "Writing & Translation",
   },
   {
     id: "mobile",
     labelKey: "footer.catMobile",
     glyph: "MB",
-    marketplaceCategory: "Mobile App Development",
+    marketplaceCategory: "Mobile Apps",
   },
   {
     id: "uiux",

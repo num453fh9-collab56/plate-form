@@ -46,10 +46,10 @@ export async function POST(request: Request) {
         .maybeSingle();
       if (order) {
         const buyerEmail = await getEmailForUser(admin, order.buyer_id);
-        await sendEmail(buyerEmail, "Apex — Payment confirmed", `<p>Your order is confirmed. The seller will deliver soon.</p>`);
+        await sendEmail(buyerEmail, "Hirelyx — Payment confirmed", `<p>Your order is confirmed. The seller will deliver soon.</p>`);
         if (order.seller_id) {
           const sellerEmail = await getEmailForUser(admin, order.seller_id);
-          await sendEmail(sellerEmail, "Apex — New paid order", `<p>A buyer just paid for your gig. Please review the requirements and deliver on time.</p>`);
+          await sendEmail(sellerEmail, "Hirelyx — New paid order", `<p>A buyer just paid for your gig. Please review the requirements and deliver on time.</p>`);
           await admin.from("notifications").insert({ user_id: order.seller_id, type: "order", title: "New paid order", body: `You received a paid order ($${order.amount}).`, link: "/dashboard" });
         }
       }

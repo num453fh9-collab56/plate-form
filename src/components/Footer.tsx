@@ -11,19 +11,18 @@ import {
 } from "@/lib/navigation";
 import LanguageSelector from "./LanguageSelector";
 
-function ApexLogo({ tagline }: { tagline?: string }) {
+function BrandLogo({ tagline }: { tagline?: string }) {
   return (
     <div className="foot-logo">
-      <Link href="/" className="logo" aria-label="Apex home">
+      <Link href="/" className="logo" aria-label="Hirelyx home">
         <span className="mark" aria-hidden="true">
           <svg className="apex" viewBox="0 0 40 40" fill="none" aria-hidden="true">
             <circle cx="20" cy="20" r="18.4" stroke="#111111" strokeWidth="1.2" />
-            <path d="M20 8L30 28H25L20 18L15 28H10L20 8Z" fill="#111111" />
-            <path d="M16 23H24" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="#111111" />
           </svg>
         </span>
         <b>
-          Ap<span className="accent">ex</span>
+          Hire<span className="accent">lyx</span>
         </b>
       </Link>
       {tagline ? <p>{tagline}</p> : null}
@@ -85,7 +84,7 @@ export default function Footer() {
 
         <div className="foot-columns">
           <div className="foot-brand">
-            <ApexLogo tagline={t("footer.tagline")} />
+            <BrandLogo tagline={t("footer.tagline")} />
           </div>
 
           {FOOTER_COLUMNS.map((column) => (
@@ -117,7 +116,7 @@ export default function Footer() {
 
         <div className="foot-bottom">
           <div className="foot-bottom-brand">
-            <ApexLogo />
+            <BrandLogo />
             <span className="foot-copy">{t("footer.rights")}</span>
           </div>
 

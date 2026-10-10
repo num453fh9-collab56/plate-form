@@ -8,7 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS } from "@/lib/gigs";
 
 /* ==========================================================================
-   APEX · HERO
+   HIRELYX · HERO
    --------------------------------------------------------------------------
    Left: headline, supporting copy and CTAs.
    Right: the talent-collage hero image (public/hero/hero-visual.png).
@@ -68,7 +68,7 @@ export default function Hero() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/hero/hero-visual.png"
-              alt="Apex freelancers collaborating with clients around the world"
+              alt="Hirelyx freelancers collaborating with clients around the world"
               width={1190}
               height={657}
               fetchPriority="high"

@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function sendEmail(to: string | null | undefined, subject: string, html: string): Promise<void> {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "Apex <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM ?? "Hirelyx <onboarding@resend.dev>";
   if (!key || !to) return;
   try {
     await fetch("https://api.resend.com/emails", {
