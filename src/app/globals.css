@@ -6205,3 +6205,7 @@ textarea.gw-input { resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   .landing-hero-fallback, .cta-fallback { animation: none; }
 }
+
+/* Brand wordmark: navy "Hire" + blue "lyx" (matches the logo) */
+.logo .logo-word { color: #0b1f3a; }
+.logo .logo-word .accent { color: var(--accent); }

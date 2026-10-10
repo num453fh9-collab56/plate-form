@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import AccountMenu from "./AccountMenu";
 import LanguageSelector from "./LanguageSelector";
 import CurrencySelector from "./CurrencySelector";
+import BrandMark from "./BrandMark";
 
 export default function Header() {
   const { user } = useAuth();
@@ -25,8 +26,8 @@ export default function Header() {
     <header>
       <div className="wrap nav">
         <Link href="/" className="logo">
-          <span className="mark" aria-hidden="true"><svg className="apex" viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="18.4" stroke="#111111" strokeWidth="1.2" /><path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="#111111" /></svg></span>
-          <b>
+          <span className="mark" aria-hidden="true"><BrandMark /></span>
+          <b className="logo-word">
             Hire<span className="accent">lyx</span>
           </b>
         </Link>

@@ -10,18 +10,16 @@ import {
   type FooterAction,
 } from "@/lib/navigation";
 import LanguageSelector from "./LanguageSelector";
+import BrandMark from "./BrandMark";
 
 function BrandLogo({ tagline }: { tagline?: string }) {
   return (
     <div className="foot-logo">
       <Link href="/" className="logo" aria-label="Hirelyx home">
         <span className="mark" aria-hidden="true">
-          <svg className="apex" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <circle cx="20" cy="20" r="18.4" stroke="#111111" strokeWidth="1.2" />
-            <path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="#111111" />
-          </svg>
+          <BrandMark />
         </span>
-        <b>
+        <b className="logo-word">
           Hire<span className="accent">lyx</span>
         </b>
       </Link>
