@@ -69,7 +69,13 @@ export async function POST(request: Request) {
     });
     const { getEmailForUser, sendEmail } = await import("@/lib/email");
     const email = await getEmailForUser(admin, userId);
-    await sendEmail(email, `Hirelyx — ${title}`, `<p><strong>${title}</strong></p><p>${body}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/orders">View your orders</a></p>`);
+    // `body` can contain the other party's note — escape it before it becomes HTML.
+    const safeBody = body
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+    await sendEmail(email, `Hirelyx — ${title}`, `<p><strong>${title}</strong></p><p>${safeBody}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/orders">View your orders</a></p>`);
   };
 
   if (action === "deliver") {
