@@ -75,16 +75,27 @@ export default function OrdersPage() {
     }
     setBusyId(order.id + "review");
     setActionError(null);
-    const { error } = await supabase.from("reviews").insert({
-      gig_id: order.gig_id,
-      reviewer_id: user?.sub,
-      seller_id: order.seller_id,
-      rating,
-      comment: reviewComment[order.id] ?? "",
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      setActionError("Please sign in again.");
+      setBusyId(null);
+      return;
+    }
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        action: "submit",
+        orderId: order.id,
+        rating,
+        comment: reviewComment[order.id] ?? "",
+      }),
     });
+    const payload = (await res.json().catch(() => ({}))) as { error?: string };
     setBusyId(null);
-    if (error) {
-      setActionError(error.code === "23505" ? "You already reviewed this gig." : error.message);
+    if (!res.ok) {
+      setActionError(payload.error ?? "Could not submit review.");
       return;
     }
     setReviewed((prev) => ({ ...prev, [order.gig_id as string]: true }));

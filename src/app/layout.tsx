@@ -12,6 +12,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Overlays from "@/components/Overlays";
 import ErrorReporter from "@/components/ErrorReporter";
+import ChatbotWidget from "@/components/ChatbotWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,6 +26,18 @@ export const metadata: Metadata = {
     "Hirelyx — the high-end global marketplace connecting expert freelancers with ambitious businesses.",
   appleWebApp: { capable: true, title: "Hirelyx", statusBarStyle: "default" },
   icons: { apple: "/apple-touch-icon.png" },
+  openGraph: {
+    type: "website",
+    siteName: "Hirelyx",
+    title: "Hirelyx — Hire Expert Freelance Talent",
+    description: "The freelance marketplace connecting expert freelancers with ambitious businesses.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Hirelyx — Hire Expert Freelance Talent",
+    description: "The freelance marketplace connecting expert freelancers with ambitious businesses.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
@@ -50,6 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   {children}
                   <Footer />
                   <Overlays />
+                  <ChatbotWidget />
                 </MarketplaceProvider>
               </MessagingProvider>
             </AuthProvider>

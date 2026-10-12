@@ -6,7 +6,10 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { getSupabase } from "@/lib/supabase";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, stars } from "@/lib/format";
+import { fetchOrderReview } from "@/lib/api";
+import type { GigReview } from "@/lib/api";
+import { uploadFile } from "@/lib/storage";
 
 interface OrderDetail {
   id: string;
@@ -58,6 +61,19 @@ interface DisputeMessage {
   created_at: string;
 }
 
+interface DeliveryFile {
+  name: string;
+  url: string;
+  size: number;
+}
+
+interface Delivery {
+  id: string;
+  message: string;
+  files: DeliveryFile[];
+  created_at: string;
+}
+
 const STEPS = ["pending", "paid", "delivered", "completed"] as const;
 const STEP_LABEL: Record<string, string> = {
   pending: "Awaiting payment",
@@ -106,6 +122,14 @@ export default function OrderDetailPage() {
   const [reason, setReason] = useState(REASONS[0][0]);
   const [reply, setReply] = useState("");
   const [now] = useState(() => Date.now());
+  const [review, setReview] = useState<GigReview | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewHover, setReviewHover] = useState(0);
+  const [sellerReplyText, setSellerReplyText] = useState("");
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [deliveryFiles, setDeliveryFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const uid = user?.sub;
 
   const load = useCallback(async () => {
@@ -119,16 +143,27 @@ export default function OrderDetailPage() {
     }
     const row = data as OrderDetail;
     const otherId = row.buyer_id === uid ? row.seller_id : row.buyer_id;
-    const [gig, profile, ms, disputes] = await Promise.all([
+    const [gig, profile, ms, disputes, dels] = await Promise.all([
       row.gig_id ? supabase.from("gigs").select("title").eq("id", row.gig_id).maybeSingle() : Promise.resolve({ data: null }),
       otherId ? supabase.from("profiles").select("full_name").eq("user_id", otherId).maybeSingle() : Promise.resolve({ data: null }),
       supabase.from("order_milestones").select("*").eq("order_id", row.id).order("position"),
       supabase.from("disputes").select("*").eq("order_id", row.id).order("created_at", { ascending: false }).limit(1),
+      supabase.from("order_deliveries").select("*").eq("order_id", row.id).order("created_at", { ascending: false }),
     ]);
     setOrder(row);
     setGigTitle((gig.data as { title?: string } | null)?.title ?? null);
     setCounterpart((profile.data as { full_name?: string } | null)?.full_name ?? "");
     setMilestones((ms.data ?? []) as Milestone[]);
+    setDeliveries(((dels.data ?? []) as { id: string; message: string; files: DeliveryFile[] | null; created_at: string }[]).map((d) => ({
+      id: d.id,
+      message: d.message ?? "",
+      files: Array.isArray(d.files) ? d.files : [],
+      created_at: d.created_at,
+    })));
+    if (row.status === "completed") {
+      const rev = await fetchOrderReview(row.id);
+      setReview(rev);
+    }
     const latest = ((disputes.data ?? []) as Dispute[])[0] ?? null;
     setDispute(latest);
     if (latest) {
@@ -210,6 +245,46 @@ export default function OrderDetailPage() {
     await load();
   };
 
+  const deliverWithFiles = async () => {
+    if (!user?.sub) return;
+    setUploading(true);
+    setBusy("dl");
+
+    const uploadedFiles: DeliveryFile[] = [];
+    for (const file of deliveryFiles) {
+      const url = await uploadFile("deliveries", user.sub, file);
+      if (url) {
+        uploadedFiles.push({ name: file.name, url, size: file.size });
+      }
+    }
+
+    const supabase = getSupabase();
+    if (supabase) {
+      await supabase.from("order_deliveries").insert({
+        order_id: order.id,
+        seller_id: user.sub,
+        message: note.trim(),
+        files: uploadedFiles,
+      });
+    }
+
+    const error = await postJson("/api/orders/action", {
+      orderId: order.id,
+      action: "deliver",
+      note: note.trim() + (uploadedFiles.length ? `\n\n📎 ${uploadedFiles.length} file(s) attached` : ""),
+    });
+    setUploading(false);
+    setBusy(null);
+    if (error) {
+      toast(error);
+      return;
+    }
+    toast("Delivered!");
+    setNote("");
+    setDeliveryFiles([]);
+    await load();
+  };
+
   const disputeAct = async (key: string, body: Record<string, unknown>, success?: string) => {
     if (!dispute) return;
     setBusy(key);
@@ -222,6 +297,44 @@ export default function OrderDetailPage() {
     if (success) toast(success);
     setReply("");
     await load();
+  };
+
+  const submitReview = async () => {
+    setBusy("review");
+    const error = await postJson("/api/reviews", {
+      action: "submit",
+      orderId: order.id,
+      rating: reviewRating,
+      comment: reviewComment.trim(),
+    });
+    setBusy(null);
+    if (error) {
+      toast(error);
+      return;
+    }
+    toast("Review submitted. Thank you!");
+    setReviewComment("");
+    const rev = await fetchOrderReview(order.id);
+    setReview(rev);
+  };
+
+  const submitSellerReply = async () => {
+    if (!review) return;
+    setBusy("reply");
+    const error = await postJson("/api/reviews", {
+      action: "reply",
+      reviewId: review.id,
+      reply: sellerReplyText.trim(),
+    });
+    setBusy(null);
+    if (error) {
+      toast(error);
+      return;
+    }
+    toast("Reply posted.");
+    setSellerReplyText("");
+    const rev = await fetchOrderReview(order.id);
+    setReview(rev);
   };
 
   return (
@@ -325,15 +438,65 @@ export default function OrderDetailPage() {
                 <h3>Next step</h3>
                 {isSeller && (order.status === "paid" || order.status === "revision") ? (
                   <div className="od-actions col">
-                    <textarea className="gw-input" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Delivery message and link to your files" />
-                    <button className="btn-primary" type="button" disabled={Boolean(busy)} onClick={() => void act("dl", { action: "deliver", note }, "Delivered!")}>
-                      {busy === "dl" ? "Delivering…" : "Deliver work"}
+                    <textarea className="gw-input" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Delivery message — describe what you've completed" />
+                    <label className="dlv-upload-label">
+                      <input
+                        type="file"
+                        multiple
+                        className="dlv-upload-input"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files ?? []);
+                          const MAX_SIZE = 50 * 1024 * 1024;
+                          const valid = files.filter((f) => {
+                            if (f.size > MAX_SIZE) { alert(`${f.name} is too large (max 50 MB)`); return false; }
+                            if (f.name.match(/\.(exe|bat|cmd|sh|ps1|msi|dll|scr|vbs|wsf)$/i)) { alert(`${f.name}: this file type is not allowed`); return false; }
+                            return true;
+                          });
+                          if (deliveryFiles.length + valid.length > 20) { alert("Maximum 20 files per delivery"); return; }
+                          setDeliveryFiles((prev) => [...prev, ...valid]);
+                          e.target.value = "";
+                        }}
+                      />
+                      <span className="btn-ghost btn-sm">+ Attach files</span>
+                    </label>
+                    {deliveryFiles.length > 0 ? (
+                      <div className="dlv-file-list">
+                        {deliveryFiles.map((f, i) => (
+                          <div key={f.name + i} className="dlv-file-item">
+                            <span className="dlv-file-name">{f.name}</span>
+                            <span className="dlv-file-size">{(f.size / 1024).toFixed(0)} KB</span>
+                            <button
+                              type="button"
+                              className="dlv-file-remove"
+                              onClick={() => setDeliveryFiles((prev) => prev.filter((_, j) => j !== i))}
+                              aria-label="Remove file"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <button className="btn-primary" type="button" disabled={Boolean(busy) || uploading} onClick={() => void deliverWithFiles()}>
+                      {uploading ? "Uploading files…" : busy === "dl" ? "Delivering…" : "Deliver work"}
                     </button>
                   </div>
                 ) : null}
                 {isBuyer && order.status === "delivered" ? (
                   <div className="od-actions col">
                     {order.delivery_note ? <p className="order-note">Seller says: {order.delivery_note}</p> : null}
+                    {deliveries.length > 0 && deliveries[0].files.length > 0 ? (
+                      <div className="dlv-delivered-files">
+                        <strong>Delivered files:</strong>
+                        {deliveries[0].files.map((f, i) => (
+                          <a key={i} className="dlv-download" href={f.url} target="_blank" rel="noopener noreferrer" download={f.name}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            {f.name}
+                            <span className="dlv-file-size">{(f.size / 1024).toFixed(0)} KB</span>
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
                     <button className="btn-primary" type="button" disabled={Boolean(busy)} onClick={() => void act("ac", { action: "accept" }, "Order completed. Thank you!")}>
                       Accept delivery &amp; release payment
                     </button>
@@ -391,6 +554,115 @@ export default function OrderDetailPage() {
                     </div>
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+
+            {deliveries.length > 0 ? (
+              <div className="gw-card dlv-history">
+                <h3>Delivery history ({deliveries.length})</h3>
+                <ul className="dlv-timeline">
+                  {deliveries.map((d) => (
+                    <li key={d.id} className="dlv-entry">
+                      <div className="dlv-entry-head">
+                        <span className="dlv-entry-dot">&#10003;</span>
+                        <span className="dlv-entry-date">{when(d.created_at)}</span>
+                      </div>
+                      {d.message ? <p className="dlv-entry-msg">{d.message}</p> : null}
+                      {d.files.length > 0 ? (
+                        <div className="dlv-entry-files">
+                          {d.files.map((f, i) => (
+                            <a key={i} className="dlv-download" href={f.url} target="_blank" rel="noopener noreferrer" download={f.name}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                              {f.name}
+                              <span className="dlv-file-size">{(f.size / 1024).toFixed(0)} KB</span>
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {order.status === "completed" ? (
+              <div className="gw-card rv-section">
+                <h3>Review</h3>
+                {review ? (
+                  <div className="rv-existing">
+                    <div className="rv-head">
+                      <span className="avatar" aria-hidden="true">{review.reviewerName.charAt(0).toUpperCase()}</span>
+                      <div>
+                        <strong>{review.reviewerName}</strong>
+                        <div className="stars">{stars(review.rating)}</div>
+                      </div>
+                      <span className="gw-muted">{when(review.createdAt)}</span>
+                    </div>
+                    {review.comment ? <p className="rv-comment">{review.comment}</p> : null}
+                    {review.sellerReply ? (
+                      <div className="rv-reply">
+                        <strong>Seller reply:</strong>
+                        <p>{review.sellerReply}</p>
+                        <span className="gw-muted">{review.sellerRepliedAt ? when(review.sellerRepliedAt) : ""}</span>
+                      </div>
+                    ) : isSeller && !review.sellerReply ? (
+                      <div className="rv-reply-form">
+                        <textarea
+                          className="gw-input"
+                          rows={2}
+                          value={sellerReplyText}
+                          onChange={(e) => setSellerReplyText(e.target.value)}
+                          placeholder="Write a reply to this review…"
+                        />
+                        <button
+                          className="btn-primary btn-sm"
+                          type="button"
+                          disabled={Boolean(busy) || !sellerReplyText.trim()}
+                          onClick={() => void submitSellerReply()}
+                        >
+                          {busy === "reply" ? "Posting…" : "Post reply"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : isBuyer ? (
+                  <div className="rv-form">
+                    <p className="gw-muted">How was your experience?</p>
+                    <div className="rv-stars-input">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className={`rv-star ${n <= (reviewHover || reviewRating) ? "active" : ""}`}
+                          onMouseEnter={() => setReviewHover(n)}
+                          onMouseLeave={() => setReviewHover(0)}
+                          onClick={() => setReviewRating(n)}
+                          aria-label={`${n} star${n > 1 ? "s" : ""}`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                      <span className="rv-stars-label">{reviewRating}/5</span>
+                    </div>
+                    <textarea
+                      className="gw-input"
+                      rows={3}
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Tell others about your experience (optional)…"
+                    />
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      disabled={Boolean(busy)}
+                      onClick={() => void submitReview()}
+                    >
+                      {busy === "review" ? "Submitting…" : "Submit review"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="gw-muted">The buyer hasn&apos;t left a review yet.</p>
+                )}
               </div>
             ) : null}
           </div>

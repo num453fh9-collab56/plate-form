@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import AccountMenu from "./AccountMenu";
 import LanguageSelector from "./LanguageSelector";
 import CurrencySelector from "./CurrencySelector";
+import NotificationBell from "./NotificationBell";
 import BrandMark from "./BrandMark";
 
 export default function Header() {
@@ -73,6 +74,7 @@ export default function Header() {
 
           <LanguageSelector />
           <CurrencySelector />
+          <NotificationBell />
 
           {!user && (
             <button

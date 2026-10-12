@@ -2,11 +2,13 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import type { Gig } from "@/lib/types";
 import { searchGigs } from "@/lib/api";
 import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS } from "@/lib/gigs";
 import { POPULAR_SKILLS } from "@/lib/taxonomy";
 import { useI18n } from "@/lib/i18n";
+import { getRecentViews } from "@/lib/recent-views";
 import GigCard from "@/components/GigCard";
 import SkillPicker from "@/components/SkillPicker";
 
@@ -249,6 +251,26 @@ function SearchView() {
             </div>
           )}
         </div>
+
+        {items.length === 0 && (() => {
+          const recent = getRecentViews();
+          return recent.length > 0 ? (
+            <div className="rv-recent">
+              <h3>Recently Viewed</h3>
+              <div className="rv-recent-grid">
+                {recent.slice(0, 6).map((g) => (
+                  <Link key={g.id} href={`/gig/${g.id}`} className="rv-recent-item">
+                    {g.image ? <img src={g.image} alt="" /> : <div className="rv-recent-placeholder" />}
+                    <div className="rv-recent-info">
+                      <strong>{g.title}</strong>
+                      <span>${g.price}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null;
+        })()}
 
         {totalPages > 1 ? (
           <div className="pager">

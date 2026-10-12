@@ -18,11 +18,12 @@ export async function notifyUser(
   title: string,
   body: string,
   link = "/orders",
+  type = "order",
 ): Promise<void> {
   if (!userId) return;
   await admin.from("notifications").insert({
     user_id: userId,
-    type: "order",
+    type,
     title,
     body,
     link,

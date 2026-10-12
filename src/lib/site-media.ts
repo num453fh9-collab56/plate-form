@@ -7,7 +7,11 @@
    ========================================================================== */
 
 /** Played one after another (muted, looping) behind the landing headline. */
-export const LANDING_VIDEOS: string[] = [];
+export const LANDING_VIDEOS: string[] = [
+  "/videos/hero-1.mp4",
+  "/videos/hero-3.mp4",
+  "/videos/hero-2.mp4",
+];
 
 /** Looping video beside the "become a seller / post a gig" call to action. */
-export const CTA_VIDEO: string | null = null;
+export const CTA_VIDEO: string | null = "/videos/hero-2.mp4";

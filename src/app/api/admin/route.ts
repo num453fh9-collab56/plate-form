@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const { admin } = auth;
   const url = new URL(request.url);
   const view = (url.searchParams.get("view") ?? "overview") as View;
-  const q = (url.searchParams.get("q") ?? "").trim().replace(/[,()%]/g, " ");
+  const q = (url.searchParams.get("q") ?? "").trim().replace(/[^a-zA-Z0-9 \-_@.]/g, "").slice(0, 100);
 
   if (view === "overview") {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

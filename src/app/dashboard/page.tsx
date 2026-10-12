@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/format";
 import type { GigStatus } from "@/lib/types";
 import { fetchSellerStats, LEVEL_META, LEVEL_RULES, LevelBadge } from "@/lib/seller-levels";
 import type { SellerStats } from "@/lib/seller-levels";
+import DashboardWelcome from "@/components/DashboardWelcome";
 
 interface GigRowData {
   id: string;
@@ -19,6 +20,12 @@ interface GigRowData {
   status?: GigStatus | null;
   views?: number | null;
   images?: string[] | null;
+}
+
+interface EarningsData {
+  total: number;
+  completed: number;
+  pending: number;
 }
 
 const STATUS_LABEL: Record<GigStatus, string> = {
@@ -36,6 +43,7 @@ export default function DashboardPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | GigStatus>("all");
   const [myStats, setMyStats] = useState<SellerStats | null>(null);
+  const [earnings, setEarnings] = useState<EarningsData>({ total: 0, completed: 0, pending: 0 });
 
   useEffect(() => {
     if (!user?.sub) return;
@@ -62,13 +70,21 @@ export default function DashboardPage() {
     if (rows.length) {
       const { data: orders } = await supabase
         .from("orders")
-        .select("gig_id")
-        .in("gig_id", rows.map((r) => r.id));
+        .select("gig_id, amount, status")
+        .eq("seller_id", user.sub);
       const counts: Record<string, number> = {};
-      for (const o of (orders ?? []) as { gig_id: string }[]) {
+      let totalEarnings = 0;
+      let completedEarnings = 0;
+      let pendingEarnings = 0;
+      for (const o of (orders ?? []) as { gig_id: string; amount: number; status: string }[]) {
         counts[o.gig_id] = (counts[o.gig_id] ?? 0) + 1;
+        const net = Number(o.amount) * 0.9;
+        totalEarnings += net;
+        if (o.status === "completed") completedEarnings += net;
+        else if (o.status === "active" || o.status === "delivered") pendingEarnings += net;
       }
       setOrdersCount(counts);
+      setEarnings({ total: totalEarnings, completed: completedEarnings, pending: pendingEarnings });
     }
     setLoading(false);
   }, [user]);
@@ -136,6 +152,8 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        <DashboardWelcome />
+
         {myStats ? <LevelProgress stats={myStats} /> : null}
 
         <div className="gd-summary-row">
@@ -143,6 +161,14 @@ export default function DashboardPage() {
           <div><span>Total views</span><strong>{totals.views}</strong></div>
           <div><span>Orders</span><strong>{totals.orders}</strong></div>
         </div>
+
+        {earnings.total > 0 && (
+          <div className="gd-summary-row" style={{ marginTop: -4 }}>
+            <div><span>Total earnings</span><strong style={{ color: "var(--emerald-deep)" }}>${earnings.total.toFixed(2)}</strong></div>
+            <div><span>Completed</span><strong style={{ color: "var(--emerald-deep)" }}>${earnings.completed.toFixed(2)}</strong></div>
+            <div><span>In progress</span><strong style={{ color: "var(--accent)" }}>${earnings.pending.toFixed(2)}</strong></div>
+          </div>
+        )}
 
         <div className="gd-filter" role="tablist">
           {(["all", "published", "paused", "draft"] as const).map((key) => (

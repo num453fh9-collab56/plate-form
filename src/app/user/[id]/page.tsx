@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { Gig, PortfolioProject } from "@/lib/types";
-import { fetchGigsBySeller, fetchPublicProfile } from "@/lib/api";
-import type { PublicProfile } from "@/lib/api";
+import { fetchGigsBySeller, fetchPublicProfile, fetchSellerReviews, reviewAverage } from "@/lib/api";
+import type { PublicProfile, GigReview } from "@/lib/api";
+import { stars } from "@/lib/format";
 import { fetchMyPortfolioProjects, portfolioGlyph, projectCoverStyle } from "@/lib/portfolio";
 import { initials } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -20,6 +21,7 @@ export default function UserProfilePage() {
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [gigs, setGigs] = useState<Gig[]>([]);
+  const [reviews, setReviews] = useState<GigReview[]>([]);
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,11 +32,13 @@ export default function UserProfilePage() {
       fetchPublicProfile(id),
       fetchGigsBySeller(id),
       fetchMyPortfolioProjects(id),
-    ]).then(([profileData, gigList, projectList]) => {
+      fetchSellerReviews(id),
+    ]).then(([profileData, gigList, projectList, reviewList]) => {
       if (cancelled) return;
       setProfile(profileData);
       setGigs(gigList);
       setProjects(projectList);
+      setReviews(reviewList);
       setLoading(false);
     });
     return () => {
@@ -177,6 +181,54 @@ export default function UserProfilePage() {
             </div>
           </>
         ) : null}
+
+        {(() => {
+          const rvStats = reviewAverage(reviews);
+          return (
+            <div style={{ marginTop: 40 }}>
+              <div className="section-head">
+                <div>
+                  <div className="kicker">Client feedback</div>
+                  <h2>
+                    Reviews{rvStats.count > 0 ? ` (${rvStats.count})` : ""}
+                    {rvStats.count > 0 ? (
+                      <span style={{ fontSize: "0.6em", marginLeft: 12, fontWeight: 400 }}>
+                        <span className="stars">{stars(rvStats.average)}</span> {rvStats.average.toFixed(1)}
+                      </span>
+                    ) : null}
+                  </h2>
+                </div>
+              </div>
+              {reviews.length === 0 ? (
+                <p style={{ color: "var(--muted)" }}>No reviews yet.</p>
+              ) : (
+                <ul className="review-list">
+                  {reviews.map((rv) => (
+                    <li key={rv.id} className="review-item">
+                      <div className="review-head">
+                        <span className="avatar" aria-hidden="true">{initials(rv.reviewerName)}</span>
+                        <div>
+                          <strong>{rv.reviewerName}</strong>
+                          <div className="stars">{stars(rv.rating)}</div>
+                        </div>
+                        <span className="review-date">
+                          {new Date(rv.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      </div>
+                      {rv.comment ? <p>{rv.comment}</p> : null}
+                      {rv.sellerReply ? (
+                        <div className="review-reply">
+                          <strong>Seller reply:</strong>
+                          <p>{rv.sellerReply}</p>
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </section>
   );

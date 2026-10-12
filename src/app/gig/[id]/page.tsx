@@ -26,6 +26,7 @@ import { startCheckout } from "@/lib/checkout";
 import { offeredPackages, quoteOrder } from "@/lib/gig-model";
 import VideoPlayer from "@/components/VideoPlayer";
 import GigCard from "@/components/GigCard";
+import { addRecentView } from "@/lib/recent-views";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -70,6 +71,7 @@ export default function GigDetailPage() {
       setFetched(found);
       setFetchDone(true);
       if (!found) return;
+      addRecentView({ id: found.id, title: found.title, image: found.images?.[0], price: found.price, seller: found.seller });
       const [profile, reviewList, sellerGigs] = await Promise.all([
         found.sellerId ? fetchPublicProfile(found.sellerId) : Promise.resolve(null),
         fetchGigReviews(found.id),
@@ -208,7 +210,26 @@ export default function GigDetailPage() {
         <div className="gig-detail-grid">
           <div className="gig-detail-main">
             <span className="gig-eyebrow">{gig.category}</span>
-            <h1 className="gig-detail-title">{gig.title}</h1>
+            <div className="gig-title-row">
+              <h1 className="gig-detail-title">{gig.title}</h1>
+              <button
+                type="button"
+                className="btn-ghost btn-sm gig-share-btn"
+                onClick={() => {
+                  const url = window.location.href;
+                  if (navigator.share) {
+                    void navigator.share({ title: gig.title, url });
+                  } else {
+                    void navigator.clipboard.writeText(url);
+                    toast("Link copied!");
+                  }
+                }}
+                aria-label="Share"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Share
+              </button>
+            </div>
 
             <div className="gig-detail-seller">
               <span className="avatar" aria-hidden="true">{initials(gig.seller)}</span>
@@ -419,8 +440,17 @@ export default function GigDetailPage() {
                           <strong>{review.reviewerName}</strong>
                           <div className="stars">{stars(review.rating)}</div>
                         </div>
+                        <span className="review-date">
+                          {new Date(review.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
                       </div>
                       {review.comment ? <p>{review.comment}</p> : null}
+                      {review.sellerReply ? (
+                        <div className="review-reply">
+                          <strong>Seller reply:</strong>
+                          <p>{review.sellerReply}</p>
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

@@ -130,6 +130,9 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     id: "company",
     titleKey: "footer.companySupport",
     links: [
+      { labelKey: "footer.aboutUs", href: "/about" },
+      { labelKey: "footer.contactUs", href: "/contact" },
+      { labelKey: "footer.blog", href: "/blog" },
       { labelKey: "footer.helpCenter", href: "/help" },
       { labelKey: "footer.terms", href: "/terms" },
       { labelKey: "footer.privacy", href: "/privacy" },

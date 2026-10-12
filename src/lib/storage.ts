@@ -9,7 +9,7 @@ import { getSupabase } from "./supabase";
    storage RLS policies allow.
    ========================================================================== */
 
-export type MediaBucket = "avatars" | "gig-media" | "portfolio" | "intro-videos";
+export type MediaBucket = "avatars" | "gig-media" | "portfolio" | "intro-videos" | "deliveries";
 
 function extFromMime(mime: string): string {
   const map: Record<string, string> = {

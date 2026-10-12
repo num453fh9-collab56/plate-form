@@ -14,7 +14,7 @@ interface ClientErrorBody {
 
 /* Receives browser errors from src/lib/report-error.ts. */
 export async function POST(request: Request) {
-  const limited = await rateLimit(request, "log-error", 20, 60);
+  const limited = await rateLimit(request, "log-error", 10, 60);
   if (limited) return limited;
 
   let body: ClientErrorBody;
@@ -23,19 +23,20 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ ok: false }, { status: 400 });
   }
-  if (!body.message) return Response.json({ ok: false }, { status: 400 });
+  const message = String(body.message ?? "").slice(0, 1000);
+  if (!message) return Response.json({ ok: false }, { status: 400 });
 
   const user = await getUserFromRequest(request);
   await logError({
     source: "client",
-    message: body.message,
-    digest: body.digest,
-    path: body.path,
+    message,
+    digest: body.digest ? String(body.digest).slice(0, 200) : undefined,
+    path: body.path ? String(body.path).slice(0, 500) : undefined,
     userId: user?.id,
     userAgent: request.headers.get("user-agent"),
     context: {
       kind: body.kind ?? "error",
-      stack: body.stack ? String(body.stack).slice(0, 4000) : undefined,
+      stack: body.stack ? String(body.stack).slice(0, 2000) : undefined,
     },
   });
   return Response.json({ ok: true });
