@@ -6,8 +6,28 @@ import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { adminFetch, useIsAdmin } from "@/lib/admin";
 import { formatPrice } from "@/lib/format";
-import { fetchAnalytics } from "@/lib/analytics";
-import type { AnalyticsSummary } from "@/lib/analytics";
+import {
+  fetchAnalytics,
+  fetchTopPages,
+  fetchHourlyTraffic,
+  fetchDailyVisitors,
+  fetchDeviceStats,
+  fetchBrowserStats,
+  fetchCountryStats,
+  fetchReferrerStats,
+  fetchLiveVisitors,
+} from "@/lib/analytics";
+import type {
+  AnalyticsSummary,
+  TopPage,
+  HourlyData,
+  DailyData,
+  DeviceData,
+  BrowserData,
+  CountryData,
+  ReferrerData,
+  LiveVisitor,
+} from "@/lib/analytics";
 
 type Tab = "overview" | "traffic" | "gigs" | "users" | "orders" | "disputes" | "errors";
 
@@ -108,6 +128,14 @@ export default function AdminPage() {
   const [openError, setOpenError] = useState<number | null>(null);
   const [traffic, setTraffic] = useState<AnalyticsSummary | null>(null);
   const [trafficLoading, setTrafficLoading] = useState(false);
+  const [topPages, setTopPages] = useState<TopPage[]>([]);
+  const [hourly, setHourly] = useState<HourlyData[]>([]);
+  const [daily, setDaily] = useState<DailyData[]>([]);
+  const [devices, setDevices] = useState<DeviceData[]>([]);
+  const [browsers, setBrowsers] = useState<BrowserData[]>([]);
+  const [countries, setCountries] = useState<CountryData[]>([]);
+  const [referrers, setReferrers] = useState<ReferrerData[]>([]);
+  const [liveVisitors, setLiveVisitors] = useState<LiveVisitor[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,8 +143,26 @@ export default function AdminPage() {
     if (query.trim() && (tab === "gigs" || tab === "users")) params.set("q", query.trim());
     if (tab === "traffic") {
       setTrafficLoading(true);
-      const data = await fetchAnalytics();
+      const [data, pages, hours, days, dev, brow, ctry, ref, live] = await Promise.all([
+        fetchAnalytics(),
+        fetchTopPages(),
+        fetchHourlyTraffic(),
+        fetchDailyVisitors(),
+        fetchDeviceStats(),
+        fetchBrowserStats(),
+        fetchCountryStats(),
+        fetchReferrerStats(),
+        fetchLiveVisitors(),
+      ]);
       setTraffic(data);
+      setTopPages(pages);
+      setHourly(hours);
+      setDaily(days);
+      setDevices(dev);
+      setBrowsers(brow);
+      setCountries(ctry);
+      setReferrers(ref);
+      setLiveVisitors(live);
       setTrafficLoading(false);
     } else if (tab === "overview") {
       const { data, error } = await adminFetch<Overview>(`/api/admin?${params}`);
@@ -259,16 +305,19 @@ export default function AdminPage() {
           trafficLoading ? (
             <p className="gw-muted">Loading traffic data…</p>
           ) : traffic ? (
-            <div className="admin-stats">
-              <Stat label="Online now" value={traffic.online_now} tone={traffic.online_now > 0 ? "good" : undefined} />
-              <Stat label="Visitors today" value={traffic.today} />
-              <Stat label="Page views today" value={traffic.total_views_today} />
-              <Stat label="Visitors this week" value={traffic.this_week} />
-              <Stat label="Visitors this month" value={traffic.this_month} />
-              <Stat label="Page views this month" value={traffic.total_views_month} />
-            </div>
+            <TrafficDashboard
+              summary={traffic}
+              topPages={topPages}
+              hourly={hourly}
+              daily={daily}
+              devices={devices}
+              browsers={browsers}
+              countries={countries}
+              referrers={referrers}
+              liveVisitors={liveVisitors}
+            />
           ) : (
-            <p className="gw-muted">No traffic data yet. Make sure migration 0018 is applied.</p>
+            <p className="gw-muted">No traffic data yet. Run migrations 0018 + 0019 in Supabase.</p>
           )
         ) : null}
 
@@ -491,6 +540,172 @@ function DisputeCard({ dispute, onDone }: { dispute: DisputeItem; onDone: () => 
         )}
       </div>
     </li>
+  );
+}
+
+/* ── Bar helper for inline charts ── */
+function Bar({ value, max, color }: { value: number; max: number; color?: string }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div className="an-bar-track">
+      <div className="an-bar-fill" style={{ width: `${pct}%`, background: color }} />
+    </div>
+  );
+}
+
+function MiniChart({ data, labelKey, valueKey, color }: { data: { [k: string]: string | number }[]; labelKey: string; valueKey: string; color?: string }) {
+  if (!data.length) return <p className="gw-muted">No data yet.</p>;
+  const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0));
+  return (
+    <div className="an-chart">
+      {data.map((d, i) => (
+        <div key={i} className="an-chart-row">
+          <span className="an-chart-label">{String(d[labelKey])}</span>
+          <Bar value={Number(d[valueKey]) || 0} max={max} color={color} />
+          <span className="an-chart-val">{Number(d[valueKey]).toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HourlyChart({ data }: { data: HourlyData[] }) {
+  const full = Array.from({ length: 24 }, (_, i) => {
+    const found = data.find((d) => d.hour === i);
+    return { hour: i, views: found?.views ?? 0 };
+  });
+  const max = Math.max(...full.map((d) => d.views), 1);
+  return (
+    <div className="an-hourly">
+      {full.map((d) => (
+        <div key={d.hour} className="an-hourly-col" title={`${d.hour}:00 — ${d.views} views`}>
+          <div className="an-hourly-bar" style={{ height: `${Math.max(2, (d.views / max) * 100)}%` }} />
+          <span>{d.hour}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DailyChart({ data }: { data: DailyData[] }) {
+  if (!data.length) return <p className="gw-muted">No data yet.</p>;
+  const max = Math.max(...data.map((d) => d.visitors), 1);
+  return (
+    <div className="an-daily">
+      {data.map((d) => (
+        <div key={d.day} className="an-daily-col" title={`${d.day}\n${d.visitors} visitors · ${d.views} views`}>
+          <div className="an-daily-bar" style={{ height: `${Math.max(2, (d.visitors / max) * 100)}%` }} />
+          <span>{new Date(d.day).getDate()}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TrafficDashboard({
+  summary, topPages, hourly, daily, devices, browsers, countries, referrers, liveVisitors,
+}: {
+  summary: AnalyticsSummary;
+  topPages: TopPage[];
+  hourly: HourlyData[];
+  daily: DailyData[];
+  devices: DeviceData[];
+  browsers: BrowserData[];
+  countries: CountryData[];
+  referrers: ReferrerData[];
+  liveVisitors: LiveVisitor[];
+}) {
+  const growthPct = summary.yesterday > 0
+    ? Math.round(((summary.today - summary.yesterday) / summary.yesterday) * 100)
+    : 0;
+
+  return (
+    <div className="an-dashboard">
+      {/* ── Row 1: Key metrics ── */}
+      <div className="admin-stats">
+        <div className="admin-stat good">
+          <span>Online now</span>
+          <strong><span className="an-pulse" /> {summary.online_now}</strong>
+          <small>{summary.online_logged_in} signed in</small>
+        </div>
+        <div className="admin-stat">
+          <span>Today</span>
+          <strong>{summary.today.toLocaleString()}</strong>
+          <small>{growthPct > 0 ? `+${growthPct}%` : growthPct < 0 ? `${growthPct}%` : "same"} vs yesterday</small>
+        </div>
+        <div className="admin-stat">
+          <span>This week</span>
+          <strong>{summary.this_week.toLocaleString()}</strong>
+          <small>unique visitors</small>
+        </div>
+        <div className="admin-stat">
+          <span>This month</span>
+          <strong>{summary.this_month.toLocaleString()}</strong>
+          <small>{summary.total_views_month.toLocaleString()} page views</small>
+        </div>
+        <div className="admin-stat">
+          <span>All time</span>
+          <strong>{summary.total_all_time.toLocaleString()}</strong>
+          <small>total unique visitors</small>
+        </div>
+      </div>
+
+      {/* ── Row 2: Live visitors feed ── */}
+      {liveVisitors.length > 0 && (
+        <div className="an-card">
+          <h4>Live visitors <span className="an-pulse" /></h4>
+          <div className="an-live-grid">
+            {liveVisitors.map((v) => (
+              <div key={v.id} className="an-live-row">
+                <span className={`an-live-dot ${v.logged_in ? "logged" : ""}`} />
+                <span className="an-live-path">{v.path}</span>
+                {v.country ? <span className="an-live-tag">{v.country}</span> : null}
+                {v.device ? <span className="an-live-tag dim">{v.device}</span> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Row 3: Charts ── */}
+      <div className="an-grid-2">
+        <div className="an-card">
+          <h4>Daily visitors (30 days)</h4>
+          <DailyChart data={daily} />
+        </div>
+        <div className="an-card">
+          <h4>Peak hours (24h)</h4>
+          <HourlyChart data={hourly} />
+        </div>
+      </div>
+
+      {/* ── Row 4: Breakdown cards ── */}
+      <div className="an-grid-3">
+        <div className="an-card">
+          <h4>Top pages</h4>
+          <MiniChart data={topPages.map(({ path, views }) => ({ label: path, value: views }))} labelKey="label" valueKey="value" color="var(--accent)" />
+        </div>
+        <div className="an-card">
+          <h4>Countries</h4>
+          <MiniChart data={countries.map(({ country, visitors }) => ({ label: country, value: visitors }))} labelKey="label" valueKey="value" color="var(--emerald)" />
+        </div>
+        <div className="an-card">
+          <h4>Referrers</h4>
+          <MiniChart data={referrers.map(({ source, views }) => ({ label: source, value: views }))} labelKey="label" valueKey="value" color="var(--amber)" />
+        </div>
+      </div>
+
+      <div className="an-grid-2">
+        <div className="an-card">
+          <h4>Devices</h4>
+          <MiniChart data={devices.map(({ device, views }) => ({ label: device, value: views }))} labelKey="label" valueKey="value" color="var(--accent)" />
+        </div>
+        <div className="an-card">
+          <h4>Browsers</h4>
+          <MiniChart data={browsers.map(({ browser, views }) => ({ label: browser, value: views }))} labelKey="label" valueKey="value" color="var(--indigo)" />
+        </div>
+      </div>
+    </div>
   );
 }
 
