@@ -6,8 +6,10 @@ import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { adminFetch, useIsAdmin } from "@/lib/admin";
 import { formatPrice } from "@/lib/format";
+import { fetchAnalytics } from "@/lib/analytics";
+import type { AnalyticsSummary } from "@/lib/analytics";
 
-type Tab = "overview" | "gigs" | "users" | "orders" | "disputes" | "errors";
+type Tab = "overview" | "traffic" | "gigs" | "users" | "orders" | "disputes" | "errors";
 
 interface Overview {
   users: number;
@@ -82,6 +84,7 @@ interface ErrorItem {
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
+  { key: "traffic", label: "Traffic" },
   { key: "gigs", label: "Gigs" },
   { key: "users", label: "Users" },
   { key: "orders", label: "Orders" },
@@ -103,12 +106,19 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [openError, setOpenError] = useState<number | null>(null);
+  const [traffic, setTraffic] = useState<AnalyticsSummary | null>(null);
+  const [trafficLoading, setTrafficLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ view: tab });
     if (query.trim() && (tab === "gigs" || tab === "users")) params.set("q", query.trim());
-    if (tab === "overview") {
+    if (tab === "traffic") {
+      setTrafficLoading(true);
+      const data = await fetchAnalytics();
+      setTraffic(data);
+      setTrafficLoading(false);
+    } else if (tab === "overview") {
       const { data, error } = await adminFetch<Overview>(`/api/admin?${params}`);
       if (error) toast(error);
       setOverview(data ?? null);
@@ -125,6 +135,12 @@ export default function AdminPage() {
     const timer = setTimeout(() => void load(), query ? 300 : 0);
     return () => clearTimeout(timer);
   }, [isAdmin, load, query]);
+
+  useEffect(() => {
+    if (!isAdmin || tab !== "traffic") return;
+    const interval = setInterval(() => void load(), 15_000);
+    return () => clearInterval(interval);
+  }, [isAdmin, tab, load]);
 
   const act = async (action: string, id: string, confirmText?: string, reason?: string) => {
     if (confirmText && !window.confirm(confirmText)) return;
@@ -239,7 +255,24 @@ export default function AdminPage() {
           )
         ) : null}
 
-        {tab !== "overview" && !loading && items.length === 0 ? (
+        {tab === "traffic" ? (
+          trafficLoading ? (
+            <p className="gw-muted">Loading traffic data…</p>
+          ) : traffic ? (
+            <div className="admin-stats">
+              <Stat label="Online now" value={traffic.online_now} tone={traffic.online_now > 0 ? "good" : undefined} />
+              <Stat label="Visitors today" value={traffic.today} />
+              <Stat label="Page views today" value={traffic.total_views_today} />
+              <Stat label="Visitors this week" value={traffic.this_week} />
+              <Stat label="Visitors this month" value={traffic.this_month} />
+              <Stat label="Page views this month" value={traffic.total_views_month} />
+            </div>
+          ) : (
+            <p className="gw-muted">No traffic data yet. Make sure migration 0018 is applied.</p>
+          )
+        ) : null}
+
+        {tab !== "overview" && tab !== "traffic" && !loading && items.length === 0 ? (
           <p className="gw-muted">Nothing to show.</p>
         ) : null}
 

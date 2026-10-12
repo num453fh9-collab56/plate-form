@@ -7,6 +7,7 @@ import { useUI } from "@/lib/ui";
 import { useRouter } from "next/navigation";
 import { CATEGORY_OPTIONS } from "@/lib/gigs";
 import { LANDING_VIDEOS } from "@/lib/site-media";
+import { fetchAnalytics } from "@/lib/analytics";
 
 /* ==========================================================================
    HIRELYX · LANDING PAGE
@@ -202,6 +203,19 @@ export default function Landing() {
   const { openAuth } = useUI();
   const router = useRouter();
   const revealRef = useScrollReveal();
+  const [onlineCount, setOnlineCount] = useState(0);
+
+  useEffect(() => {
+    void fetchAnalytics().then((data) => {
+      if (data) setOnlineCount(data.online_now);
+    });
+    const interval = setInterval(() => {
+      void fetchAnalytics().then((data) => {
+        if (data) setOnlineCount(data.online_now);
+      });
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div ref={revealRef}>
@@ -232,7 +246,7 @@ export default function Landing() {
         </div>
         <div className="wrap land-hero-content">
           <span className="land-hero-badge-tag">
-            <span className="land-hero-dot" /> #1 Freelance Marketplace
+            <span className="land-hero-dot" /> {onlineCount > 0 ? `${onlineCount.toLocaleString()} online now` : "#1 Freelance Marketplace"}
           </span>
           <h1 className="land-hero-title">
             Find the perfect <em>freelance</em> services for your business
