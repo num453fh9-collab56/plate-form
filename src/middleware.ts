@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
 
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' https://accounts.google.com https://apis.google.com https://js.stripe.com https://cdn.jsdelivr.net`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://js.stripe.com https://cdn.jsdelivr.net`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://flagcdn.com https://*.stripe.com`,
