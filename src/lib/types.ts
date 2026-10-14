@@ -108,6 +108,19 @@ export interface PortfolioProject {
 
 export type SkillLevel = "Beginner" | "Intermediate" | "Expert";
 
+export type UserRole = "freelancer" | "buyer" | "both";
+
+export interface BuyerProfile {
+  companyName: string;
+  industry: string;
+  teamSize: string;
+  projectTypes: string[];
+  hiringFrequency: string;
+  companyDescription: string;
+  companyWebsite: string;
+  companyLogo: string;
+}
+
 export interface Profile {
   fullName: string;
   title: string;
@@ -137,6 +150,8 @@ export interface Profile {
   introVideo: string;
   introVideoName: string;
   portfolioProjects: PortfolioProject[];
+  role: UserRole | null;
+  buyerProfile: BuyerProfile;
   emailMasked: boolean;
   profilePublic: boolean;
   twoFactor: boolean;

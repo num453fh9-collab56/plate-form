@@ -46,6 +46,17 @@ export const EMPTY_PROFILE: Profile = {
   introVideo: "",
   introVideoName: "",
   portfolioProjects: [],
+  role: null,
+  buyerProfile: {
+    companyName: "",
+    industry: "",
+    teamSize: "",
+    projectTypes: [],
+    hiringFrequency: "",
+    companyDescription: "",
+    companyWebsite: "",
+    companyLogo: "",
+  },
   emailMasked: true,
   profilePublic: true,
   twoFactor: false,
@@ -599,6 +610,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           introVideoName: data?.intro_video_name ?? acc.profile.introVideoName,
           portfolioProjects:
             projects.length > 0 ? projects : acc.profile.portfolioProjects,
+          role: data?.role ?? acc.profile.role ?? null,
+          buyerProfile:
+            data?.buyer_profile && typeof data.buyer_profile === "object"
+              ? data.buyer_profile
+              : acc.profile.buyerProfile ?? EMPTY_PROFILE.buyerProfile,
         };
         applyState({
           ...current2,
@@ -896,6 +912,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await supabase
               .from("profiles")
               .update({ social_links: patched.socialLinks })
+              .eq("user_id", id);
+            /* Migration 0021 — role and buyer profile. */
+            await supabase
+              .from("profiles")
+              .update({
+                role: patched.role || null,
+                buyer_profile: patched.buyerProfile ?? {},
+              })
               .eq("user_id", id);
           });
           }

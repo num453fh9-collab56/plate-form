@@ -45,6 +45,12 @@ interface UIValue {
   isMessagesOpen: boolean;
   openMessages: () => void;
   closeMessages: () => void;
+  isRoleSelectorOpen: boolean;
+  openRoleSelector: () => void;
+  closeRoleSelector: () => void;
+  isBuyerOnboardOpen: boolean;
+  openBuyerOnboard: () => void;
+  closeBuyerOnboard: () => void;
 }
 
 const UIContext = createContext<UIValue | null>(null);
@@ -56,6 +62,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+  const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState(false);
+  const [isBuyerOnboardOpen, setIsBuyerOnboardOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [video, setVideo] = useState<VideoPayload | null>(null);
@@ -102,6 +110,21 @@ export function UIProvider({ children }: { children: ReactNode }) {
   }, []);
   const closeMessages = useCallback(() => setIsMessagesOpen(false), []);
 
+  const openRoleSelector = useCallback(() => {
+    setIsAuthOpen(false);
+    setIsProfileOpen(false);
+    setIsBuyerOnboardOpen(false);
+    setIsRoleSelectorOpen(true);
+  }, []);
+  const closeRoleSelector = useCallback(() => setIsRoleSelectorOpen(false), []);
+
+  const openBuyerOnboard = useCallback(() => {
+    setIsRoleSelectorOpen(false);
+    setIsProfileOpen(false);
+    setIsBuyerOnboardOpen(true);
+  }, []);
+  const closeBuyerOnboard = useCallback(() => setIsBuyerOnboardOpen(false), []);
+
   const openVideo = useCallback((payload: VideoPayload) => {
     setVideo({
       src: payload.src,
@@ -138,6 +161,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
       isMessagesOpen,
       openMessages,
       closeMessages,
+      isRoleSelectorOpen,
+      openRoleSelector,
+      closeRoleSelector,
+      isBuyerOnboardOpen,
+      openBuyerOnboard,
+      closeBuyerOnboard,
     }),
     [
       toast,
@@ -162,6 +191,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
       isMessagesOpen,
       openMessages,
       closeMessages,
+      isRoleSelectorOpen,
+      openRoleSelector,
+      closeRoleSelector,
+      isBuyerOnboardOpen,
+      openBuyerOnboard,
+      closeBuyerOnboard,
     ],
   );
 

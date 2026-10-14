@@ -7,9 +7,17 @@ import PortfolioShowcase from "@/components/PortfolioShowcase";
 import Cta from "@/components/Cta";
 import Landing from "@/components/Landing";
 
-export default function HomeView() {
-  const { user } = useAuth();
-  if (!user) return <Landing />;
+function BuyerHome() {
+  return (
+    <>
+      <Hero variant="buyer" />
+      <GigGrid />
+      <Cta />
+    </>
+  );
+}
+
+function FreelancerHome() {
   return (
     <>
       <Hero />
@@ -18,4 +26,12 @@ export default function HomeView() {
       <Cta />
     </>
   );
+}
+
+export default function HomeView() {
+  const { user, profile } = useAuth();
+  if (!user) return <Landing />;
+
+  if (profile.role === "buyer") return <BuyerHome />;
+  return <FreelancerHome />;
 }

@@ -142,7 +142,10 @@ const DASH_ITEMS: DashItem[] = [
 ];
 
 export default function AccountMenu() {
-  const { user, signOut, strength } = useAuth();
+  const { user, signOut, strength, profile } = useAuth();
+  const role = profile.role;
+  const isBuyer = role === "buyer";
+  const isFreelancer = role === "freelancer";
   const { openPost, openProfile, openAccount, openMessages, toast } = useUI();
   const requireAuth = useRequireAuth();
   const { t } = useI18n();
@@ -303,40 +306,44 @@ export default function AccountMenu() {
               </span>
               <span className="dash-text">Orders</span>
             </button>
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                router.push("/dashboard");
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}
+            {!isBuyer && (
+              <button
+                className="dash-item"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  router.push("/dashboard");
+                }}
               >
-                <Icon name="improve" />
-              </span>
-              <span className="dash-text">Seller Dashboard</span>
-            </button>
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                router.push("/dashboard?mode=buying");
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}
+                <span
+                  className="dash-icon"
+                  style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}
+                >
+                  <Icon name="improve" />
+                </span>
+                <span className="dash-text">Seller Dashboard</span>
+              </button>
+            )}
+            {!isFreelancer && (
+              <button
+                className="dash-item"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  router.push(isBuyer ? "/dashboard" : "/dashboard?mode=buying");
+                }}
               >
-                <Icon name="wallet" />
-              </span>
-              <span className="dash-text">Buyer Dashboard</span>
-            </button>
+                <span
+                  className="dash-icon"
+                  style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}
+                >
+                  <Icon name="wallet" />
+                </span>
+                <span className="dash-text">Buyer Dashboard</span>
+              </button>
+            )}
             {isAdmin ? (
               <button
                 className="dash-item"
@@ -356,23 +363,25 @@ export default function AccountMenu() {
                 <span className="dash-text">Admin panel</span>
               </button>
             ) : null}
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                router.push("/earnings");
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}
+            {!isBuyer && (
+              <button
+                className="dash-item"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  router.push("/earnings");
+                }}
               >
-                <Icon name="wallet" />
-              </span>
-              <span className="dash-text">Earnings</span>
-            </button>
+                <span
+                  className="dash-icon"
+                  style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}
+                >
+                  <Icon name="wallet" />
+                </span>
+                <span className="dash-text">Earnings</span>
+              </button>
+            )}
             <button
               className="dash-item"
               type="button"
@@ -414,7 +423,10 @@ export default function AccountMenu() {
           <>
             <div className="dash-label">{t("account.dashboard")}</div>
             <ul className="dash-list">
-              {DASH_ITEMS.map((item) => (
+              {DASH_ITEMS.filter((item) => {
+                if (isBuyer && (item.id === "post" || item.id === "improve")) return false;
+                return true;
+              }).map((item) => (
                 <li key={item.id}>
                   <button
                     className="dash-item"

@@ -26,11 +26,15 @@ export default function DashboardPage() {
 }
 
 function DashboardInner() {
-  const { user } = useAuth();
-  const { openAuth } = useUI();
+  const { user, profile } = useAuth();
+  const { openAuth, openRoleSelector } = useUI();
   const searchParams = useSearchParams();
-  const initialMode = searchParams.get("mode") === "buying" ? "buying" : "selling";
-  const [mode, setMode] = useState<DashboardMode>(initialMode);
+  const role = profile.role;
+  const defaultMode: DashboardMode =
+    role === "buyer" ? "buying" :
+    role === "freelancer" ? "selling" :
+    searchParams.get("mode") === "buying" ? "buying" : "selling";
+  const [mode, setMode] = useState<DashboardMode>(defaultMode);
 
   if (!user) {
     return (
@@ -45,30 +49,50 @@ function DashboardInner() {
     );
   }
 
+  if (!role) {
+    return (
+      <section className="section">
+        <div className="wrap">
+          <div className="empty">
+            <h3>Choose your role first</h3>
+            <p style={{ color: "var(--muted)" }}>Tell us how you want to use Hirelyx to get your personalized dashboard.</p>
+            <button className="btn-primary" type="button" onClick={() => openRoleSelector()}>Choose Role</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const showToggle = role === "both";
+  const showSeller = role === "freelancer" || (role === "both" && mode === "selling");
+  const showBuyer = role === "buyer" || (role === "both" && mode === "buying");
+
   return (
     <section className="section">
       <div className="wrap">
-        {/* ── Mode Switcher ── */}
-        <div className="db-mode-switcher">
-          <button
-            type="button"
-            className={`db-mode-btn ${mode === "selling" ? "active" : ""}`}
-            onClick={() => setMode("selling")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-            Selling
-          </button>
-          <button
-            type="button"
-            className={`db-mode-btn ${mode === "buying" ? "active" : ""}`}
-            onClick={() => setMode("buying")}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            Buying
-          </button>
-        </div>
+        {showToggle && (
+          <div className="db-mode-switcher">
+            <button
+              type="button"
+              className={`db-mode-btn ${mode === "selling" ? "active" : ""}`}
+              onClick={() => setMode("selling")}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+              Selling
+            </button>
+            <button
+              type="button"
+              className={`db-mode-btn ${mode === "buying" ? "active" : ""}`}
+              onClick={() => setMode("buying")}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              Buying
+            </button>
+          </div>
+        )}
 
-        {mode === "selling" ? <SellerDashboard /> : <BuyerDashboard />}
+        {showSeller ? <SellerDashboard /> : null}
+        {showBuyer ? <BuyerDashboard /> : null}
       </div>
     </section>
   );

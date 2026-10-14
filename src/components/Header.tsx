@@ -12,11 +12,15 @@ import NotificationBell from "./NotificationBell";
 import BrandMark from "./BrandMark";
 
 export default function Header() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { openPost, openAuth } = useUI();
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const role = profile.role;
+  const isBuyer = role === "buyer";
+  const isFreelancer = role === "freelancer";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -53,14 +57,23 @@ export default function Header() {
             {t("nav.home")}
           </Link>
           <Link href="/search" onClick={() => setMenuOpen(false)}>
-            {t("nav.project")}
+            {isBuyer ? "Find Talent" : t("nav.project")}
           </Link>
-          <Link href="/requests" onClick={() => setMenuOpen(false)}>
-            Requests
-          </Link>
-          <Link href="/#portfolio" onClick={() => setMenuOpen(false)}>
-            {t("nav.resolutions")}
-          </Link>
+          {!isBuyer && (
+            <Link href="/requests" onClick={() => setMenuOpen(false)}>
+              {isFreelancer ? "Find Work" : "Requests"}
+            </Link>
+          )}
+          {!isBuyer && (
+            <Link href="/#portfolio" onClick={() => setMenuOpen(false)}>
+              {t("nav.resolutions")}
+            </Link>
+          )}
+          {isBuyer && (
+            <Link href="/requests" onClick={() => setMenuOpen(false)}>
+              My Requests
+            </Link>
+          )}
           {!user && (
             <button
               className="nav-login"
@@ -73,12 +86,21 @@ export default function Header() {
               {t("nav.login")}
             </button>
           )}
-          <button className="btn-gig" type="button" onClick={startProject}>
-            <span className="btn-gig-plus" aria-hidden="true">
-              +
-            </span>
-            {t("nav.postProject")}
-          </button>
+          {isBuyer ? (
+            <Link
+              href="/requests/new"
+              className="btn-gig"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span className="btn-gig-plus" aria-hidden="true">+</span>
+              Post a Request
+            </Link>
+          ) : (
+            <button className="btn-gig" type="button" onClick={startProject}>
+              <span className="btn-gig-plus" aria-hidden="true">+</span>
+              {t("nav.postProject")}
+            </button>
+          )}
 
           <LanguageSelector />
           <CurrencySelector />

@@ -15,12 +15,13 @@ import { CATEGORY_LABEL_KEYS, CATEGORY_OPTIONS } from "@/lib/gigs";
    Below: a single full-width search bar spanning the content column.
    ========================================================================== */
 
-export default function Hero() {
+export default function Hero({ variant }: { variant?: "buyer" } = {}) {
   const { query, setQuery, category, setCategory } = useMarketplace();
   const { user } = useAuth();
   const { openAuth, openProfile } = useUI();
   const { t } = useI18n();
   const router = useRouter();
+  const isBuyer = variant === "buyer";
 
   const submitSearch = () => {
     const params = new URLSearchParams();
@@ -41,26 +42,61 @@ export default function Hero() {
         <div className="hero-inner">
           <div className="hero-copy">
             <h1 className="hero-title">
-              <span>{t("hero.t1")}</span> <span>{t("hero.t2")}</span>
-              <br />
-              <span>{t("hero.t3")}</span>
+              {isBuyer ? (
+                <>
+                  <span>Find the Perfect</span> <span>Freelancer</span>
+                  <br />
+                  <span>For Your Project</span>
+                </>
+              ) : (
+                <>
+                  <span>{t("hero.t1")}</span> <span>{t("hero.t2")}</span>
+                  <br />
+                  <span>{t("hero.t3")}</span>
+                </>
+              )}
             </h1>
-            <p className="sub">{t("hero.sub")}</p>
+            <p className="sub">
+              {isBuyer
+                ? "Browse thousands of verified freelancers. Post your project and get proposals in minutes."
+                : t("hero.sub")}
+            </p>
             <div className="hero-cta">
-              <button
-                className="btn-primary"
-                type="button"
-                onClick={() => (user ? openProfile() : openAuth("signup"))}
-              >
-                {t("hero.cta1")}
-              </button>
-              <button
-                className="btn-ghost"
-                type="button"
-                onClick={scrollToShowcase}
-              >
-                {t("hero.cta2")}
-              </button>
+              {isBuyer ? (
+                <>
+                  <button
+                    className="btn-primary"
+                    type="button"
+                    onClick={() => router.push("/search")}
+                  >
+                    Browse Talent
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    onClick={() => router.push("/requests/new")}
+                  >
+                    Post a Request
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn-primary"
+                    type="button"
+                    onClick={() => (user ? openProfile() : openAuth("signup"))}
+                  >
+                    {t("hero.cta1")}
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    onClick={scrollToShowcase}
+                  >
+                    {t("hero.cta2")}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

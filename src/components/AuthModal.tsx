@@ -25,7 +25,7 @@ function passwordValid(value: string): boolean {
 }
 
 function AuthForm({ initialMode }: { initialMode: Mode }) {
-  const { closeAuth, openProfile, toast } = useUI();
+  const { closeAuth, openRoleSelector, toast } = useUI();
   const {
     configured,
     renderGoogleButton,
@@ -81,10 +81,10 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
   useEffect(() => {
     setGoogleSuccessHandler(() => {
       closeAuth();
-      openProfile();
+      openRoleSelector();
     });
     return () => setGoogleSuccessHandler(null);
-  }, [setGoogleSuccessHandler, closeAuth, openProfile]);
+  }, [setGoogleSuccessHandler, closeAuth, openRoleSelector]);
 
   const setField = (field: keyof Values, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -129,7 +129,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
 
     toast(t("auth.welcome", { name: values.name.trim().split(" ")[0] || "there" }));
     closeAuth();
-    openProfile();
+    openRoleSelector();
   };
 
   const switchMode = (next: Mode) => {
