@@ -21,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "Orders", url: "/orders" },
       { name: "Buyer requests", url: "/requests" },
-      { name: "Create a gig", url: "/post-project" },
+      { name: "Create a lyx", url: "/post-project" },
     ],
   };
 }

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const BUYER_STEPS = [
-  { title: "Find or request", body: "Browse gigs with fixed packages, or post a request with your budget and let sellers send proposals." },
+  { title: "Find or request", body: "Browse lyxes with fixed packages, or post a request with your budget and let sellers send proposals." },
   { title: "Pay securely", body: "Pay by card through Stripe. The money is held until you approve the work — the seller is not paid upfront." },
   { title: "Work together", body: "Chat, share files, jump on a video call and request revisions until it is right." },
   { title: "Approve & review", body: "Approve the delivery (or each milestone) to release payment, then leave a review." },
@@ -16,7 +16,7 @@ const BUYER_STEPS = [
 
 const SELLER_STEPS = [
   { title: "Build your profile", body: "Add your skills, experience, portfolio and an intro video so buyers trust you." },
-  { title: "Create gigs", body: "Offer up to three packages with clear deliverables, extras, FAQs and buyer requirements." },
+  { title: "Create lyxes", body: "Offer up to three packages with clear deliverables, extras, FAQs and buyer requirements." },
   { title: "Win more work", body: "Reply to buyer requests with proposals, and send custom offers or milestone plans in chat." },
   { title: "Deliver & get paid", body: `Deliver through the order page. When the buyer approves, you receive the amount minus the ${Math.round(PLATFORM_FEE_RATE * 100)}% platform fee.` },
 ];
@@ -64,7 +64,7 @@ export default function HowItWorksPage() {
         </div>
 
         <div className="info-cta">
-          <Link className="btn-primary" href="/search">Browse gigs</Link>
+          <Link className="btn-primary" href="/search">Browse lyxes</Link>
           <Link className="btn-ghost" href="/requests/new">Post a request</Link>
           <Link className="btn-ghost" href="/help">Help center</Link>
         </div>

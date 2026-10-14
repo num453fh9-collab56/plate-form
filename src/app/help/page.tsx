@@ -41,7 +41,7 @@ const FAQ: { group: string; items: [string, string][] }[] = [
     items: [
       ["I forgot my password.", "Use “Forgot password?” on the sign-in screen and we will email you a reset link."],
       ["How do I stay safe?", "Keep all communication and payments on Hirelyx. Never pay outside the platform — we cannot protect payments made elsewhere."],
-      ["How do I report a user or gig?", "Message our team with a link to the gig or profile. We review reports and can pause gigs or ban accounts."],
+      ["How do I report a user or lyx?", "Message our team with a link to the lyx or profile. We review reports and can pause lyxes or ban accounts."],
     ],
   },
 ];

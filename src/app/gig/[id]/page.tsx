@@ -27,8 +27,30 @@ import { offeredPackages, quoteOrder } from "@/lib/gig-model";
 import VideoPlayer from "@/components/VideoPlayer";
 import GigCard from "@/components/GigCard";
 import { addRecentView } from "@/lib/recent-views";
+import { fetchFavoriteIds, toggleFavorite } from "@/lib/favorites";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function RatingBars({ reviews }: { reviews: GigReview[] }) {
+  const buckets = [5, 4, 3, 2, 1];
+  const total = reviews.length || 1;
+  return (
+    <div className="gd-rating-bars">
+      {buckets.map((star) => {
+        const n = reviews.filter((r) => Math.round(r.rating) === star).length;
+        return (
+          <div key={star} className="gd-rating-row">
+            <span className="gd-rating-star">{star} ★</span>
+            <div className="gd-rating-track">
+              <div className="gd-rating-fill" style={{ width: `${(n / total) * 100}%` }} />
+            </div>
+            <span className="gd-rating-count">({n})</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function GigDetailPage() {
   const params = useParams<{ id: string }>();
@@ -56,12 +78,19 @@ export default function GigDetailPage() {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [activeImage, setActiveImage] = useState(0);
   const [statusBusy, setStatusBusy] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const gig = fetched ?? cached;
   const loading = !gig && !fetchDone;
 
   useEffect(() => {
     if (id) void recordGigView(id);
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !user) return;
+    void fetchFavoriteIds().then((set) => setIsSaved(set.has(id)));
+  }, [id, user]);
 
   useEffect(() => {
     if (!id) return;
@@ -109,7 +138,7 @@ export default function GigDetailPage() {
     return (
       <section className="section">
         <div className="wrap">
-          <p style={{ color: "var(--muted)" }}>Loading gig…</p>
+          <p style={{ color: "var(--muted)" }}>Loading lyx…</p>
         </div>
       </section>
     );
@@ -120,10 +149,10 @@ export default function GigDetailPage() {
       <section className="section">
         <div className="wrap">
           <div className="empty">
-            <h3>Gig not found</h3>
-            <p>This gig may have been removed or paused.</p>
+            <h3>Lyx not found</h3>
+            <p>This lyx may have been removed or paused.</p>
             <button className="btn-primary" type="button" onClick={() => router.push("/search")}>
-              Browse gigs
+              Browse lyxes
             </button>
           </div>
         </div>
@@ -148,6 +177,15 @@ export default function GigDetailPage() {
     if (conversationId) openMessages();
   };
 
+  const handleSave = async () => {
+    if (!user) return;
+    setSaveBusy(true);
+    const next = await toggleFavorite(gig.id, isSaved);
+    setIsSaved(next);
+    setSaveBusy(false);
+    toast(next ? "Saved to favorites" : "Removed from favorites");
+  };
+
   const setStatus = async (next: GigStatus) => {
     const supabase = getSupabase();
     if (!supabase) return;
@@ -159,7 +197,7 @@ export default function GigDetailPage() {
       return;
     }
     setFetched({ ...gig, status: next });
-    toast(next === "published" ? "Your gig is live." : "Gig paused. Buyers cannot order it until you resume.");
+    toast(next === "published" ? "Your lyx is live." : "Lyx paused. Buyers cannot order it until you resume.");
   };
 
   const toggleExtra = (label: string) =>
@@ -191,9 +229,9 @@ export default function GigDetailPage() {
         {isOwner ? (
           <div className="gd-owner-bar">
             <span className={`gd-status ${status}`}>{status}</span>
-            <span className="grow">This is your gig · {plural(gig.views ?? 0, "view")}</span>
+            <span className="grow">This is your lyx · {plural(gig.views ?? 0, "view")}</span>
             <Link className="btn-ghost btn-sm" href={`/post-project?edit=${gig.id}`}>
-              Edit gig
+              Edit lyx
             </Link>
             {status === "published" ? (
               <button className="btn-ghost btn-sm" type="button" disabled={statusBusy} onClick={() => void setStatus("paused")}>
@@ -228,6 +266,16 @@ export default function GigDetailPage() {
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 Share
+              </button>
+              <button
+                type="button"
+                className={`btn-ghost btn-sm gig-share-btn${isSaved ? " gd-saved" : ""}`}
+                onClick={() => requireAuth(() => void handleSave())}
+                disabled={saveBusy}
+                aria-label={isSaved ? "Unsave lyx" : "Save lyx"}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                {isSaved ? "Saved" : "Save"}
               </button>
             </div>
 
@@ -266,6 +314,9 @@ export default function GigDetailPage() {
                 <div className="gd-gallery-main">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={images[imageIndex]} alt={`${gig.title} — image ${imageIndex + 1}`} />
+                  {images.length > 1 && (
+                    <span className="gd-gallery-counter">{imageIndex + 1} / {images.length}</span>
+                  )}
                   {images.length > 1 ? (
                     <>
                       <button
@@ -313,7 +364,7 @@ export default function GigDetailPage() {
             ) : null}
 
             <div className="gig-detail-block">
-              <h2>About this gig</h2>
+              <h2>About this lyx</h2>
               <p className="gig-detail-desc" style={{ whiteSpace: "pre-line" }}>{gig.description}</p>
             </div>
 
@@ -426,6 +477,16 @@ export default function GigDetailPage() {
 
             <div className="gig-detail-block">
               <h2>Reviews {stats.count > 0 ? `(${stats.count})` : ""}</h2>
+              {reviews.length > 0 && (
+                <div className="gd-review-summary">
+                  <div className="gd-review-big">
+                    <span className="gd-review-avg">{stats.average.toFixed(1)}</span>
+                    <span className="stars">{stars(stats.average)}</span>
+                    <span className="gd-review-total">{stats.count} review{stats.count !== 1 ? "s" : ""}</span>
+                  </div>
+                  <RatingBars reviews={reviews} />
+                </div>
+              )}
               {reviews.length === 0 ? (
                 <p style={{ color: "var(--muted)" }}>
                   No reviews yet. Reviews appear after completed orders.
@@ -569,10 +630,20 @@ export default function GigDetailPage() {
                 </button>
               ) : null}
               {converted ? <p className="price-card-note">You&apos;ll be charged ${quote.total} USD.</p> : null}
-              <p className="price-card-note">
-                Secure payment &amp; buyer protection. Funds are released to the
-                seller after you approve the delivery.
-              </p>
+              <div className="gd-trust">
+                <div className="gd-trust-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-deep)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>Buyer protection</span>
+                </div>
+                <div className="gd-trust-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-deep)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  <span>Secure payment</span>
+                </div>
+                <div className="gd-trust-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-deep)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Money-back guarantee</span>
+                </div>
+              </div>
             </div>
           </aside>
         </div>

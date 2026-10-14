@@ -62,7 +62,7 @@ export default function TermsPage() {
 
         <h2>7. Suspension</h2>
         <p>
-          We may pause gigs or suspend accounts that break these terms, harm other users or put payments at risk.
+          We may pause lyxes or suspend accounts that break these terms, harm other users or put payments at risk.
         </p>
 
         <h2>8. Liability</h2>

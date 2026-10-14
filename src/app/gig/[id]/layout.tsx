@@ -19,7 +19,7 @@ async function getGig(id: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const gig = await getGig(id);
-  if (!gig) return { title: "Gig Not Found — Hirelyx" };
+  if (!gig) return { title: "Lyx Not Found — Hirelyx" };
 
   const title = `${gig.title} — Hirelyx`;
   const description = (gig.description ?? "").slice(0, 160) || `Starting at $${gig.price} on Hirelyx`;

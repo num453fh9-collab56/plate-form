@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
@@ -27,6 +27,7 @@ interface Order extends OrderRow {
   gigTitle: string;
   role: "buyer" | "seller";
   counterpart: string;
+  gigImage?: string;
 }
 
 const STATUS_CLASS: Record<string, string> = {
@@ -39,6 +40,44 @@ const STATUS_CLASS: Record<string, string> = {
   disputed: "warn",
 };
 
+const STATUS_STEPS = ["paid", "delivered", "completed"];
+
+type TabFilter = "all" | "active" | "completed" | "cancelled";
+
+const TABS: { key: TabFilter; label: string }[] = [
+  { key: "all", label: "All orders" },
+  { key: "active", label: "Active" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+];
+
+function StatusTimeline({ status }: { status: string }) {
+  const currentIdx = STATUS_STEPS.indexOf(status);
+  return (
+    <div className="ord-timeline">
+      {STATUS_STEPS.map((step, i) => {
+        const done = currentIdx >= i;
+        const active = currentIdx === i;
+        return (
+          <div key={step} className={`ord-tl-step${done ? " done" : ""}${active ? " active" : ""}`}>
+            <div className="ord-tl-dot" />
+            {i < STATUS_STEPS.length - 1 && <div className="ord-tl-line" />}
+            <span className="ord-tl-label">{step === "paid" ? "In progress" : step === "delivered" ? "Delivered" : "Completed"}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TimeAgo({ date }: { date: string }) {
+  const diff = Date.now() - new Date(date).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days < 1) return <span>{Math.max(1, Math.floor(diff / 3600000))}h ago</span>;
+  if (days < 30) return <span>{days}d ago</span>;
+  return <span>{new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>;
+}
+
 export default function OrdersPage() {
   const { user } = useAuth();
   const { openAuth } = useUI();
@@ -50,6 +89,8 @@ export default function OrdersPage() {
   const [reviewRating, setReviewRating] = useState<Record<string, number>>({});
   const [reviewComment, setReviewComment] = useState<Record<string, string>>({});
   const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
+  const [tab, setTab] = useState<TabFilter>("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -185,13 +226,13 @@ export default function OrdersPage() {
         ];
         const [{ data: gigs }, { data: people }] = await Promise.all([
           gigIds.length
-            ? supabase.from("gigs").select("id, title").in("id", gigIds)
-            : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+            ? supabase.from("gigs").select("id, title, images").in("id", gigIds)
+            : Promise.resolve({ data: [] as { id: string; title: string; images: string[] | null }[] }),
           supabase.from("profiles").select("user_id, full_name").in("user_id", peopleIds),
         ]);
         if (cancelled) return;
         const gigMap = Object.fromEntries(
-          ((gigs ?? []) as { id: string; title: string }[]).map((g) => [g.id, g.title]),
+          ((gigs ?? []) as { id: string; title: string; images: string[] | null }[]).map((g) => [g.id, g]),
         );
         const nameMap = Object.fromEntries(
           ((people ?? []) as { user_id: string; full_name: string | null }[]).map((p) => [
@@ -203,11 +244,13 @@ export default function OrdersPage() {
           rows.map((row) => {
             const role: "buyer" | "seller" = row.buyer_id === userId ? "buyer" : "seller";
             const counterpartId = role === "buyer" ? row.seller_id : row.buyer_id;
+            const gigData = row.gig_id ? gigMap[row.gig_id] : undefined;
             return {
               ...row,
               role,
-              gigTitle: row.title || (row.gig_id ? gigMap[row.gig_id] ?? "Gig" : "Custom order"),
+              gigTitle: row.title || (gigData?.title ?? (row.gig_id ? "Lyx" : "Custom order")),
               counterpart: counterpartId ? nameMap[counterpartId] ?? "User" : "User",
+              gigImage: gigData?.images?.[0] ?? undefined,
             };
           }),
         );
@@ -217,6 +260,25 @@ export default function OrdersPage() {
       cancelled = true;
     };
   }, [user]);
+
+  const filtered = useMemo(() => {
+    let list = orders;
+    if (tab === "active") list = list.filter((o) => ["paid", "delivered", "revision", "pending"].includes(o.status));
+    else if (tab === "completed") list = list.filter((o) => o.status === "completed");
+    else if (tab === "cancelled") list = list.filter((o) => o.status === "cancelled");
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      list = list.filter((o) => o.gigTitle.toLowerCase().includes(q) || o.counterpart.toLowerCase().includes(q));
+    }
+    return list;
+  }, [orders, tab, searchTerm]);
+
+  const counts = useMemo(() => ({
+    all: orders.length,
+    active: orders.filter((o) => ["paid", "delivered", "revision", "pending"].includes(o.status)).length,
+    completed: orders.filter((o) => o.status === "completed").length,
+    cancelled: orders.filter((o) => o.status === "cancelled").length,
+  }), [orders]);
 
   if (!user) {
     return (
@@ -241,79 +303,147 @@ export default function OrdersPage() {
           <div>
             <div className="kicker">Orders</div>
             <h2>Your orders</h2>
-            <p className="sub">Purchases and sales on Hirelyx.</p>
+            <p className="sub">Track purchases and sales on Hirelyx.</p>
           </div>
           <Link className="btn-post" href="/search">
-            Browse gigs
+            Browse lyxes
           </Link>
         </div>
 
+        {!loading && orders.length > 0 && (
+          <div className="ord-stats">
+            <div className="ord-stat">
+              <span className="ord-stat-num">{counts.all}</span>
+              <span className="ord-stat-label">Total</span>
+            </div>
+            <div className="ord-stat">
+              <span className="ord-stat-num ord-stat-active">{counts.active}</span>
+              <span className="ord-stat-label">Active</span>
+            </div>
+            <div className="ord-stat">
+              <span className="ord-stat-num ord-stat-done">{counts.completed}</span>
+              <span className="ord-stat-label">Completed</span>
+            </div>
+          </div>
+        )}
+
+        {!loading && orders.length > 0 && (
+          <div className="ord-controls">
+            <div className="ord-tabs">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className={`ord-tab${tab === t.key ? " on" : ""}`}
+                  onClick={() => setTab(t.key)}
+                >
+                  {t.label}
+                  <span className="ord-tab-count">{counts[t.key]}</span>
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              className="ord-search"
+              placeholder="Search orders…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
+
         {loading ? (
-          <p style={{ color: "var(--muted)" }}>Loading orders…</p>
+          <div className="empty">
+            <div className="sf-spinner" />
+            <p style={{ color: "var(--muted)" }}>Loading orders…</p>
+          </div>
         ) : orders.length === 0 ? (
           <div className="empty">
             <h3>No orders yet</h3>
-            <p>When you buy or sell a gig, it will show up here.</p>
+            <p>When you buy or sell a lyx, it will show up here.</p>
             <Link className="btn-primary" href="/search">
-              Browse gigs
+              Browse lyxes
             </Link>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty">
+            <h3>No matching orders</h3>
+            <p>Try a different filter or search term.</p>
           </div>
         ) : (
           <ul className="order-list">
-            {orders.map((order) => (
-              <li key={order.id} className="order-row">
-                <div className="order-main">
-                  <div className="order-title">
-                    {order.gig_id ? (
-                      <Link href={`/gig/${order.gig_id}`}>{order.gigTitle}</Link>
-                    ) : (
-                      order.gigTitle
-                    )}
-                  </div>
-                  <div className="order-meta">
-                    <span className={"status-pill " + (STATUS_CLASS[order.status] ?? "muted")}>
-                      {order.status}
-                    </span>
-                    <span>
-                      {order.role === "buyer" ? `Seller: ${order.counterpart}` : `Buyer: ${order.counterpart}`}
-                    </span>
-                    <span>${formatPrice(order.amount)}</span>
-                    {order.revision_count ? <span>Revisions: {order.revision_count}</span> : null}
-                    <Link className="btn-ghost btn-sm" href={`/orders/${order.id}`}>Open order →</Link>
-                  </div>
-                  {order.delivery_note && order.status !== "completed" ? (
-                    <p className="order-note">Delivery note: {order.delivery_note}</p>
-                  ) : null}
-                  {order.status === "completed" && order.delivery_note ? (
-                    <p className="order-note">Delivery note: {order.delivery_note}</p>
-                  ) : null}
-                  {order.status === "revision" && order.revision_note ? (
-                    <p className="order-note">Revision requested: {order.revision_note}</p>
-                  ) : null}
-                  {order.role === "seller" && (order.status === "paid" || order.status === "revision") ? (
-                    <div className="order-actions">
-                      <textarea
-                        placeholder="Delivery note (link to files, message to buyer...)"
-                        value={actionNote[order.id] ?? ""}
-                        onChange={(e) => setActionNote((p) => ({ ...p, [order.id]: e.target.value }))}
-                      />
-                      <button
-                        className="btn-primary"
-                        type="button"
-                        disabled={busyId === order.id + "deliver"}
-                        onClick={() => runAction(order.id, "deliver")}
-                      >
-                        {busyId === order.id + "deliver" ? "Delivering..." : "Deliver work"}
-                      </button>
+            {filtered.map((order) => (
+              <li key={order.id} className="order-row ord-card">
+                <div className="ord-card-top">
+                  {order.gigImage && (
+                    <div className="ord-thumb">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={order.gigImage} alt="" />
                     </div>
-                  ) : null}
-                  {order.role === "buyer" && order.status === "delivered" ? (
-                    <div className="order-actions">
-                      <textarea
-                        placeholder="Note (optional - required for revision)"
-                        value={actionNote[order.id] ?? ""}
-                        onChange={(e) => setActionNote((p) => ({ ...p, [order.id]: e.target.value }))}
-                      />
+                  )}
+                  <div className="ord-card-info">
+                    <div className="ord-card-title">
+                      {order.gig_id ? (
+                        <Link href={`/gig/${order.gig_id}`}>{order.gigTitle}</Link>
+                      ) : (
+                        order.gigTitle
+                      )}
+                    </div>
+                    <div className="ord-card-meta">
+                      <span className={"status-pill " + (STATUS_CLASS[order.status] ?? "muted")}>
+                        {order.status}
+                      </span>
+                      <span className="ord-role-tag">{order.role === "buyer" ? "Buying" : "Selling"}</span>
+                      <span>{order.role === "buyer" ? `Seller: ${order.counterpart}` : `Buyer: ${order.counterpart}`}</span>
+                      <span className="ord-amount">${formatPrice(order.amount)}</span>
+                    </div>
+                    <div className="ord-card-date">
+                      <TimeAgo date={order.created_at} />
+                      {order.revision_count ? <span> · {order.revision_count} revision{order.revision_count > 1 ? "s" : ""}</span> : null}
+                    </div>
+                  </div>
+                  <Link className="btn-ghost btn-sm ord-open" href={`/orders/${order.id}`}>Open →</Link>
+                </div>
+
+                {["paid", "delivered", "completed"].includes(order.status) && (
+                  <StatusTimeline status={order.status} />
+                )}
+
+                {order.delivery_note && (
+                  <p className="order-note">
+                    <strong>Delivery:</strong> {order.delivery_note}
+                  </p>
+                )}
+                {order.status === "revision" && order.revision_note && (
+                  <p className="order-note">
+                    <strong>Revision requested:</strong> {order.revision_note}
+                  </p>
+                )}
+                {order.role === "seller" && (order.status === "paid" || order.status === "revision") ? (
+                  <div className="order-actions">
+                    <textarea
+                      placeholder="Delivery note (link to files, message to buyer...)"
+                      value={actionNote[order.id] ?? ""}
+                      onChange={(e) => setActionNote((p) => ({ ...p, [order.id]: e.target.value }))}
+                    />
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      disabled={busyId === order.id + "deliver"}
+                      onClick={() => runAction(order.id, "deliver")}
+                    >
+                      {busyId === order.id + "deliver" ? "Delivering..." : "Deliver work"}
+                    </button>
+                  </div>
+                ) : null}
+                {order.role === "buyer" && order.status === "delivered" ? (
+                  <div className="order-actions">
+                    <textarea
+                      placeholder="Note (optional — required for revision)"
+                      value={actionNote[order.id] ?? ""}
+                      onChange={(e) => setActionNote((p) => ({ ...p, [order.id]: e.target.value }))}
+                    />
+                    <div className="ord-action-btns">
                       <button
                         className="btn-primary"
                         type="button"
@@ -331,64 +461,67 @@ export default function OrdersPage() {
                         {busyId === order.id + "revision" ? "Sending..." : "Request revision"}
                       </button>
                     </div>
-                  ) : null}
-                  {order.role === "buyer" && order.status === "completed" && order.gig_id ? (
-                    reviewed[order.gig_id] ? (
-                      <p className="order-note">Thanks! Your review was submitted.</p>
-                    ) : (
-                      <div className="order-actions">
-                        <select
-                          value={reviewRating[order.id] ?? ""}
-                          onChange={(e) =>
-                            setReviewRating((p) => ({ ...p, [order.id]: Number(e.target.value) }))
-                          }
-                        >
-                          <option value="">Rate this order...</option>
-                          <option value="5">5 - Excellent</option>
-                          <option value="4">4 - Good</option>
-                          <option value="3">3 - Okay</option>
-                          <option value="2">2 - Poor</option>
-                          <option value="1">1 - Bad</option>
-                        </select>
-                        <textarea
-                          placeholder="Write a short review"
-                          value={reviewComment[order.id] ?? ""}
-                          onChange={(e) =>
-                            setReviewComment((p) => ({ ...p, [order.id]: e.target.value }))
-                          }
-                        />
-                        <button
-                          className="btn-primary"
-                          type="button"
-                          disabled={busyId === order.id + "review"}
-                          onClick={() => submitReview(order)}
-                        >
-                          {busyId === order.id + "review" ? "Submitting..." : "Submit review"}
-                        </button>
+                  </div>
+                ) : null}
+                {order.role === "buyer" && order.status === "completed" && order.gig_id ? (
+                  reviewed[order.gig_id] ? (
+                    <p className="order-note ord-review-done">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-deep)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Review submitted — thanks!
+                    </p>
+                  ) : (
+                    <div className="order-actions ord-review-form">
+                      <div className="ord-star-row">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className={`ord-star-btn${(reviewRating[order.id] ?? 0) >= s ? " on" : ""}`}
+                            onClick={() => setReviewRating((p) => ({ ...p, [order.id]: s }))}
+                            aria-label={`${s} star${s > 1 ? "s" : ""}`}
+                          >
+                            ★
+                          </button>
+                        ))}
                       </div>
-                    )
-                  ) : null}
-                  {order.status === "pending" ? (
-                    <div className="order-actions">
+                      <textarea
+                        placeholder="Write a short review…"
+                        value={reviewComment[order.id] ?? ""}
+                        onChange={(e) =>
+                          setReviewComment((p) => ({ ...p, [order.id]: e.target.value }))
+                        }
+                      />
                       <button
-                        className="btn-ghost"
+                        className="btn-primary"
                         type="button"
-                        disabled={busyId === order.id + "cancel"}
-                        onClick={() => {
-                          if (window.confirm("Cancel this unpaid order?")) {
-                            void runAction(order.id, "cancel");
-                          }
-                        }}
+                        disabled={busyId === order.id + "review"}
+                        onClick={() => submitReview(order)}
                       >
-                        {busyId === order.id + "cancel" ? "Cancelling..." : "Cancel order"}
+                        {busyId === order.id + "review" ? "Submitting..." : "Submit review"}
                       </button>
                     </div>
-                  ) : null}
-                  {order.status === "disputed" ? (
-                    <p className="order-note">Under review in the resolution center.</p>
-                  ) : null}
-                  {actionError && busyId === null ? <p className="order-note">{actionError}</p> : null}
-                </div>
+                  )
+                ) : null}
+                {order.status === "pending" ? (
+                  <div className="order-actions">
+                    <button
+                      className="btn-ghost"
+                      type="button"
+                      disabled={busyId === order.id + "cancel"}
+                      onClick={() => {
+                        if (window.confirm("Cancel this unpaid order?")) {
+                          void runAction(order.id, "cancel");
+                        }
+                      }}
+                    >
+                      {busyId === order.id + "cancel" ? "Cancelling..." : "Cancel order"}
+                    </button>
+                  </div>
+                ) : null}
+                {order.status === "disputed" ? (
+                  <p className="order-note">Under review in the resolution center.</p>
+                ) : null}
+                {actionError && busyId === null ? <p className="order-note">{actionError}</p> : null}
               </li>
             ))}
           </ul>

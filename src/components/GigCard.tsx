@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Gig } from "@/lib/types";
 import { initials, stars } from "@/lib/format";
@@ -13,6 +13,19 @@ import { useMessaging } from "@/lib/messaging";
 import { useUI } from "@/lib/ui";
 import { translationKeyForCategory } from "@/lib/taxonomy";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/favorites";
+import { recordGigImpressions } from "@/lib/api";
+
+const impressionQueue: string[] = [];
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+function queueImpression(gigId: string) {
+  if (impressionQueue.includes(gigId)) return;
+  impressionQueue.push(gigId);
+  if (flushTimer) clearTimeout(flushTimer);
+  flushTimer = setTimeout(() => {
+    const batch = impressionQueue.splice(0);
+    if (batch.length) void recordGigImpressions(batch);
+  }, 2000);
+}
 
 export default function GigCard({ gig }: { gig: Gig }) {
   const { t } = useI18n();
@@ -27,6 +40,18 @@ export default function GigCard({ gig }: { gig: Gig }) {
   const reviewCount = stats?.reviews ?? gig.reviews;
   const router = useRouter();
   const [saved, setSaved] = useState<boolean | null>(null);
+  const cardRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { queueImpression(gig.id); obs.disconnect(); } },
+      { threshold: 0.5 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [gig.id]);
 
   useEffect(() => {
     if (!user?.sub) return;
@@ -64,12 +89,12 @@ export default function GigCard({ gig }: { gig: Gig }) {
   };
 
   return (
-    <article className={"gig" + (gig.isNew ? " is-new" : "")} data-category={gig.category}>
+    <article ref={cardRef} className={"gig" + (gig.isNew ? " is-new" : "")} data-category={gig.category}>
       <div className="gig-head">
         <span className="gig-eyebrow">{t(translationKeyForCategory(gig.category))}</span>
         <button
           type="button"
-          aria-label="Save gig"
+          aria-label="Save lyx"
           onClick={onFavorite}
           style={{
             background: "none",

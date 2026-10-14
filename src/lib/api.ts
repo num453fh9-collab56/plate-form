@@ -95,7 +95,42 @@ export async function fetchGigById(id: string): Promise<Gig | null> {
 export async function recordGigView(id: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) return;
-  await supabase.rpc("increment_gig_views", { gig: id });
+  await Promise.all([
+    supabase.rpc("increment_gig_views", { gig: id }),
+    supabase.rpc("record_gig_click", { gig: id }),
+  ]);
+}
+
+/** Batch-record impressions when gigs appear in search/browse results. */
+export async function recordGigImpressions(gigIds: string[]): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase || gigIds.length === 0) return;
+  await supabase.rpc("record_gig_impressions", { gig_ids: gigIds });
+}
+
+export interface GigAnalytics {
+  gig_id: string;
+  impressions: number;
+  clicks: number;
+  orders: number;
+  cancellations: number;
+}
+
+/** Fetch per-gig analytics for a seller within a date range. */
+export async function fetchSellerGigAnalytics(
+  sellerId: string,
+  since: string,
+  until: string,
+): Promise<GigAnalytics[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("get_seller_gig_analytics", {
+    p_seller: sellerId,
+    p_since: since,
+    p_until: until,
+  });
+  if (error || !data) return [];
+  return data as GigAnalytics[];
 }
 
 export async function fetchGigsBySeller(sellerId: string): Promise<Gig[]> {
@@ -130,8 +165,11 @@ export interface SearchParams {
   limit?: number;
   offset?: number;
   maxPrice?: number;
+  minPrice?: number;
   maxDeliveryDays?: number;
-  sort?: "newest" | "price_asc" | "price_desc";
+  sellerLevel?: string;
+  minRating?: number;
+  sort?: "newest" | "price_asc" | "price_desc" | "best_selling" | "top_rated";
 }
 
 export async function searchGigs({
@@ -141,7 +179,10 @@ export async function searchGigs({
   limit = 12,
   offset = 0,
   maxPrice,
+  minPrice,
   maxDeliveryDays,
+  sellerLevel,
+  minRating,
   sort = "newest",
 }: SearchParams): Promise<{ items: Gig[]; count: number }> {
   const supabase = getSupabase();
@@ -161,8 +202,17 @@ export async function searchGigs({
   if (maxPrice != null && Number.isFinite(maxPrice)) {
     query = query.lte("price", maxPrice);
   }
+  if (minPrice != null && Number.isFinite(minPrice)) {
+    query = query.gte("price", minPrice);
+  }
   if (maxDeliveryDays != null && Number.isFinite(maxDeliveryDays)) {
     query = query.lte("delivery_days", maxDeliveryDays);
+  }
+  if (sellerLevel && sellerLevel !== "all") {
+    query = query.eq("badge", sellerLevel);
+  }
+  if (minRating != null && Number.isFinite(minRating)) {
+    query = query.gte("rating", minRating);
   }
   const term = (q ?? "").trim().replace(/[,()%]/g, " ");
   if (term) {
@@ -171,7 +221,11 @@ export async function searchGigs({
     );
   }
 
-  const orderColumn = sort === "price_asc" || sort === "price_desc" ? "price" : "created_at";
+  const orderColumn =
+    sort === "price_asc" || sort === "price_desc" ? "price" :
+    sort === "top_rated" ? "rating" :
+    sort === "best_selling" ? "views" :
+    "created_at";
   const ascending = sort === "price_asc";
 
   const { data, count, error } = await query

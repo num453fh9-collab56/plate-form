@@ -316,9 +316,26 @@ export default function AccountMenu() {
                 className="dash-icon"
                 style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}
               >
-                <Icon name="manage" />
+                <Icon name="improve" />
               </span>
-              <span className="dash-text">Dashboard</span>
+              <span className="dash-text">Seller Dashboard</span>
+            </button>
+            <button
+              className="dash-item"
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                router.push("/dashboard?mode=buying");
+              }}
+            >
+              <span
+                className="dash-icon"
+                style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}
+              >
+                <Icon name="wallet" />
+              </span>
+              <span className="dash-text">Buyer Dashboard</span>
             </button>
             {isAdmin ? (
               <button
@@ -388,7 +405,7 @@ export default function AccountMenu() {
               >
                 <Icon name="rewards" />
               </span>
-              <span className="dash-text">Saved gigs</span>
+              <span className="dash-text">Saved lyxes</span>
             </button>
           </>
         )}
@@ -430,7 +447,7 @@ export default function AccountMenu() {
         ) : (
           <div style={{ padding: "12px 16px" }}>
             <p style={{ color: "var(--muted)", marginBottom: 10, fontSize: "0.85rem" }}>
-              Sign in or join to manage gigs, orders and messages.
+              Sign in or join to manage lyxes, orders and messages.
             </p>
             <button
               className="btn-primary"

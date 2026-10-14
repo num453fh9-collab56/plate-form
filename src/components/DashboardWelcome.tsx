@@ -29,7 +29,7 @@ export default function DashboardWelcome() {
           </div>
           <div className="dash-welcome-step">
             <span className="dash-welcome-step-num">2</span>
-            Create Your First Gig
+            Create Your First Lyx
           </div>
           <div className="dash-welcome-step">
             <span className="dash-welcome-step-num">3</span>

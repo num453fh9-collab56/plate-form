@@ -187,7 +187,7 @@ function validateStep(step: StepIndex, form: FormState, media: MediaItem[]): Err
     });
   }
   if (step === 4) {
-    if (media.length === 0) errors.media = "Add at least one image — gigs with photos get far more clicks.";
+    if (media.length === 0) errors.media = "Add at least one image — lyxes with photos get far more clicks.";
   }
   return errors;
 }
@@ -243,7 +243,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
       void fetchGigById(editId).then((gig) => {
         if (cancelled) return;
         if (!gig || (user?.sub && gig.sellerId !== user.sub)) {
-          toast("That gig could not be opened for editing.");
+          toast("That lyx could not be opened for editing.");
           router.replace("/dashboard");
           return;
         }
@@ -414,7 +414,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
       ]);
       const failed = imageUrls.filter((u) => !u).length;
       if (failed) toast(`${failed} image(s) failed to upload and were skipped.`);
-      if (videoFile && !uploadedVideo) toast("Video upload failed — the gig was saved without it.");
+      if (videoFile && !uploadedVideo) toast("Video upload failed — the lyx was saved without it.");
 
       const packages = Object.fromEntries(
         activeKeys.map((key) => {
@@ -461,7 +461,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
 
       const gig = await saveGig(draft, editId);
       if (!gig) {
-        toast("Could not save the gig. Have you run the latest database migration?");
+        toast("Could not save the lyx. Have you run the latest database migration?");
         return;
       }
       if (!editId) {
@@ -471,7 +471,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
           /* storage unavailable */
         }
       }
-      toast(status === "published" ? (editId ? "Gig updated!" : "Gig published!") : "Draft saved.");
+      toast(status === "published" ? (editId ? "Lyx updated!" : "Lyx published!") : "Draft saved.");
       router.push(status === "published" ? `/gig/${gig.id}` : "/dashboard");
     } finally {
       setSaving(null);
@@ -499,7 +499,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
 
   return (
     <div className="gw">
-      <ol className="gw-steps" aria-label="Gig steps">
+      <ol className="gw-steps" aria-label="Lyx steps">
         {STEPS.map((label, i) => (
           <li key={label}>
             <button
@@ -518,8 +518,8 @@ export default function GigWizard({ editId }: { editId?: string }) {
       <div className="gw-layout">
         <div className="gw-main">
           {step === 0 ? (
-            <Card title="Gig overview" hint="Buyers search by title, category and tags — be specific.">
-              <Field label="Gig title" counter={`${form.title.length}/${TITLE_MAX}`} error={err("title")}>
+            <Card title="Lyx overview" hint="Buyers search by title, category and tags — be specific.">
+              <Field label="Lyx title" counter={`${form.title.length}/${TITLE_MAX}`} error={err("title")}>
                 <div className="gw-prefix-input">
                   <span>I will</span>
                   <input
@@ -662,7 +662,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
                 </div>
               </Card>
 
-              <Card title="Gig extras" hint="Optional add-ons buyers can tick at checkout.">
+              <Card title="Lyx extras" hint="Optional add-ons buyers can tick at checkout.">
                 {form.extras.map((extra, i) => (
                   <div key={i} className="gw-extra-row">
                     <input className="gw-input" value={extra.label} onChange={(e) => patch({ extras: form.extras.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x)) })} placeholder="e.g. Extra revision" />
@@ -686,7 +686,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
           {step === 2 ? (
             <>
               <Card title="Description" hint="Explain what you deliver, your process and why buyers should pick you.">
-                <Field label="About this gig" counter={`${form.description.trim().length}/${DESC_MAX}`} error={err("description")}>
+                <Field label="About this lyx" counter={`${form.description.trim().length}/${DESC_MAX}`} error={err("description")}>
                   <textarea
                     className="gw-input"
                     rows={10}
@@ -806,7 +806,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
           ) : null}
 
           {step === 5 ? (
-            <Card title="Ready to publish?" hint="Review your gig. You can edit or pause it anytime from your dashboard.">
+            <Card title="Ready to publish?" hint="Review your lyx. You can edit or pause it anytime from your dashboard.">
               <div className="gw-score">
                 <div className="gw-score-ring" style={{ ["--p" as string]: `${score}%` }}>
                   <span>{score}%</span>
@@ -851,7 +851,7 @@ export default function GigWizard({ editId }: { editId?: string }) {
                 <button type="button" className="btn-primary" onClick={() => goTo((step + 1) as StepIndex)}>Continue →</button>
               ) : (
                 <button type="button" className="btn-primary" disabled={Boolean(saving)} onClick={() => void submit("published")}>
-                  {saving === "published" ? "Publishing…" : editId && currentStatus === "published" ? "Save changes" : "Publish gig"}
+                  {saving === "published" ? "Publishing…" : editId && currentStatus === "published" ? "Save changes" : "Publish lyx"}
                 </button>
               )}
             </div>

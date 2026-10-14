@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
@@ -16,6 +16,14 @@ export default function Header() {
   const { openPost, openAuth } = useUI();
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const startProject = () => {
     setMenuOpen(false);
@@ -24,7 +32,7 @@ export default function Header() {
   };
 
   return (
-    <header>
+    <header className={scrolled ? "scrolled" : ""}>
       <div className="wrap nav">
         <Link href="/" className="logo">
           <span className="mark" aria-hidden="true"><BrandMark /></span>

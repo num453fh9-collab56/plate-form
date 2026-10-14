@@ -3,7 +3,7 @@
 const KEY = "hirelyx_recent";
 const MAX = 12;
 
-interface RecentGig {
+export interface RecentGig {
   id: string;
   title: string;
   image: string | null;

@@ -171,7 +171,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) {
-      setError("Sign in to publish a gig");
+      setError("Sign in to publish a lyx");
       return null;
     }
     const category = isAllowedCategory(draft.category)
@@ -201,7 +201,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       : supabase.from("gigs").insert({ ...row, seller_id: user.id });
     const { data, error: saveError } = await request.select("*").single();
     if (saveError || !data) {
-      setError(saveError?.message ?? "Could not save gig");
+      setError(saveError?.message ?? "Could not save lyx");
       return null;
     }
     const gig = rowToGig(data as GigRow);

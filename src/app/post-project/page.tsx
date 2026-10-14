@@ -13,8 +13,8 @@ function PostProjectContent() {
       <div className="wrap">
         <div className="section-head">
           <div>
-            <div className="kicker">{editId ? "Edit gig" : "Post a project"}</div>
-            <h2>{editId ? "Update your gig" : "Create your gig"}</h2>
+            <div className="kicker">{editId ? "Edit lyx" : "Post a project"}</div>
+            <h2>{editId ? "Update your lyx" : "Create your lyx"}</h2>
             <p className="sub">
               Six quick steps — overview, pricing, description, requirements, gallery, publish.
             </p>

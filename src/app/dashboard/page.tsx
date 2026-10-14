@@ -1,15 +1,82 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { getSupabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
+import { fetchSellerGigAnalytics } from "@/lib/api";
+import type { GigAnalytics } from "@/lib/api";
 import type { GigStatus } from "@/lib/types";
 import { fetchSellerStats, LEVEL_META, LEVEL_RULES, LevelBadge } from "@/lib/seller-levels";
 import type { SellerStats } from "@/lib/seller-levels";
 import DashboardWelcome from "@/components/DashboardWelcome";
+import BuyerDashboard from "@/components/BuyerDashboard";
+
+type DashboardMode = "selling" | "buying";
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<section className="section"><div className="wrap"><p style={{ color: "var(--muted)" }}>Loading dashboard...</p></div></section>}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
+  const { user } = useAuth();
+  const { openAuth } = useUI();
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get("mode") === "buying" ? "buying" : "selling";
+  const [mode, setMode] = useState<DashboardMode>(initialMode);
+
+  if (!user) {
+    return (
+      <section className="section">
+        <div className="wrap">
+          <div className="empty">
+            <h3>Sign in to access your dashboard</h3>
+            <button className="btn-primary" type="button" onClick={() => openAuth("login")}>Sign in</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section">
+      <div className="wrap">
+        {/* ── Mode Switcher ── */}
+        <div className="db-mode-switcher">
+          <button
+            type="button"
+            className={`db-mode-btn ${mode === "selling" ? "active" : ""}`}
+            onClick={() => setMode("selling")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+            Selling
+          </button>
+          <button
+            type="button"
+            className={`db-mode-btn ${mode === "buying" ? "active" : ""}`}
+            onClick={() => setMode("buying")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            Buying
+          </button>
+        </div>
+
+        {mode === "selling" ? <SellerDashboard /> : <BuyerDashboard />}
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SELLER DASHBOARD
+   ══════════════════════════════════════════════════════════════════════ */
 
 interface GigRowData {
   id: string;
@@ -20,6 +87,7 @@ interface GigRowData {
   status?: GigStatus | null;
   views?: number | null;
   images?: string[] | null;
+  custom_orders?: boolean | null;
 }
 
 interface EarningsData {
@@ -28,21 +96,42 @@ interface EarningsData {
   pending: number;
 }
 
+type StatusFilter = "all" | GigStatus;
+type TimePeriod = "7" | "30" | "90";
+
 const STATUS_LABEL: Record<GigStatus, string> = {
-  published: "Live",
+  published: "Active",
   paused: "Paused",
   draft: "Draft",
 };
 
-export default function DashboardPage() {
+const STATUS_ICON: Record<GigStatus, string> = {
+  published: "●",
+  paused: "◐",
+  draft: "○",
+};
+
+function dateOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function SellerDashboard() {
   const { user } = useAuth();
-  const { openAuth, openPost, toast } = useUI();
+  const { openPost, toast } = useUI();
   const [gigs, setGigs] = useState<GigRowData[]>([]);
   const [ordersCount, setOrdersCount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | GigStatus>("all");
+  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [period, setPeriod] = useState<TimePeriod>("30");
   const [myStats, setMyStats] = useState<SellerStats | null>(null);
+  const [analytics, setAnalytics] = useState<GigAnalytics[]>([]);
   const [earnings, setEarnings] = useState<EarningsData>({ total: 0, completed: 0, pending: 0 });
 
   useEffect(() => {
@@ -52,10 +141,19 @@ export default function DashboardPage() {
     void fetchSellerStats([uid]).then((stats) => {
       if (!cancelled) setMyStats(stats[uid] ?? null);
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user?.sub]);
+
+  useEffect(() => {
+    if (!user?.sub) return;
+    let cancelled = false;
+    const since = dateOffset(Number(period));
+    const until = todayStr();
+    void fetchSellerGigAnalytics(user.sub, since, until).then((data) => {
+      if (!cancelled) setAnalytics(data);
+    });
+    return () => { cancelled = true; };
+  }, [user?.sub, period]);
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -100,153 +198,257 @@ export default function DashboardPage() {
     setBusyId(gig.id);
     const { error } = await supabase.from("gigs").update({ status }).eq("id", gig.id);
     setBusyId(null);
-    if (error) {
-      toast(error.message);
-      return;
-    }
+    if (error) { toast(error.message); return; }
     setGigs((cur) => cur.map((g) => (g.id === gig.id ? { ...g, status } : g)));
+  };
+
+  const toggleCustomOrders = async (gig: GigRowData) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const next = !(gig.custom_orders ?? true);
+    const { error } = await supabase.from("gigs").update({ custom_orders: next }).eq("id", gig.id);
+    if (error) { toast(error.message); return; }
+    setGigs((cur) => cur.map((g) => (g.id === gig.id ? { ...g, custom_orders: next } : g)));
   };
 
   const deleteGig = async (id: string) => {
     const supabase = getSupabase();
     if (!supabase) return;
-    if (!window.confirm("Delete this gig? This cannot be undone.")) return;
+    if (!window.confirm("Delete this lyx? This cannot be undone.")) return;
     await supabase.from("gigs").delete().eq("id", id);
     void load();
   };
 
-  if (!user) {
-    return (
-      <section className="section">
-        <div className="wrap">
-          <div className="empty">
-            <h3>Sign in to manage your gigs</h3>
-            <button className="btn-primary" type="button" onClick={() => openAuth("login")}>
-              Sign in
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   const statusOf = (gig: GigRowData): GigStatus => gig.status ?? "published";
   const visible = filter === "all" ? gigs : gigs.filter((g) => statusOf(g) === filter);
+  const analyticsMap = useMemo(() => {
+    const map: Record<string, GigAnalytics> = {};
+    for (const a of analytics) map[a.gig_id] = a;
+    return map;
+  }, [analytics]);
+
   const totals = {
-    live: gigs.filter((g) => statusOf(g) === "published").length,
-    views: gigs.reduce((sum, g) => sum + Number(g.views ?? 0), 0),
+    active: gigs.filter((g) => statusOf(g) === "published").length,
+    paused: gigs.filter((g) => statusOf(g) === "paused").length,
+    draft: gigs.filter((g) => statusOf(g) === "draft").length,
+    impressions: analytics.reduce((s, a) => s + a.impressions, 0),
+    clicks: analytics.reduce((s, a) => s + a.clicks, 0),
     orders: Object.values(ordersCount).reduce((sum, n) => sum + n, 0),
   };
 
   return (
-    <section className="section">
-      <div className="wrap">
-        <div className="section-head">
-          <div>
-            <div className="kicker">Seller dashboard</div>
-            <h2>Your gigs</h2>
-            <p className="sub">Edit, pause or remove your gigs and track how they perform.</p>
-          </div>
-          <button className="btn-post" type="button" onClick={openPost}>
-            + Create gig
-          </button>
+    <>
+      <div className="section-head" style={{ paddingTop: 0 }}>
+        <div>
+          <div className="kicker">Seller dashboard</div>
+          <h2>Dashboard</h2>
+          <p className="sub">Manage your lyxes, track performance, and grow your business.</p>
         </div>
+        <button className="btn-post" type="button" onClick={openPost}>+ Create a new Lyx</button>
+      </div>
 
-        <DashboardWelcome />
+      <DashboardWelcome />
 
-        {myStats ? <LevelProgress stats={myStats} /> : null}
+      {myStats ? <LevelProgress stats={myStats} /> : null}
 
-        <div className="gd-summary-row">
-          <div><span>Live gigs</span><strong>{totals.live}</strong></div>
-          <div><span>Total views</span><strong>{totals.views}</strong></div>
-          <div><span>Orders</span><strong>{totals.orders}</strong></div>
+      <div className="sd-overview">
+        <div className="sd-stat-card">
+          <span className="sd-stat-label">Active Lyxes</span>
+          <strong className="sd-stat-value">{totals.active}</strong>
+          <span className="sd-stat-sub accent">{totals.active} live now</span>
         </div>
-
+        <div className="sd-stat-card">
+          <span className="sd-stat-label">Impressions</span>
+          <strong className="sd-stat-value">{totals.impressions.toLocaleString()}</strong>
+          <span className="sd-stat-sub">Last {period} days</span>
+        </div>
+        <div className="sd-stat-card">
+          <span className="sd-stat-label">Clicks</span>
+          <strong className="sd-stat-value">{totals.clicks.toLocaleString()}</strong>
+          <span className="sd-stat-sub">Last {period} days</span>
+        </div>
+        <div className="sd-stat-card">
+          <span className="sd-stat-label">Orders</span>
+          <strong className="sd-stat-value">{totals.orders}</strong>
+          <span className="sd-stat-sub">All time</span>
+        </div>
         {earnings.total > 0 && (
-          <div className="gd-summary-row" style={{ marginTop: -4 }}>
-            <div><span>Total earnings</span><strong style={{ color: "var(--emerald-deep)" }}>${earnings.total.toFixed(2)}</strong></div>
-            <div><span>Completed</span><strong style={{ color: "var(--emerald-deep)" }}>${earnings.completed.toFixed(2)}</strong></div>
-            <div><span>In progress</span><strong style={{ color: "var(--accent)" }}>${earnings.pending.toFixed(2)}</strong></div>
-          </div>
+          <>
+            <div className="sd-stat-card sd-earning">
+              <span className="sd-stat-label">Total Earnings</span>
+              <strong className="sd-stat-value">${earnings.total.toFixed(2)}</strong>
+              <span className="sd-stat-sub emerald">After 10% fee</span>
+            </div>
+            <div className="sd-stat-card">
+              <span className="sd-stat-label">Completed</span>
+              <strong className="sd-stat-value" style={{ color: "var(--emerald-deep)" }}>${earnings.completed.toFixed(2)}</strong>
+              <span className="sd-stat-sub emerald">Earned</span>
+            </div>
+            <div className="sd-stat-card">
+              <span className="sd-stat-label">In Progress</span>
+              <strong className="sd-stat-value" style={{ color: "var(--accent)" }}>${earnings.pending.toFixed(2)}</strong>
+              <span className="sd-stat-sub">Pending</span>
+            </div>
+          </>
         )}
+      </div>
 
-        <div className="gd-filter" role="tablist">
-          {(["all", "published", "paused", "draft"] as const).map((key) => (
+      <div className="sd-custom-orders-bar">
+        <div>
+          <strong>Accepting Custom Orders</strong>
+          <span>Let buyers send you custom order requests</span>
+        </div>
+        <label className="sd-toggle">
+          <input
+            type="checkbox"
+            checked={gigs.length > 0 && gigs.some((g) => g.custom_orders !== false)}
+            onChange={() => {
+              const allOn = gigs.every((g) => g.custom_orders !== false);
+              for (const g of gigs) {
+                if (allOn || g.custom_orders === false) void toggleCustomOrders(g);
+              }
+            }}
+          />
+          <span className="sd-toggle-track" />
+        </label>
+      </div>
+
+      <div className="sd-gigs-section">
+        <div className="sd-gigs-header">
+          <h3>Lyxes</h3>
+          <div className="sd-period-select">
+            <select value={period} onChange={(e) => setPeriod(e.target.value as TimePeriod)}>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="sd-tabs" role="tablist">
+          {(
+            [
+              { key: "all" as StatusFilter, label: "All", count: gigs.length },
+              { key: "published" as StatusFilter, label: "Active", count: totals.active },
+              { key: "paused" as StatusFilter, label: "Paused", count: totals.paused },
+              { key: "draft" as StatusFilter, label: "Draft", count: totals.draft },
+            ] as const
+          ).map(({ key, label, count }) => (
             <button
               key={key}
               type="button"
               role="tab"
               aria-selected={filter === key}
-              className={filter === key ? "active" : ""}
+              className={filter === key ? "sd-tab active" : "sd-tab"}
               onClick={() => setFilter(key)}
             >
-              {key === "all" ? "All" : STATUS_LABEL[key]}
-              <span>{key === "all" ? gigs.length : gigs.filter((g) => statusOf(g) === key).length}</span>
+              {label}
+              <span className="sd-tab-count">{count}</span>
             </button>
           ))}
         </div>
 
         {loading ? (
-          <p style={{ color: "var(--muted)" }}>Loading...</p>
+          <p style={{ color: "var(--muted)", padding: 20 }}>Loading...</p>
         ) : visible.length === 0 ? (
-          <div className="empty">
-            <h3>{gigs.length === 0 ? "No gigs yet" : "Nothing here"}</h3>
-            <p>
-              {gigs.length === 0
-                ? "Create your first gig to start getting orders."
-                : "No gigs match this filter."}
-            </p>
+          <div className="sd-empty">
+            <div className="sd-empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+            </div>
+            <h3>{gigs.length === 0 ? "No lyxes yet" : "Nothing here"}</h3>
+            <p>{gigs.length === 0 ? "Create your first lyx to start getting orders." : "No lyxes match this filter."}</p>
+            {gigs.length === 0 && (
+              <button className="btn-primary" type="button" onClick={openPost}>Create a new Lyx</button>
+            )}
           </div>
         ) : (
-          <ul className="order-list">
-            {visible.map((gig) => {
-              const status = statusOf(gig);
-              return (
-                <li key={gig.id} className="order-row gd-gig-row">
-                  {gig.images?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img className="gd-gig-thumb" src={gig.images[0]} alt="" loading="lazy" />
-                  ) : (
-                    <span className="gd-gig-thumb placeholder" aria-hidden="true" />
-                  )}
-                  <div className="gd-gig-info">
-                    <div className="order-title">
-                      <Link href={`/gig/${gig.id}`}>{gig.title}</Link>
-                    </div>
-                    <div className="order-meta">
-                      <span className={`gd-status ${status}`}>{STATUS_LABEL[status]}</span>
-                      <span>{gig.category}</span>
-                      <span>From ${formatPrice(gig.price)}</span>
-                      <span>{Number(gig.views ?? 0)} views</span>
-                      <span>{ordersCount[gig.id] ?? 0} orders</span>
-                    </div>
-                  </div>
-                  <div className="order-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Link className="btn-ghost btn-sm" href={`/post-project?edit=${gig.id}`}>
-                      Edit
-                    </Link>
-                    {status === "published" ? (
-                      <button className="btn-ghost btn-sm" type="button" disabled={busyId === gig.id} onClick={() => void setStatus(gig, "paused")}>
-                        Pause
-                      </button>
-                    ) : status === "paused" ? (
-                      <button className="btn-ghost btn-sm" type="button" disabled={busyId === gig.id} onClick={() => void setStatus(gig, "published")}>
-                        Resume
-                      </button>
-                    ) : null}
-                    <button className="btn-ghost btn-sm danger" type="button" onClick={() => void deleteGig(gig.id)}>
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="sd-table-wrap">
+            <table className="sd-analytics-table">
+              <thead>
+                <tr>
+                  <th className="sd-th-gig">LYX</th>
+                  <th>Impressions</th>
+                  <th>Clicks</th>
+                  <th>Orders</th>
+                  <th>Cancellations</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((gig) => {
+                  const status = statusOf(gig);
+                  const a = analyticsMap[gig.id];
+                  const impressions = a?.impressions ?? 0;
+                  const clicks = a?.clicks ?? 0;
+                  const orders = a?.orders ?? 0;
+                  const cancellations = a?.cancellations ?? 0;
+                  const cancelPct = orders > 0 ? Math.round((cancellations / orders) * 100) : 0;
+                  return (
+                    <tr key={gig.id} className="sd-gig-row">
+                      <td className="sd-td-gig">
+                        <div className="sd-gig-cell">
+                          {gig.images?.[0] ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img className="sd-gig-thumb" src={gig.images[0]} alt="" loading="lazy" />
+                          ) : (
+                            <span className="sd-gig-thumb sd-placeholder" aria-hidden="true" />
+                          )}
+                          <div className="sd-gig-meta">
+                            <Link href={`/gig/${gig.id}`} className="sd-gig-title">{gig.title}</Link>
+                            <div className="sd-gig-tags">
+                              <span className={`sd-badge ${status}`}>
+                                {STATUS_ICON[status]} {STATUS_LABEL[status]}
+                              </span>
+                              {gig.category && <span className="sd-gig-cat">{gig.category}</span>}
+                              <span className="sd-gig-price">From ${formatPrice(gig.price)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="sd-td-num"><span className="sd-num">{impressions.toLocaleString()}</span></td>
+                      <td className="sd-td-num"><span className="sd-num">{clicks.toLocaleString()}</span></td>
+                      <td className="sd-td-num"><span className="sd-num">{orders}</span></td>
+                      <td className="sd-td-num">
+                        <span className={`sd-num ${cancelPct > 10 ? "sd-warn" : ""}`}>{cancelPct}%</span>
+                      </td>
+                      <td className="sd-td-actions">
+                        <div className="sd-action-group">
+                          <Link className="sd-action-btn" href={`/post-project?edit=${gig.id}`} title="Edit">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </Link>
+                          {status === "published" ? (
+                            <button className="sd-action-btn" type="button" disabled={busyId === gig.id} onClick={() => void setStatus(gig, "paused")} title="Pause">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            </button>
+                          ) : (
+                            <button className="sd-action-btn sd-play" type="button" disabled={busyId === gig.id} onClick={() => void setStatus(gig, "published")} title={status === "draft" ? "Publish" : "Resume"}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </button>
+                          )}
+                          <button className="sd-action-btn sd-del" type="button" onClick={() => void deleteGig(gig.id)} title="Delete">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </section>
+    </>
   );
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   LEVEL PROGRESS (shared)
+   ══════════════════════════════════════════════════════════════════════ */
 
 function LevelProgress({ stats }: { stats: SellerStats }) {
   const order = ["new", "level_1", "level_2", "top_rated"] as const;
@@ -270,7 +472,7 @@ function LevelProgress({ stats }: { stats: SellerStats }) {
           <span className="gw-muted">Your seller level</span>
           <h3><LevelBadge level={stats.level} /></h3>
         </div>
-        {next ? <span className="gw-muted">Next: {LEVEL_META[next.level].label}</span> : <span className="gw-muted">Highest level reached 🎉</span>}
+        {next ? <span className="gw-muted">Next: {LEVEL_META[next.level].label}</span> : <span className="gw-muted">Highest level reached</span>}
       </div>
       {next ? (
         <div className="lvl-checks">
