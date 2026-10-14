@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact us · Hirelyx",
-  description: "Get in touch with the Hirelyx team for support, feedback, or business inquiries.",
+  title: "Contact Us",
+  description: "Get in touch with the Hirelyx team for support, feedback, or business inquiries. Email us at support@hirelyx.com.",
+  alternates: { canonical: "/contact" },
 };
 
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";

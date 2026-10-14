@@ -3,8 +3,9 @@ import Link from "next/link";
 import { PLATFORM_FEE_RATE } from "@/lib/fees";
 
 export const metadata: Metadata = {
-  title: "Help center · Hirelyx",
-  description: "Answers to common questions about orders, payments, refunds and disputes on Hirelyx.",
+  title: "Help Center",
+  description: "Answers to common questions about orders, payments, refunds and disputes on Hirelyx. Get support for your freelance projects.",
+  alternates: { canonical: "/help" },
 };
 
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";

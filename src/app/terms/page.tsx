@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { PLATFORM_FEE_RATE } from "@/lib/fees";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · Hirelyx",
-  description: "The rules for using the Hirelyx marketplace.",
+  title: "Terms of Service",
+  description: "Read the terms and conditions for using the Hirelyx freelance marketplace.",
+  alternates: { canonical: "/terms" },
 };
 
 const FEE = `${Math.round(PLATFORM_FEE_RATE * 100)}%`;

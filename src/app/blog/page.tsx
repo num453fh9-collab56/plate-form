@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Blog · Hirelyx",
-  description: "Tips, guides, and updates from the Hirelyx freelance marketplace.",
+  title: "Blog",
+  description: "Tips, guides, and updates from the Hirelyx freelance marketplace. Learn freelancing best practices and platform news.",
+  alternates: { canonical: "/blog" },
 };
 
 export default function BlogPage() {

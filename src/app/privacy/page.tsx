@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · Hirelyx",
-  description: "What data Hirelyx collects and how it is used.",
+  title: "Privacy Policy",
+  description: "Learn what data Hirelyx collects, how it is used, and how we protect your privacy.",
+  alternates: { canonical: "/privacy" },
 };
 
 const UPDATED = "October 10, 2026";

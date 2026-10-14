@@ -3,8 +3,9 @@ import Link from "next/link";
 import { PLATFORM_FEE_RATE } from "@/lib/fees";
 
 export const metadata: Metadata = {
-  title: "How Hirelyx works",
-  description: "How buying and selling freelance services works on Hirelyx.",
+  title: "How It Works",
+  description: "Learn how to buy and sell freelance services on Hirelyx — from posting a gig to secure payment via Stripe.",
+  alternates: { canonical: "/how-it-works" },
 };
 
 const BUYER_STEPS = [
