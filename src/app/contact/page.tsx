@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -6,31 +7,24 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
-const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";
-
 export default function ContactPage() {
   return (
     <main className="wrap" style={{ paddingBlock: "4rem" }}>
       <h1 className="page-title">Contact Us</h1>
 
-      <section style={{ maxWidth: 620, margin: "2rem auto", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <section style={{ maxWidth: 620, margin: "2rem auto", display: "flex", flexDirection: "column", gap: "2rem" }}>
         <p style={{ fontSize: "1.05rem", lineHeight: 1.7, color: "var(--muted)" }}>
-          Have a question, need help, or want to share feedback? We&apos;d love to hear from you.
+          Have a question, need help, or want to share feedback? Fill out the form below and we&apos;ll get back to you.
         </p>
+
+        <ContactForm />
 
         <div style={{ background: "var(--hover)", borderRadius: 12, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div>
-            <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Email Support</h3>
+            <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Email</h3>
             <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.6 }}>
-              For general inquiries, order issues, or account help:
-              {SUPPORT_EMAIL ? (
-                <>
-                  <br />
-                  <strong style={{ color: "var(--accent)" }}>{SUPPORT_EMAIL}</strong>
-                </>
-              ) : (
-                <> reach out through the Help Center.</>
-              )}
+              You can also email us directly at{" "}
+              <strong style={{ color: "var(--accent)" }}>support@hirelyx.com</strong>
             </p>
           </div>
 
