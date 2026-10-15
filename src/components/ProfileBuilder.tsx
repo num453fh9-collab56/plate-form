@@ -18,6 +18,7 @@ import type { Profile } from "@/lib/types";
 import BasicInformationStep from "./BasicInformationStep";
 import type { BasicInformationValues } from "./BasicInformationStep";
 import AvatarUploader from "./AvatarUploader";
+import BrandMark from "./BrandMark";
 import ContactFields from "./ContactFields";
 import type { ContactValues } from "./ContactFields";
 import StepProgress from "./StepProgress";
@@ -707,10 +708,7 @@ function ProfileWizard() {
 
       <header className="ob-topbar">
         <span className="ob-brand">
-          <svg className="ob-brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <circle cx="20" cy="20" r="18.4" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="currentColor" />
-          </svg>
+          <BrandMark className="ob-brand-mark" />
           <b>
             Hire<span>lyx</span>
           </b>

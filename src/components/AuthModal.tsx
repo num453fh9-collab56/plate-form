@@ -7,6 +7,7 @@ import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import { getSupabase } from "@/lib/supabase";
+import BrandMark from "./BrandMark";
 
 type Mode = "signup" | "login";
 
@@ -157,10 +158,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
           <div className="auth-aside-inner">
             <span className="logo auth-logo">
               <span className="mark" aria-hidden="true">
-                <svg className="apex" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-                  <circle cx="20" cy="20" r="18.4" stroke="#111111" strokeWidth="1.2" />
-                  <path d="M13 10H17.5V18H22.5V10H27V30H22.5V22H17.5V30H13Z" fill="#111111" />
-                </svg>
+                <BrandMark className="apex" />
               </span>
               <b>
                 Hire<span className="accent">lyx</span>
