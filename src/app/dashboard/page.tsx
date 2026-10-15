@@ -120,6 +120,20 @@ interface EarningsData {
   pending: number;
 }
 
+interface RecentOrder {
+  id: string;
+  title: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  buyer_id: string | null;
+}
+
+interface DailyEarning {
+  date: string;
+  amount: number;
+}
+
 type StatusFilter = "all" | GigStatus;
 type TimePeriod = "7" | "30" | "90";
 
@@ -157,6 +171,8 @@ function SellerDashboard() {
   const [myStats, setMyStats] = useState<SellerStats | null>(null);
   const [analytics, setAnalytics] = useState<GigAnalytics[]>([]);
   const [earnings, setEarnings] = useState<EarningsData>({ total: 0, completed: 0, pending: 0 });
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [dailyEarnings, setDailyEarnings] = useState<DailyEarning[]>([]);
 
   useEffect(() => {
     if (!user?.sub) return;
@@ -189,25 +205,37 @@ function SellerDashboard() {
       .order("created_at", { ascending: false });
     const rows = (data ?? []) as GigRowData[];
     setGigs(rows);
-    if (rows.length) {
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("gig_id, amount, status")
-        .eq("seller_id", user.sub);
-      const counts: Record<string, number> = {};
-      let totalEarnings = 0;
-      let completedEarnings = 0;
-      let pendingEarnings = 0;
-      for (const o of (orders ?? []) as { gig_id: string; amount: number; status: string }[]) {
-        counts[o.gig_id] = (counts[o.gig_id] ?? 0) + 1;
-        const net = Number(o.amount) * 0.9;
-        totalEarnings += net;
-        if (o.status === "completed") completedEarnings += net;
-        else if (o.status === "active" || o.status === "delivered") pendingEarnings += net;
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("id, gig_id, title, amount, status, created_at, buyer_id")
+      .eq("seller_id", user.sub)
+      .order("created_at", { ascending: false });
+    const allOrders = (orders ?? []) as (RecentOrder & { gig_id: string })[];
+    setRecentOrders(allOrders.slice(0, 5));
+    const counts: Record<string, number> = {};
+    let totalEarnings = 0;
+    let completedEarnings = 0;
+    let pendingEarnings = 0;
+    const dailyMap: Record<string, number> = {};
+    for (const o of allOrders) {
+      counts[o.gig_id] = (counts[o.gig_id] ?? 0) + 1;
+      const net = Number(o.amount) * 0.9;
+      totalEarnings += net;
+      if (o.status === "completed") {
+        completedEarnings += net;
+        const day = (o.created_at ?? "").slice(0, 10);
+        if (day) dailyMap[day] = (dailyMap[day] ?? 0) + net;
+      } else if (o.status === "active" || o.status === "delivered") {
+        pendingEarnings += net;
       }
-      setOrdersCount(counts);
-      setEarnings({ total: totalEarnings, completed: completedEarnings, pending: pendingEarnings });
     }
+    setOrdersCount(counts);
+    setEarnings({ total: totalEarnings, completed: completedEarnings, pending: pendingEarnings });
+    const sortedDays = Object.entries(dailyMap)
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-14);
+    setDailyEarnings(sortedDays);
     setLoading(false);
   }, [user]);
 
@@ -259,6 +287,10 @@ function SellerDashboard() {
     clicks: analytics.reduce((s, a) => s + a.clicks, 0),
     orders: Object.values(ordersCount).reduce((sum, n) => sum + n, 0),
   };
+
+  const ctr = totals.impressions > 0 ? ((totals.clicks / totals.impressions) * 100).toFixed(1) : "0";
+  const conversionRate = totals.clicks > 0 ? ((totals.orders / totals.clicks) * 100).toFixed(1) : "0";
+  const avgOrderValue = totals.orders > 0 ? (earnings.total / totals.orders).toFixed(0) : "0";
 
   return (
     <>
@@ -316,6 +348,56 @@ function SellerDashboard() {
           </>
         )}
       </div>
+
+      {/* ── Performance Metrics ── */}
+      <div className="sd-perf-row">
+        <div className="sd-perf-card">
+          <div className="sd-perf-icon sd-perf-ctr">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div className="sd-perf-info">
+            <span className="sd-perf-label">Click-Through Rate</span>
+            <strong className="sd-perf-value">{ctr}%</strong>
+            <span className="sd-perf-hint">Impressions → Clicks</span>
+          </div>
+        </div>
+        <div className="sd-perf-card">
+          <div className="sd-perf-icon sd-perf-conv">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div className="sd-perf-info">
+            <span className="sd-perf-label">Conversion Rate</span>
+            <strong className="sd-perf-value">{conversionRate}%</strong>
+            <span className="sd-perf-hint">Clicks → Orders</span>
+          </div>
+        </div>
+        <div className="sd-perf-card">
+          <div className="sd-perf-icon sd-perf-aov">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div className="sd-perf-info">
+            <span className="sd-perf-label">Avg. Order Value</span>
+            <strong className="sd-perf-value">${avgOrderValue}</strong>
+            <span className="sd-perf-hint">After platform fee</span>
+          </div>
+        </div>
+        <div className="sd-perf-card">
+          <div className="sd-perf-icon sd-perf-lyxes">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+          </div>
+          <div className="sd-perf-info">
+            <span className="sd-perf-label">Active Lyxes</span>
+            <strong className="sd-perf-value">{totals.active}/{gigs.length}</strong>
+            <span className="sd-perf-hint">{totals.paused} paused · {totals.draft} draft</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Earnings Chart ── */}
+      {dailyEarnings.length > 0 && <EarningsChart data={dailyEarnings} />}
+
+      {/* ── Recent Orders ── */}
+      {recentOrders.length > 0 && <RecentOrdersList orders={recentOrders} />}
 
       <div className="sd-custom-orders-bar">
         <div>
@@ -467,6 +549,106 @@ function SellerDashboard() {
         )}
       </div>
     </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   EARNINGS CHART
+   ══════════════════════════════════════════════════════════════════════ */
+
+function EarningsChart({ data }: { data: DailyEarning[] }) {
+  const max = Math.max(...data.map((d) => d.amount), 1);
+  const chartH = 140;
+  const barW = Math.max(16, Math.min(36, 500 / data.length));
+  const gap = 6;
+  const svgW = data.length * (barW + gap) - gap;
+  const total = data.reduce((s, d) => s + d.amount, 0);
+
+  return (
+    <div className="sd-chart-card">
+      <div className="sd-chart-header">
+        <div>
+          <h3 className="sd-chart-title">Earnings Overview</h3>
+          <span className="sd-chart-total">${total.toFixed(2)} total</span>
+        </div>
+        <span className="sd-chart-period">Last {data.length} days with earnings</span>
+      </div>
+      <div className="sd-chart-wrap">
+        <svg width={svgW} height={chartH + 24} viewBox={`0 0 ${svgW} ${chartH + 24}`} aria-label="Earnings bar chart">
+          {data.map((d, i) => {
+            const h = (d.amount / max) * chartH;
+            const x = i * (barW + gap);
+            const y = chartH - h;
+            return (
+              <g key={d.date}>
+                <rect
+                  x={x} y={y} width={barW} height={h}
+                  rx={4}
+                  className="sd-chart-bar"
+                />
+                <text x={x + barW / 2} y={chartH + 14} textAnchor="middle" className="sd-chart-label">
+                  {d.date.slice(8)}
+                </text>
+                <title>{d.date}: ${d.amount.toFixed(2)}</title>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RECENT ORDERS
+   ══════════════════════════════════════════════════════════════════════ */
+
+const ORDER_STATUS_STYLE: Record<string, { label: string; cls: string }> = {
+  pending: { label: "Pending", cls: "ro-pending" },
+  active: { label: "In Progress", cls: "ro-active" },
+  delivered: { label: "Delivered", cls: "ro-delivered" },
+  completed: { label: "Completed", cls: "ro-completed" },
+  cancelled: { label: "Cancelled", cls: "ro-cancelled" },
+  disputed: { label: "Disputed", cls: "ro-cancelled" },
+};
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
+function RecentOrdersList({ orders }: { orders: RecentOrder[] }) {
+  return (
+    <div className="sd-recent-card">
+      <div className="sd-recent-header">
+        <h3>Recent Orders</h3>
+        <Link href="/orders" className="sd-recent-link">View all →</Link>
+      </div>
+      <div className="sd-recent-list">
+        {orders.map((o) => {
+          const st = ORDER_STATUS_STYLE[o.status] ?? { label: o.status, cls: "" };
+          return (
+            <Link key={o.id} href={`/orders/${o.id}`} className="sd-recent-item">
+              <div className="sd-recent-info">
+                <span className="sd-recent-title">{o.title || "Untitled order"}</span>
+                <span className="sd-recent-time">{o.created_at ? timeAgo(o.created_at) : ""}</span>
+              </div>
+              <div className="sd-recent-right">
+                <strong className="sd-recent-amount">${(Number(o.amount) * 0.9).toFixed(2)}</strong>
+                <span className={`sd-recent-status ${st.cls}`}>{st.label}</span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
