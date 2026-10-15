@@ -3762,7 +3762,7 @@ button.link-all {
 }
 .ob-brand b { font-weight: 800; letter-spacing: -0.01em; }
 .ob-brand b span { color: var(--ob-accent); }
-.ob-brand-mark { width: 26px; height: 26px; color: var(--ob-text); }
+.ob-brand-mark { width: 32px; height: 32px; }
 .ob-brand-tag {
   margin-left: 8px;
   padding: 3px 10px;
@@ -4426,7 +4426,6 @@ button.link-all {
 }
 
 /* ------------------------------ step 1 · advanced basic info ------------------------------ */
-.ob-brand-mark { color: var(--ob-accent); }
 .ob-btn-primary.btn-sm { padding: 8px 16px; font-size: 0.8rem; border-radius: 10px; }
 .ob-btn-primary:focus-visible,
 .ob-btn-ghost:focus-visible { outline: 3px solid rgba(0, 102, 204, 0.35); outline-offset: 2px; }
