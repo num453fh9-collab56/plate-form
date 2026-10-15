@@ -57,7 +57,8 @@ export default function Overlays() {
 
     if (profile.role === "freelancer" || profile.role === "both") {
       const strength = computeProfileStrength(profile);
-      const requiredDone = (["fullName", "title", "bio", "phone", "avatar"] as const).every(
+      if (strength.percent >= 60) return;
+      const requiredDone = (["fullName", "title", "bio"] as const).every(
         (key) => strength.items.find((item) => item.key === key)?.done,
       );
       if (!requiredDone) openProfile();

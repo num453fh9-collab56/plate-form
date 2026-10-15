@@ -82,10 +82,9 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
   useEffect(() => {
     setGoogleSuccessHandler(() => {
       closeAuth();
-      openRoleSelector();
     });
     return () => setGoogleSuccessHandler(null);
-  }, [setGoogleSuccessHandler, closeAuth, openRoleSelector]);
+  }, [setGoogleSuccessHandler, closeAuth]);
 
   const setField = (field: keyof Values, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -130,7 +129,6 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
 
     toast(t("auth.welcome", { name: values.name.trim().split(" ")[0] || "there" }));
     closeAuth();
-    openRoleSelector();
   };
 
   const switchMode = (next: Mode) => {
