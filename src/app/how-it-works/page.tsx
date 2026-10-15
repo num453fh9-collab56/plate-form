@@ -22,9 +22,33 @@ const SELLER_STEPS = [
   { title: "Deliver & get paid", body: `Deliver through the order page. When the buyer approves, you receive the amount minus the ${Math.round(PLATFORM_FEE_RATE * 100)}% platform fee.` },
 ];
 
+function HowToSchema() {
+  const steps = [...BUYER_STEPS, ...SELLER_STEPS].map((step, i) => ({
+    "@type": "HowToStep" as const,
+    position: i + 1,
+    name: step.title,
+    text: step.body,
+  }));
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Hire Freelancers and Sell Services on Hirelyx",
+          description: "A step-by-step guide to buying and selling freelance services on Hirelyx marketplace.",
+          step: steps,
+        }),
+      }}
+    />
+  );
+}
+
 export default function HowItWorksPage() {
   return (
     <section className="section">
+      <HowToSchema />
       <div className="wrap info-page">
         <div className="section-head">
           <div>

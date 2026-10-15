@@ -76,19 +76,37 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "Hirelyx",
-              url: "https://www.hirelyx.com",
-              description:
-                "Global freelance marketplace connecting expert freelancers with ambitious businesses.",
-              potentialAction: {
-                "@type": "SearchAction",
-                target: "https://www.hirelyx.com/search?q={search_term_string}",
-                "query-input": "required name=search_term_string",
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: "Hirelyx",
+                url: "https://www.hirelyx.com",
+                description:
+                  "Global freelance marketplace connecting expert freelancers with ambitious businesses.",
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: "https://www.hirelyx.com/search?q={search_term_string}",
+                  "query-input": "required name=search_term_string",
+                },
               },
-            }),
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "Hirelyx",
+                url: "https://www.hirelyx.com",
+                logo: "https://www.hirelyx.com/logo-mark.svg",
+                description:
+                  "Hirelyx is a global freelance marketplace where businesses hire expert freelancers for design, development, writing, marketing, video production and more.",
+                sameAs: [],
+                contactPoint: {
+                  "@type": "ContactPoint",
+                  contactType: "customer support",
+                  url: "https://www.hirelyx.com/contact",
+                  availableLanguage: ["English", "Spanish", "French", "German", "Arabic", "Urdu", "Hindi"],
+                },
+              },
+            ]),
           }}
         />
         <Script

@@ -47,9 +47,32 @@ const FAQ: { group: string; items: [string, string][] }[] = [
   },
 ];
 
+function FaqSchema() {
+  const allFaqs = FAQ.flatMap((group) =>
+    group.items.map(([q, a]) => ({
+      "@type": "Question" as const,
+      name: q,
+      acceptedAnswer: { "@type": "Answer" as const, text: a },
+    })),
+  );
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: allFaqs,
+        }),
+      }}
+    />
+  );
+}
+
 export default function HelpPage() {
   return (
     <section className="section">
+      <FaqSchema />
       <div className="wrap info-page">
         <div className="section-head">
           <div>

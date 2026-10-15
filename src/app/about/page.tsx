@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "About Us",
   description: "Learn about Hirelyx — the global freelance marketplace connecting buyers with skilled freelancers worldwide for design, development, writing and more.",
   alternates: { canonical: "/about" },
+  openGraph: {
+    title: "About Hirelyx — Global Freelance Marketplace",
+    description:
+      "Hirelyx connects businesses with expert freelancers for design, development, writing, marketing and more. Secure payments, global talent, 16+ languages.",
+    type: "website",
+  },
 };
 
 export default function AboutPage() {
