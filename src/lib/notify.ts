@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getEmailForUser, sendEmail } from "./email";
+import { getEmailForUser, sendTemplateEmail } from "./email";
+import type { EmailData, EmailTemplate } from "./email";
 
-/* Server-only: in-app notification + matching email. User-written text is
-   HTML-escaped before it reaches the email body. */
+/* Server-only: in-app notification + matching email. */
 
 export function escapeHtml(value: string): string {
   return value
@@ -12,15 +12,26 @@ export function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+export interface NotifyOptions {
+  template?: EmailTemplate;
+  orderTitle?: string;
+  amount?: string;
+  counterpart?: string;
+  linkLabel?: string;
+}
+
 export async function notifyUser(
   admin: SupabaseClient,
   userId: string | null | undefined,
   title: string,
   body: string,
   link = "/orders",
-  type = "order",
+  typeOrOpts: string | NotifyOptions = "order",
 ): Promise<void> {
   if (!userId) return;
+  const opts: NotifyOptions = typeof typeOrOpts === "string" ? {} : typeOrOpts;
+  const type = typeof typeOrOpts === "string" ? typeOrOpts : "order";
+
   await admin.from("notifications").insert({
     user_id: userId,
     type,
@@ -28,12 +39,17 @@ export async function notifyUser(
     body,
     link,
   });
+
   const email = await getEmailForUser(admin, userId);
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  await sendEmail(
-    email,
-    `Hirelyx — ${title}`,
-    `<p><strong>${escapeHtml(title)}</strong></p><p>${escapeHtml(body)}</p>` +
-      `<p><a href="${site}${link}">Open Hirelyx</a></p>`,
-  );
+  const emailData: EmailData = {
+    template: opts.template ?? "generic",
+    title,
+    body,
+    link,
+    linkLabel: opts.linkLabel ?? "View on Hirelyx",
+    orderTitle: opts.orderTitle,
+    amount: opts.amount,
+    counterpart: opts.counterpart,
+  };
+  await sendTemplateEmail(email, emailData);
 }

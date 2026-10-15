@@ -26,6 +26,7 @@ import { startCheckout } from "@/lib/checkout";
 import { offeredPackages, quoteOrder } from "@/lib/gig-model";
 import VideoPlayer from "@/components/VideoPlayer";
 import GigCard from "@/components/GigCard";
+import ShareButtons from "@/components/ShareButtons";
 import { addRecentView } from "@/lib/recent-views";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/favorites";
 
@@ -80,6 +81,8 @@ export default function GigDetailPage() {
   const [statusBusy, setStatusBusy] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [sellerOnline, setSellerOnline] = useState(false);
   const gig = fetched ?? cached;
   const loading = !gig && !fetchDone;
 
@@ -110,6 +113,9 @@ export default function GigDetailPage() {
       setSeller(profile);
       setReviews(reviewList);
       setRelated(sellerGigs.filter((item) => item.id !== found.id).slice(0, 3));
+      if (found.sellerId) {
+        void fetch(`/api/presence?userId=${found.sellerId}`).then((r) => r.json()).then((j) => { if (!cancelled) setSellerOnline(j.online ?? false); }).catch(() => {});
+      }
     });
     return () => {
       cancelled = true;
@@ -277,13 +283,21 @@ export default function GigDetailPage() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                 {isSaved ? "Saved" : "Save"}
               </button>
+              <button type="button" className="btn-ghost btn-sm" onClick={() => setShowShare((s) => !s)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Share
+              </button>
             </div>
+            {showShare ? (
+              <ShareButtons url={typeof window !== "undefined" ? window.location.href : ""} title={gig.title} gigId={gig.id} />
+            ) : null}
 
             <div className="gig-detail-seller">
               <span className="avatar" aria-hidden="true">{initials(gig.seller)}</span>
               <div>
                 {gig.sellerId ? (
                   <Link className="seller-name" href={`/user/${gig.sellerId}`}>
+                    <span className={`online-dot ${sellerOnline ? "on" : "off"}`} />
                     {gig.seller}
                   </Link>
                 ) : (

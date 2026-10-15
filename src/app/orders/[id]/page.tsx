@@ -29,6 +29,7 @@ interface OrderDetail {
   created_at: string;
   paid_at: string | null;
   delivered_at: string | null;
+  auto_complete_at: string | null;
 }
 
 interface Milestone {
@@ -130,7 +131,17 @@ export default function OrderDetailPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [deliveryFiles, setDeliveryFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [tipAmount, setTipAmount] = useState("5");
+  const [extDays, setExtDays] = useState("3");
+  const [extReason, setExtReason] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
   const uid = user?.sub;
+
+  useEffect(() => {
+    const iv = setInterval(() => setTick((t) => t + 1), 60000);
+    return () => clearInterval(iv);
+  }, []);
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -230,6 +241,20 @@ export default function OrderDetailPage() {
   const active = ["paid", "delivered", "revision"].includes(order.status);
   const stepIndex = order.status === "revision" ? 1 : STEPS.indexOf(order.status as (typeof STEPS)[number]);
   const released = milestones.filter((m) => m.status === "approved").reduce((s, m) => s + Number(m.amount), 0);
+
+  const timeLeft = dueAt && active && !late
+    ? Math.max(0, dueAt.getTime() - Date.now() - tick * 0)
+    : 0;
+  const daysLeft = Math.floor(timeLeft / 86400000);
+  const hoursLeft = Math.floor((timeLeft % 86400000) / 3600000);
+  const minsLeft = Math.floor((timeLeft % 3600000) / 60000);
+
+  const autoCompleteAt = order.auto_complete_at ? new Date(order.auto_complete_at) : null;
+  const autoCompleteLeft = autoCompleteAt && order.status === "delivered"
+    ? Math.max(0, autoCompleteAt.getTime() - Date.now())
+    : 0;
+  const autoCompleteDays = Math.floor(autoCompleteLeft / 86400000);
+  const autoCompleteHours = Math.floor((autoCompleteLeft % 86400000) / 3600000);
 
   const act = async (key: string, body: Record<string, unknown>, success: string) => {
     setBusy(key);
@@ -488,13 +513,25 @@ export default function OrderDetailPage() {
                     {deliveries.length > 0 && deliveries[0].files.length > 0 ? (
                       <div className="dlv-delivered-files">
                         <strong>Delivered files:</strong>
-                        {deliveries[0].files.map((f, i) => (
-                          <a key={i} className="dlv-download" href={f.url} target="_blank" rel="noopener noreferrer" download={f.name}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            {f.name}
-                            <span className="dlv-file-size">{(f.size / 1024).toFixed(0)} KB</span>
-                          </a>
-                        ))}
+                        {deliveries[0].files.map((f, i) => {
+                          const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name);
+                          const isPdf = /\.pdf$/i.test(f.name);
+                          return (
+                            <div key={i} className="dlv-file-preview-wrap">
+                              {isImage ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={f.url} alt={f.name} className="dlv-preview-img" loading="lazy" />
+                              ) : isPdf ? (
+                                <div className="dlv-pdf-badge">PDF</div>
+                              ) : null}
+                              <a className="dlv-download" href={f.url} target="_blank" rel="noopener noreferrer" download={f.name}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                {f.name}
+                                <span className="dlv-file-size">{(f.size / 1024).toFixed(0)} KB</span>
+                              </a>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : null}
                     <button className="btn-primary" type="button" disabled={Boolean(busy)} onClick={() => void act("ac", { action: "accept" }, "Order completed. Thank you!")}>
@@ -683,6 +720,31 @@ export default function OrderDetailPage() {
               ) : null}
             </div>
 
+            {timeLeft > 0 ? (
+              <div className="gw-card od-timer">
+                <h3>Time remaining</h3>
+                <div className="od-countdown">
+                  <div className="od-count-unit"><span className="od-count-num">{daysLeft}</span><span className="od-count-label">days</span></div>
+                  <span className="od-count-sep">:</span>
+                  <div className="od-count-unit"><span className="od-count-num">{hoursLeft}</span><span className="od-count-label">hours</span></div>
+                  <span className="od-count-sep">:</span>
+                  <div className="od-count-unit"><span className="od-count-num">{minsLeft}</span><span className="od-count-label">min</span></div>
+                </div>
+                {daysLeft === 0 && hoursLeft < 12 ? <p className="od-timer-warn">Deadline approaching!</p> : null}
+              </div>
+            ) : null}
+
+            {autoCompleteLeft > 0 ? (
+              <div className="gw-card od-auto-complete">
+                <h3>Auto-complete</h3>
+                <p className="gw-muted">
+                  {isBuyer
+                    ? `This delivery will be automatically accepted in ${autoCompleteDays > 0 ? `${autoCompleteDays}d ` : ""}${autoCompleteHours}h if you don't respond.`
+                    : `Payment will be released in ${autoCompleteDays > 0 ? `${autoCompleteDays}d ` : ""}${autoCompleteHours}h automatically.`}
+                </p>
+              </div>
+            ) : null}
+
             {active && dispute?.status !== "open" ? (
               <div className="gw-card">
                 <h3>Need help?</h3>
@@ -727,6 +789,49 @@ export default function OrderDetailPage() {
                 <button className="btn-ghost btn-sm danger" type="button" disabled={Boolean(busy)} onClick={() => void act("cx", { action: "cancel" }, "Order cancelled.")}>
                   Cancel order
                 </button>
+              </div>
+            ) : null}
+
+            {order.status === "completed" && isBuyer ? (
+              <div className="gw-card od-tip-card">
+                <h3>Leave a tip</h3>
+                <p className="gw-muted">Show appreciation for great work.</p>
+                <div className="od-tip-amounts">
+                  {["2", "5", "10", "20"].map((v) => (
+                    <button key={v} type="button" className={`od-tip-btn${tipAmount === v ? " active" : ""}`} onClick={() => setTipAmount(v)}>${v}</button>
+                  ))}
+                </div>
+                <button className="btn-primary btn-sm" type="button" disabled={Boolean(busy)} onClick={() => void act("tip", { action: "tip" as never, amount: Number(tipAmount) } as Record<string, unknown>, `$${tipAmount} tip sent!`)}>
+                  {busy === "tip" ? "Sending…" : `Send $${tipAmount} tip`}
+                </button>
+              </div>
+            ) : null}
+
+            {active && isSeller && (order.status === "paid" || order.status === "revision") ? (
+              <div className="gw-card od-ext-card">
+                <h3>Request extension</h3>
+                <p className="gw-muted">Need more time? Ask the buyer for a deadline extension.</p>
+                <div className="od-actions col">
+                  <select className="gw-input" value={extDays} onChange={(e) => setExtDays(e.target.value)}>
+                    <option value="1">+1 day</option>
+                    <option value="2">+2 days</option>
+                    <option value="3">+3 days</option>
+                    <option value="5">+5 days</option>
+                    <option value="7">+7 days</option>
+                  </select>
+                  <input className="gw-input" value={extReason} onChange={(e) => setExtReason(e.target.value)} placeholder="Reason (optional)" />
+                  <button className="btn-ghost btn-sm" type="button" disabled={Boolean(busy)} onClick={async () => {
+                    setBusy("ext");
+                    const error = await postJson("/api/orders/action", { orderId: order.id, action: "extension" as never, days: Number(extDays), reason: extReason } as Record<string, unknown>);
+                    setBusy(null);
+                    if (error) { toast(error); return; }
+                    toast("Extension request sent.");
+                    setExtReason("");
+                    await load();
+                  }}>
+                    {busy === "ext" ? "Sending…" : "Request extension"}
+                  </button>
+                </div>
               </div>
             ) : null}
           </aside>

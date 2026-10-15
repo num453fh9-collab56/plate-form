@@ -24,9 +24,15 @@ export default function UserProfilePage() {
   const [reviews, setReviews] = useState<GigReview[]>([]);
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    void fetch(`/api/presence?userId=${id}`).then((r) => r.json()).then((j) => {
+      setIsOnline(j.online ?? false);
+      setLastSeen(j.lastSeen ?? null);
+    }).catch(() => {});
     let cancelled = false;
     void Promise.all([
       fetchPublicProfile(id),
@@ -85,7 +91,15 @@ export default function UserProfilePage() {
             )}
           </div>
           <div className="profile-hero-info">
-            <h1>{displayName}</h1>
+            <h1>
+              <span className={`online-dot ${isOnline ? "on" : "off"}`} />
+              {displayName}
+            </h1>
+            {isOnline ? (
+              <span style={{ color: "#22c55e", fontSize: "0.82rem", fontWeight: 600 }}>Online now</span>
+            ) : lastSeen ? (
+              <span className="muted" style={{ fontSize: "0.82rem" }}>Last seen {new Date(lastSeen).toLocaleDateString()}</span>
+            ) : null}
             {profile.title ? <p className="profile-hero-title">{profile.title}</p> : null}
             <div className="profile-hero-meta">
               {profile.country ? <span>{profile.country}</span> : null}

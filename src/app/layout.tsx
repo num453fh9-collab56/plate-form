@@ -14,6 +14,7 @@ import Overlays from "@/components/Overlays";
 import ErrorReporter from "@/components/ErrorReporter";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import PageTracker from "@/components/PageTracker";
+import PresenceTracker from "@/components/PresenceTracker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -126,6 +127,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   <Overlays />
                   <ChatbotWidget />
                   <PageTracker />
+                  <PresenceTracker />
                 </MarketplaceProvider>
               </MessagingProvider>
             </AuthProvider>

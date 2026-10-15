@@ -416,6 +416,36 @@ export default function AccountMenu() {
               </span>
               <span className="dash-text">Saved lyxes</span>
             </button>
+            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/wishlists"); }}>
+              <span className="dash-icon" style={{ color: "#8b5cf6", background: "rgba(139,92,246,0.12)" }}><Icon name="rewards" /></span>
+              <span className="dash-text">Wishlists</span>
+            </button>
+            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/referrals"); }}>
+              <span className="dash-icon" style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}><Icon name="groups" /></span>
+              <span className="dash-text">Referrals</span>
+            </button>
+            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/teams"); }}>
+              <span className="dash-icon" style={{ color: "#0284c7", background: "rgba(2,132,199,0.12)" }}><Icon name="groups" /></span>
+              <span className="dash-text">Teams</span>
+            </button>
+            {!isBuyer && (
+              <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/promoted"); }}>
+                <span className="dash-icon" style={{ color: "#d97706", background: "rgba(217,119,6,0.12)" }}><Icon name="promote" /></span>
+                <span className="dash-text">Promoted Gigs</span>
+              </button>
+            )}
+            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/skill-tests"); }}>
+              <span className="dash-icon" style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}><Icon name="certified" /></span>
+              <span className="dash-text">Skill Tests</span>
+            </button>
+            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/recurring"); }}>
+              <span className="dash-icon" style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}><Icon name="manage" /></span>
+              <span className="dash-text">Recurring Orders</span>
+            </button>
+            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/affiliates"); }}>
+              <span className="dash-icon" style={{ color: "#dc2626", background: "rgba(220,38,38,0.12)" }}><Icon name="promote" /></span>
+              <span className="dash-text">Affiliates</span>
+            </button>
           </>
         )}
 

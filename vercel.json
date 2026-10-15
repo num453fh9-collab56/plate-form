@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/orders/auto-complete",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

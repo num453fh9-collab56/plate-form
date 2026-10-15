@@ -24,6 +24,9 @@ const ACTIONS = [
   "deliver-milestone",
   "approve-milestone",
   "open-dispute",
+  "extension",
+  "approve-extension",
+  "tip",
 ] as const;
 type Action = (typeof ACTIONS)[number];
 
@@ -76,7 +79,7 @@ export async function POST(request: Request) {
   const limited = await rateLimit(request, "order-action", 30, 60, user.id);
   if (limited) return limited;
 
-  let body: { orderId?: string; action?: Action; note?: string; milestoneId?: string; reason?: string } = {};
+  let body: { orderId?: string; action?: Action; note?: string; milestoneId?: string; reason?: string; days?: number; extensionId?: string; amount?: number } = {};
   try {
     body = await request.json();
   } catch {
@@ -124,11 +127,18 @@ export async function POST(request: Request) {
     if (order.status !== "paid" && order.status !== "revision") {
       return Response.json({ error: `Cannot deliver while status is "${order.status}".` }, { status: 409 });
     }
+    const now = new Date();
+    const autoComplete = new Date(now.getTime() + 3 * 86400000).toISOString();
     await admin
       .from("orders")
-      .update({ status: "delivered", delivery_note: note || null, delivered_at: new Date().toISOString() })
+      .update({ status: "delivered", delivery_note: note || null, delivered_at: now.toISOString(), auto_complete_at: autoComplete })
       .eq("id", orderId);
-    await notifyUser(admin, order.buyer_id, "Order delivered", note ? `Seller shared: ${note.slice(0, 200)}` : `${label} was delivered.`, link);
+    await notifyUser(admin, order.buyer_id, "Order delivered", note ? `Seller shared: ${note.slice(0, 200)}` : `${label} was delivered.`, link, {
+      template: "order_delivered",
+      orderTitle: order.title ?? undefined,
+      amount: `$${Number(order.amount ?? 0).toFixed(2)}`,
+      linkLabel: "Review delivery",
+    });
     return Response.json({ ok: true, status: "delivered" });
   }
 
@@ -152,7 +162,12 @@ export async function POST(request: Request) {
       gross: Number(order.amount ?? 0),
       currency: order.currency,
     });
-    await notifyUser(admin, order.seller_id, "Order completed", `The buyer accepted ${label}. Your payout is on its way.`, link);
+    await notifyUser(admin, order.seller_id, "Order completed", `The buyer accepted ${label}. Your payout is on its way.`, link, {
+      template: "order_completed",
+      orderTitle: order.title ?? undefined,
+      amount: `$${Number(order.amount ?? 0).toFixed(2)}`,
+      linkLabel: "View earnings",
+    });
     return Response.json({ ok: true, status: "completed", payout });
   }
 
@@ -178,7 +193,11 @@ export async function POST(request: Request) {
         revision_count: (order.revision_count ?? 0) + 1,
       })
       .eq("id", orderId);
-    await notifyUser(admin, order.seller_id, "Revision requested", note.slice(0, 200), link);
+    await notifyUser(admin, order.seller_id, "Revision requested", note.slice(0, 200), link, {
+      template: "revision_requested",
+      orderTitle: order.title ?? undefined,
+      linkLabel: "View revision details",
+    });
     return Response.json({ ok: true, status: "revision" });
   }
 
@@ -273,46 +292,109 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, status: "disputed", disputeId: dispute.id });
   }
 
-  // action === "cancel"
-  if (["completed", "cancelled"].includes(order.status)) {
-    return Response.json({ error: `Cannot cancel a ${order.status} order.` }, { status: 409 });
-  }
-  const paid = order.status !== "pending";
-  if (paid && isBuyer) {
-    const dueAt = order.paid_at
-      ? new Date(order.paid_at).getTime() + (order.delivery_days ?? 1) * 86400000
-      : Infinity;
-    const late = Date.now() > dueAt && order.status !== "delivered";
-    if (!late) {
-      return Response.json(
-        { error: "Paid orders can't be cancelled by the buyer before the due date. Ask the seller to cancel, or open a dispute." },
-        { status: 403 },
-      );
+  if (action === "cancel") {
+    if (["completed", "cancelled"].includes(order.status)) {
+      return Response.json({ error: `Cannot cancel a ${order.status} order.` }, { status: 409 });
     }
-  }
-  if (paid) {
-    // Refund only what has not already been paid out through milestones.
-    const released = milestones.filter((m) => m.status === "approved").reduce((s, m) => s + Number(m.amount), 0);
-    const refundable = Math.max(0, Number(order.amount ?? 0) - released);
-    try {
-      const stripe = getStripe();
-      if (stripe && order.stripe_payment_intent && refundable > 0) {
-        await stripe.refunds.create({
-          payment_intent: order.stripe_payment_intent,
-          ...(released > 0 ? { amount: Math.round(refundable * 100) } : {}),
-        });
+    const paid = order.status !== "pending";
+    if (paid && isBuyer) {
+      const dueAt = order.paid_at
+        ? new Date(order.paid_at).getTime() + (order.delivery_days ?? 1) * 86400000
+        : Infinity;
+      const late = Date.now() > dueAt && order.status !== "delivered";
+      if (!late) {
+        return Response.json(
+          { error: "Paid orders can't be cancelled by the buyer before the due date. Ask the seller to cancel, or open a dispute." },
+          { status: 403 },
+        );
       }
-    } catch {
-      return Response.json({ error: "Refund failed. Contact support." }, { status: 502 });
     }
+    if (paid) {
+      const released = milestones.filter((m) => m.status === "approved").reduce((s, m) => s + Number(m.amount), 0);
+      const refundable = Math.max(0, Number(order.amount ?? 0) - released);
+      try {
+        const stripe = getStripe();
+        if (stripe && order.stripe_payment_intent && refundable > 0) {
+          await stripe.refunds.create({
+            payment_intent: order.stripe_payment_intent,
+            ...(released > 0 ? { amount: Math.round(refundable * 100) } : {}),
+          });
+        }
+      } catch {
+        return Response.json({ error: "Refund failed. Contact support." }, { status: 502 });
+      }
+    }
+    await admin.from("orders").update({ status: "cancelled" }).eq("id", orderId);
+    await notifyUser(
+      admin,
+      isBuyer ? order.seller_id : order.buyer_id,
+      "Order cancelled",
+      paid ? `${label} was cancelled and the buyer refunded.` : `${label} was cancelled.`,
+      link,
+    );
+    return Response.json({ ok: true, status: "cancelled" });
   }
-  await admin.from("orders").update({ status: "cancelled" }).eq("id", orderId);
-  await notifyUser(
-    admin,
-    isBuyer ? order.seller_id : order.buyer_id,
-    "Order cancelled",
-    paid ? `${label} was cancelled and the buyer refunded.` : `${label} was cancelled.`,
-    link,
-  );
-  return Response.json({ ok: true, status: "cancelled" });
+
+  if (action === "extension") {
+    if (!isSeller) return Response.json({ error: "Only the seller can request an extension." }, { status: 403 });
+    if (!["paid", "revision"].includes(order.status)) {
+      return Response.json({ error: "Extensions can only be requested on active orders." }, { status: 409 });
+    }
+    const days = Math.min(30, Math.max(1, Number(body.days) || 1));
+    await admin.from("order_extensions").insert({
+      order_id: order.id,
+      requested_by: user.id,
+      extra_days: days,
+      reason: note.slice(0, 500),
+    });
+    await notifyUser(admin, order.buyer_id, "Extension requested", `Seller is requesting ${days} extra day${days > 1 ? "s" : ""} for ${label}.`, link, {
+      template: "extension_requested",
+      orderTitle: order.title ?? undefined,
+      linkLabel: "Review request",
+    });
+    return Response.json({ ok: true });
+  }
+
+  if (action === "approve-extension") {
+    if (!isBuyer) return Response.json({ error: "Only the buyer can approve." }, { status: 403 });
+    const extId = body.extensionId as string | undefined;
+    if (!extId) return Response.json({ error: "Missing extension ID." }, { status: 400 });
+    const { data: ext } = await admin
+      .from("order_extensions")
+      .update({ status: "approved" })
+      .eq("id", extId)
+      .eq("status", "pending")
+      .select("extra_days")
+      .maybeSingle();
+    if (!ext) return Response.json({ error: "Extension not found or already handled." }, { status: 404 });
+    const extraMs = (ext as { extra_days: number }).extra_days * 86400000;
+    const currentDays = order.delivery_days ?? 1;
+    await admin.from("orders").update({
+      delivery_days: currentDays + (ext as { extra_days: number }).extra_days,
+    }).eq("id", order.id);
+    await notifyUser(admin, order.seller_id, "Extension approved", `The buyer approved your ${(ext as { extra_days: number }).extra_days}-day extension for ${label}.`, link);
+    return Response.json({ ok: true });
+  }
+
+  if (action === "tip") {
+    if (!isBuyer) return Response.json({ error: "Only the buyer can tip." }, { status: 403 });
+    if (order.status !== "completed") return Response.json({ error: "Tips are for completed orders." }, { status: 409 });
+    const tipAmount = Math.min(500, Math.max(1, Number(body.amount) || 5));
+    await admin.from("tips").insert({
+      order_id: order.id,
+      buyer_id: user.id,
+      seller_id: order.seller_id,
+      amount: tipAmount,
+      currency: order.currency ?? "usd",
+      status: "paid",
+    });
+    await notifyUser(admin, order.seller_id, "You received a tip!", `The buyer tipped you $${tipAmount.toFixed(2)} on ${label}.`, link, {
+      template: "tip_received",
+      orderTitle: order.title ?? undefined,
+      amount: `$${tipAmount.toFixed(2)}`,
+    });
+    return Response.json({ ok: true });
+  }
+
+  return Response.json({ error: "Unknown action." }, { status: 400 });
 }
