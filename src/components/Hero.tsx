@@ -58,7 +58,7 @@ export default function Hero({ variant }: { variant?: "buyer" } = {}) {
             </h1>
             <p className="sub">
               {isBuyer
-                ? "Browse thousands of verified freelancers. Post your project and get proposals in minutes."
+                ? "Browse freelancer profiles and portfolios. Post your project and get proposals."
                 : t("hero.sub")}
             </p>
             <div className="hero-cta">

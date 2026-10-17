@@ -716,24 +716,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : "auth.errWrongPassword",
           };
         }
-        const current = authStore.getSnapshot();
-        const nextAccount = makeAccount({
-          name,
-          email: cleanEmail,
-          provider: "email",
-          passwordHash: "",
-          profile: { fullName: name.trim() },
-        });
-        applyState({
-          ...current,
-          accounts: [...current.accounts, { ...nextAccount, id: data.user.id }],
-          sessionId: data.user.id,
-          updatedAt: Date.now(),
-        });
-        void supabase.from("profiles").upsert(
-          { user_id: data.user.id, full_name: name.trim() },
-          { onConflict: "user_id" },
-        );
+        const emailConfirmed = !!data.user.email_confirmed_at;
+        if (emailConfirmed) {
+          const current = authStore.getSnapshot();
+          const nextAccount = makeAccount({
+            name,
+            email: cleanEmail,
+            provider: "email",
+            passwordHash: "",
+            profile: { fullName: name.trim() },
+          });
+          applyState({
+            ...current,
+            accounts: [...current.accounts, { ...nextAccount, id: data.user.id }],
+            sessionId: data.user.id,
+            updatedAt: Date.now(),
+          });
+          void supabase.from("profiles").upsert(
+            { user_id: data.user.id, full_name: name.trim() },
+            { onConflict: "user_id" },
+          );
+        }
         return { ok: true };
       }
       const current = authStore.getSnapshot();
@@ -750,7 +753,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applyState({
         ...current,
         accounts: [...current.accounts, nextAccount],
-        sessionId: nextAccount.id,
         updatedAt: Date.now(),
       });
       return { ok: true };

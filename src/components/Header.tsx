@@ -74,19 +74,7 @@ export default function Header() {
               My Requests
             </Link>
           )}
-          {!user && (
-            <button
-              className="nav-login"
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                openAuth("login");
-              }}
-            >
-              {t("nav.login")}
-            </button>
-          )}
-          {isBuyer ? (
+          {user && isBuyer && (
             <Link
               href="/requests/new"
               className="btn-gig"
@@ -95,7 +83,8 @@ export default function Header() {
               <span className="btn-gig-plus" aria-hidden="true">+</span>
               Post a Request
             </Link>
-          ) : (
+          )}
+          {user && !isBuyer && (
             <button className="btn-gig" type="button" onClick={startProject}>
               <span className="btn-gig-plus" aria-hidden="true">+</span>
               {t("nav.postProject")}
@@ -119,7 +108,7 @@ export default function Header() {
             </button>
           )}
 
-          <AccountMenu />
+          {user && <AccountMenu />}
         </nav>
       </div>
     </header>

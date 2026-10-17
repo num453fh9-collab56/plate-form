@@ -26,7 +26,7 @@ function passwordValid(value: string): boolean {
 }
 
 function AuthForm({ initialMode }: { initialMode: Mode }) {
-  const { closeAuth, openRoleSelector, toast } = useUI();
+  const { closeAuth, toast } = useUI();
   const {
     configured,
     renderGoogleButton,
@@ -40,6 +40,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Values, TranslationKey>>>({});
   const [formError, setFormError] = useState<TranslationKey | null>(null);
+  const [verifyEmail, setVerifyEmail] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const googleHostRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,11 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
       return;
     }
 
+    if (mode === "signup") {
+      setVerifyEmail(true);
+      return;
+    }
+
     toast(t("auth.welcome", { name: values.name.trim().split(" ")[0] || "there" }));
     closeAuth();
   };
@@ -135,7 +141,49 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     setMode(next);
     setErrors({});
     setFormError(null);
+    setVerifyEmail(false);
   };
+
+  if (verifyEmail) {
+    return (
+      <div
+        className="modal-overlay auth-overlay open"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authModalTitle"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeAuth();
+        }}
+      >
+        <div className="auth-modal auth-modal-compact">
+          <button className="modal-close auth-close" type="button" aria-label="Close" onClick={closeAuth}>
+            &times;
+          </button>
+          <div className="auth-panel">
+            <div className="auth-verify-screen">
+              <div className="auth-verify-icon" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </div>
+              <h3 id="authModalTitle">Check your email</h3>
+              <p>
+                We sent a verification link to <strong>{values.email}</strong>.
+                Click the link in the email to activate your account.
+              </p>
+              <p className="auth-verify-sub">
+                Didn&apos;t receive it? Check your spam folder or try again.
+              </p>
+              <button className="btn-primary auth-submit" type="button" onClick={closeAuth}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

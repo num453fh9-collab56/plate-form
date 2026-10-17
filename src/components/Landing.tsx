@@ -70,8 +70,8 @@ const CATEGORY_ICONS: Record<string, ReactNode> = {
 const STATS = [
   { value: "Secure", label: "Escrow Payments" },
   { value: "0%", label: "Buyer Fee" },
-  { value: "24/7", label: "AI Support" },
-  { value: "16", label: "Languages" },
+  { value: "AI", label: "Chat Support" },
+  { value: "2", label: "Languages" },
 ];
 
 const STEPS = [
@@ -86,7 +86,7 @@ const STEPS = [
   {
     num: "02",
     title: "Hire the Best",
-    desc: "Browse profiles, compare portfolios, read reviews. Hire with confidence — every freelancer is verified.",
+    desc: "Browse profiles, compare portfolios, and read reviews. Find the right freelancer for your project.",
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
     ),
@@ -103,8 +103,8 @@ const STEPS = [
 
 const WHY_ITEMS = [
   {
-    title: "Verified Talent",
-    desc: "Every freelancer goes through a rigorous vetting process. Skills, portfolio, and identity — all verified.",
+    title: "Google Sign-In Only",
+    desc: "No fake accounts. Every user signs in with a verified Google account, so you always know who you're working with.",
     icon: (
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>
     ),
@@ -112,23 +112,23 @@ const WHY_ITEMS = [
   },
   {
     title: "Secure Payments",
-    desc: "Your money stays safe in escrow until you approve the work. Stripe-powered, bank-level security.",
+    desc: "Your money stays safe in escrow until you approve the work. Powered by Stripe with bank-level security.",
     icon: (
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
     ),
     color: "#059669",
   },
   {
-    title: "24/7 Support",
-    desc: "Our dedicated team is always here to help. Real humans, real solutions, around the clock.",
+    title: "AI Chat Support",
+    desc: "Get instant help from our AI assistant. Have a question about the platform? Just ask the chatbot.",
     icon: (
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
     ),
     color: "#7c3aed",
   },
   {
-    title: "Money-Back Guarantee",
-    desc: "Not satisfied? Get a full refund. We stand behind the quality of work delivered on Hirelyx.",
+    title: "Escrow Protection",
+    desc: "Payment is held securely until the work is delivered and approved. Both buyers and freelancers are protected.",
     icon: (
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
     ),
@@ -246,7 +246,7 @@ export default function Landing() {
         </div>
         <div className="wrap land-hero-content">
           <span className="land-hero-badge-tag">
-            <span className="land-hero-dot" /> {onlineCount > 0 ? `${onlineCount.toLocaleString()} online now` : "#1 Freelance Marketplace"}
+            <span className="land-hero-dot" /> {onlineCount > 0 ? `${onlineCount.toLocaleString()} online now` : "Freelance Marketplace"}
           </span>
           <h1 className="land-hero-title">
             Find the perfect <em>freelance</em> services for your business
@@ -257,7 +257,7 @@ export default function Landing() {
           </p>
           <div className="land-hero-actions">
             <button className="btn-primary land-hero-btn" type="button" onClick={() => openAuth("signup")}>
-              Get Started — It&apos;s Free
+              Join Hirelyx — It&apos;s Free
             </button>
             <button
               className="land-hero-btn-outline"
@@ -293,7 +293,7 @@ export default function Landing() {
           <div className="land-section-head">
             <span className="land-kicker">Simple Process</span>
             <h2>How Hirelyx Works</h2>
-            <p>Three simple steps to get your project done by world-class freelancers.</p>
+            <p>Three simple steps to get your project done.</p>
           </div>
           <div className="land-steps">
             {STEPS.map((step) => (
@@ -317,7 +317,7 @@ export default function Landing() {
           <div className="land-section-head">
             <span className="land-kicker">Explore</span>
             <h2>Popular Services</h2>
-            <p>Browse talent across every category. Whatever you need, there&apos;s a freelancer for it.</p>
+            <p>Explore categories and find freelancers who match your project needs.</p>
           </div>
           <div className="land-cat-grid">
             {CATEGORY_OPTIONS.map((cat) => (
@@ -349,7 +349,7 @@ export default function Landing() {
           <div className="land-section-head">
             <span className="land-kicker">Why Choose Us</span>
             <h2>The Hirelyx Advantage</h2>
-            <p>Built for ambitious businesses and talented professionals.</p>
+            <p>Built for businesses and freelance professionals.</p>
           </div>
           <div className="land-why-grid">
             {WHY_ITEMS.map((item) => (
@@ -371,7 +371,7 @@ export default function Landing() {
           <div className="land-section-head">
             <span className="land-kicker">See It In Action</span>
             <h2>Watch How It Works</h2>
-            <p>See how Hirelyx connects businesses with world-class freelance talent.</p>
+            <p>See how Hirelyx connects businesses with freelance talent.</p>
           </div>
           <div className="land-video-wrap">
             {LANDING_VIDEOS.length > 0 ? (
