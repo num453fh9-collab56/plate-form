@@ -92,7 +92,7 @@ function AccountSettingsModal() {
     }
     const result = await changePassword({ current: pwCurrent, next: pwNext });
     if (!result.ok) {
-      setPwError(t(result.error));
+      setPwError("error" in result ? t(result.error) : "Password change failed.");
       return;
     }
     setPwError("");

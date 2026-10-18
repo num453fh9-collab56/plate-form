@@ -72,7 +72,10 @@ const EMPTY_STATE: AuthState = {
   updatedAt: 0,
 };
 
-export type AuthResult = { ok: true } | { ok: false; error: TranslationKey };
+export type AuthResult =
+  | { ok: true }
+  | { ok: false; error: TranslationKey }
+  | { ok: false; mfa: true; factorId: string };
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -345,6 +348,10 @@ interface AuthValue {
   }) => Promise<AuthResult>;
   signInWithEmail: (input: { email: string; password: string }) => Promise<AuthResult>;
   changePassword: (input: { current: string; next: string }) => Promise<AuthResult>;
+  verifyMfa: (code: string, factorId: string) => Promise<AuthResult>;
+  enrollMfa: () => Promise<{ qrUri: string; secret: string; factorId: string } | null>;
+  unenrollMfa: (factorId: string) => Promise<boolean>;
+  mfaFactors: () => Promise<{ id: string; friendlyName: string | null; status: string }[]>;
   updateProfile: (patch: Partial<Profile>) => boolean;
 }
 
@@ -777,6 +784,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : "auth.errWrongPassword",
           };
         }
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2") {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totp = factors?.totp?.find((f: { status: string }) => f.status === "verified");
+          if (totp) {
+            return { ok: false, mfa: true, factorId: totp.id };
+          }
+        }
+
         const current = authStore.getSnapshot();
         const existing = current.accounts.find((item) => item.id === data.user.id);
         if (existing) {
@@ -854,6 +870,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  const verifyMfa = useCallback<AuthValue["verifyMfa"]>(
+    async (code, factorId): Promise<AuthResult> => {
+      const supabase = getSupabase();
+      if (!supabase) return { ok: false, error: "auth.errWrongPassword" };
+      const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId });
+      if (cErr || !challenge) return { ok: false, error: "auth.errWrongPassword" };
+      const { error: vErr } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challenge.id,
+        code,
+      });
+      if (vErr) return { ok: false, error: "auth.errWrongPassword" };
+      const { data: { user: mfaUser } } = await supabase.auth.getUser();
+      if (mfaUser) {
+        const current = authStore.getSnapshot();
+        const existing = current.accounts.find((item) => item.id === mfaUser.id);
+        if (existing) {
+          applyState({ ...current, sessionId: existing.id, updatedAt: Date.now() });
+        } else {
+          const account = makeAccount({
+            name: (mfaUser.user_metadata?.full_name as string) || mfaUser.email || "",
+            email: mfaUser.email || "",
+            provider: "email",
+            passwordHash: "",
+            profile: { fullName: (mfaUser.user_metadata?.full_name as string) || "" },
+          });
+          applyState({
+            ...current,
+            accounts: [...current.accounts, { ...account, id: mfaUser.id }],
+            sessionId: mfaUser.id,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+      return { ok: true };
+    },
+    [applyState],
+  );
+
+  const enrollMfa = useCallback<AuthValue["enrollMfa"]>(async () => {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: "Authenticator",
+    });
+    if (error || !data) return null;
+    return {
+      qrUri: data.totp.qr_code,
+      secret: data.totp.secret,
+      factorId: data.id,
+    };
+  }, []);
+
+  const unenrollMfa = useCallback<AuthValue["unenrollMfa"]>(async (factorId) => {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    return !error;
+  }, []);
+
+  const mfaFactors = useCallback<AuthValue["mfaFactors"]>(async () => {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error || !data) return [];
+    return (data.totp ?? []).map((f: { id: string; friendly_name?: string | null; status: string }) => ({
+      id: f.id,
+      friendlyName: f.friendly_name ?? null,
+      status: f.status,
+    }));
+  }, []);
 
   const updateProfile = useCallback<AuthValue["updateProfile"]>(
     (patch) => {
@@ -945,6 +1034,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signInWithEmail,
       changePassword,
+      verifyMfa,
+      enrollMfa,
+      unenrollMfa,
+      mfaFactors,
       updateProfile,
     }),
     [
@@ -959,6 +1052,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signInWithEmail,
       changePassword,
+      verifyMfa,
+      enrollMfa,
+      unenrollMfa,
+      mfaFactors,
       updateProfile,
     ],
   );

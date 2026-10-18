@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 import { getSupabase } from "@/lib/supabase";
 import BrandMark from "./BrandMark";
+import { getRecaptchaToken, RECAPTCHA_CONFIGURED } from "@/lib/recaptcha";
 
 type Mode = "signup" | "login";
 
@@ -33,6 +34,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     setGoogleSuccessHandler,
     signUpWithEmail,
     signInWithEmail,
+    verifyMfa,
   } = useAuth();
   const { t } = useI18n();
 
@@ -41,6 +43,9 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
   const [errors, setErrors] = useState<Partial<Record<keyof Values, TranslationKey>>>({});
   const [formError, setFormError] = useState<TranslationKey | null>(null);
   const [verifyEmail, setVerifyEmail] = useState(false);
+  const [mfaStep, setMfaStep] = useState<{ factorId: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const googleHostRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +119,23 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     event.preventDefault();
     if (!validate()) return;
 
+    if (RECAPTCHA_CONFIGURED) {
+      const token = await getRecaptchaToken(mode === "signup" ? "signup" : "login");
+      if (token) {
+        try {
+          const res = await fetch("/api/verify-captcha", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, action: mode === "signup" ? "signup" : "login" }),
+          });
+          if (!res.ok) {
+            setFormError("auth.errWrongPassword");
+            return;
+          }
+        } catch { /* allow through on network failure */ }
+      }
+    }
+
     const result =
       mode === "signup"
         ? await signUpWithEmail({
@@ -124,7 +146,11 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
         : await signInWithEmail({ email: values.email, password: values.password });
 
     if (!result.ok) {
-      setFormError(result.error);
+      if ("mfa" in result && result.mfa) {
+        setMfaStep({ factorId: result.factorId });
+        return;
+      }
+      if ("error" in result) setFormError(result.error);
       return;
     }
 
@@ -143,6 +169,77 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     setFormError(null);
     setVerifyEmail(false);
   };
+
+  if (mfaStep) {
+    const submitMfa = async (e: FormEvent) => {
+      e.preventDefault();
+      setMfaError("");
+      const result = await verifyMfa(mfaCode.trim(), mfaStep.factorId);
+      if (result.ok) {
+        toast(t("auth.welcome", { name: values.name.trim().split(" ")[0] || "there" }));
+        closeAuth();
+      } else {
+        setMfaError("Invalid code. Please try again.");
+      }
+    };
+    return (
+      <div
+        className="modal-overlay auth-overlay open"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authModalTitle"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeAuth();
+        }}
+      >
+        <div className="auth-modal auth-modal-compact">
+          <button className="modal-close auth-close" type="button" aria-label="Close" onClick={closeAuth}>
+            &times;
+          </button>
+          <div className="auth-panel">
+            <div className="auth-verify-screen">
+              <div className="auth-verify-icon" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" />
+                  <circle cx="12" cy="14" r="3" />
+                  <line x1="12" y1="6" x2="12" y2="6.01" />
+                </svg>
+              </div>
+              <h3 id="authModalTitle">Two-Factor Authentication</h3>
+              <p>Enter the 6-digit code from your authenticator app.</p>
+              <form onSubmit={submitMfa} style={{ width: "100%" }}>
+                <div className="form-field" style={{ marginBottom: 12 }}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                    style={{ textAlign: "center", fontSize: "1.5rem", letterSpacing: "0.3em" }}
+                    autoFocus
+                  />
+                </div>
+                {mfaError && <div className="auth-form-error">{mfaError}</div>}
+                <button className="btn-primary auth-submit" type="submit" disabled={mfaCode.length !== 6}>
+                  Verify
+                </button>
+              </form>
+              <button
+                type="button"
+                className="auth-forgot"
+                style={{ marginTop: 12 }}
+                onClick={() => { setMfaStep(null); setMfaCode(""); }}
+              >
+                Back to login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (verifyEmail) {
     return (

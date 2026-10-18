@@ -1,5 +1,6 @@
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
+import { verifyRecaptcha } from "@/lib/recaptcha-server";
 
 export const runtime = "nodejs";
 
@@ -9,11 +10,16 @@ export async function POST(request: Request) {
   const limited = await rateLimit(request, "contact-form", 3, 300);
   if (limited) return limited;
 
-  let body: { name?: string; email?: string; subject?: string; message?: string };
+  let body: { name?: string; email?: string; subject?: string; message?: string; captchaToken?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return Response.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  const captcha = await verifyRecaptcha(body.captchaToken, "contact");
+  if (!captcha.pass) {
+    return Response.json({ error: "Bot verification failed. Please try again." }, { status: 403 });
   }
 
   const name = String(body.name ?? "").trim().slice(0, 100);

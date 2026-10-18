@@ -14,6 +14,7 @@ import { fetchSellerStats, LEVEL_META, LEVEL_RULES, LevelBadge } from "@/lib/sel
 import type { SellerStats } from "@/lib/seller-levels";
 import DashboardWelcome from "@/components/DashboardWelcome";
 import BuyerDashboard from "@/components/BuyerDashboard";
+import TwoFactorSetup from "@/components/TwoFactorSetup";
 
 type DashboardMode = "selling" | "buying";
 
@@ -93,6 +94,8 @@ function DashboardInner() {
 
         {showSeller ? <SellerDashboard /> : null}
         {showBuyer ? <BuyerDashboard /> : null}
+
+        <TwoFactorSetup />
       </div>
     </section>
   );
