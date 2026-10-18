@@ -728,8 +728,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : "auth.errWrongPassword",
           };
         }
-        const emailConfirmed = !!data.user.email_confirmed_at;
-        if (emailConfirmed && data.session) {
+        if (data.session) {
           const current = authStore.getSnapshot();
           const nextAccount = makeAccount({
             name,
@@ -750,7 +749,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
           return { ok: true, needsVerification: false };
         }
-        return { ok: true, needsVerification: true };
+        return { ok: true, needsVerification: !data.user.email_confirmed_at };
       }
       const current = authStore.getSnapshot();
       if (current.accounts.some((item) => item.email === cleanEmail)) {
