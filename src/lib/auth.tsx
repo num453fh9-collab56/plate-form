@@ -73,7 +73,7 @@ const EMPTY_STATE: AuthState = {
 };
 
 export type AuthResult =
-  | { ok: true }
+  | { ok: true; needsVerification?: boolean }
   | { ok: false; error: TranslationKey }
   | { ok: false; mfa: true; factorId: string };
 
@@ -717,7 +717,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
           options: {
             data: { full_name: name },
-            emailRedirectTo: siteOrigin || undefined,
+            emailRedirectTo: siteOrigin ? `${siteOrigin}/auth/callback` : undefined,
           },
         });
         if (error || !data.user) {
@@ -729,7 +729,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
         const emailConfirmed = !!data.user.email_confirmed_at;
-        if (emailConfirmed) {
+        if (emailConfirmed && data.session) {
           const current = authStore.getSnapshot();
           const nextAccount = makeAccount({
             name,
@@ -748,8 +748,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             { user_id: data.user.id, full_name: name.trim() },
             { onConflict: "user_id" },
           );
+          return { ok: true, needsVerification: false };
         }
-        return { ok: true };
+        return { ok: true, needsVerification: true };
       }
       const current = authStore.getSnapshot();
       if (current.accounts.some((item) => item.email === cleanEmail)) {

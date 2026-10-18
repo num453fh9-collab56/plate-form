@@ -155,7 +155,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
       return;
     }
 
-    if (mode === "signup") {
+    if (mode === "signup" && result.ok && result.needsVerification !== false) {
       setVerifyEmail(true);
       return;
     }
