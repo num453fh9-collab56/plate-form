@@ -445,6 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               },
               updatedAt: Date.now(),
             };
+            const isNew = !existing;
             applyState({
               ...current,
               accounts: existing
@@ -453,6 +454,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               sessionId: u.id,
               updatedAt: Date.now(),
             });
+            if (isNew) {
+              void fetch("/api/auth/welcome", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: u.id, name: next.name, email: u.email }),
+              });
+            }
             googleSuccessRef.current?.();
           });
         return;
@@ -747,6 +755,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             { user_id: data.user.id, full_name: name.trim() },
             { onConflict: "user_id" },
           );
+          void fetch("/api/auth/welcome", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: data.user.id, name: name.trim(), email: cleanEmail }),
+          });
           return { ok: true, needsVerification: false };
         }
         return { ok: true, needsVerification: !data.user.email_confirmed_at };
