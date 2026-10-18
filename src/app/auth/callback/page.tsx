@@ -20,6 +20,20 @@ export default function AuthCallbackPage() {
     const hashParams = new URLSearchParams(window.location.hash.replace("#", ""));
     const accessToken = hashParams.get("access_token");
 
+    const onVerified = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        const u = data.session.user;
+        const name = (u.user_metadata?.full_name as string) || u.email || "User";
+        void fetch("/api/auth/welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: u.id, name, email: u.email }),
+        });
+      }
+      router.replace("/dashboard");
+    };
+
     if (code) {
       supabase.auth
         .exchangeCodeForSession(code)
@@ -29,12 +43,10 @@ export default function AuthCallbackPage() {
             setTimeout(() => router.replace("/"), 3000);
             return;
           }
-          router.replace("/dashboard");
+          void onVerified();
         });
     } else if (accessToken) {
-      supabase.auth.getSession().then(() => {
-        router.replace("/dashboard");
-      });
+      void onVerified();
     } else {
       router.replace("/");
     }

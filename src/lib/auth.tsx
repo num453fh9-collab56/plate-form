@@ -736,17 +736,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : "auth.errWrongPassword",
           };
         }
-        let session = data.session;
-        if (!session) {
-          const { data: signInData } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          });
-          if (signInData?.session) {
-            session = signInData.session;
-          }
-        }
-        if (session) {
+        if (data.session) {
           const current = authStore.getSnapshot();
           const nextAccount = makeAccount({
             name,
