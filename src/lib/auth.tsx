@@ -710,10 +710,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const cleanEmail = normalizeEmail(email);
       const supabase = getSupabase();
       if (supabase) {
+        const siteOrigin =
+          typeof window !== "undefined" ? window.location.origin : "";
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { data: { full_name: name } },
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: siteOrigin || undefined,
+          },
         });
         if (error || !data.user) {
           return {
