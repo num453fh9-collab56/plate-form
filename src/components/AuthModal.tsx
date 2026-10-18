@@ -128,7 +128,8 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token, action: mode === "signup" ? "signup" : "login" }),
           });
-          if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { score?: number };
+          if (res.ok === false && body.score === 0) {
             setFormError("auth.errWrongPassword");
             return;
           }
