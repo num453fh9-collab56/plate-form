@@ -43,6 +43,9 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
   const [errors, setErrors] = useState<Partial<Record<keyof Values, TranslationKey>>>({});
   const [formError, setFormError] = useState<TranslationKey | null>(null);
   const [verifyEmail, setVerifyEmail] = useState(false);
+  const [otpStep, setOtpStep] = useState<{ hash: string; expiry: number } | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpBusy, setOtpBusy] = useState(false);
   const [mfaStep, setMfaStep] = useState<{ factorId: string } | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaError, setMfaError] = useState("");
@@ -115,6 +118,82 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     return Object.keys(next).length === 0;
   };
 
+  const sendOtp = async () => {
+    setOtpBusy(true);
+    setFormError(null);
+    try {
+      const ev = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email.trim() }),
+      });
+      const evBody = (await ev.json().catch(() => ({}))) as { valid?: boolean };
+      if (!evBody.valid) {
+        setFormError("auth.errInvalidDomain");
+        setOtpBusy(false);
+        return;
+      }
+    } catch { /* allow through */ }
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email.trim() }),
+      });
+      const data = (await res.json()) as { hash?: string; expiry?: number };
+      if (data.hash && data.expiry) {
+        setOtpStep({ hash: data.hash, expiry: data.expiry });
+        setOtpCode("");
+      } else {
+        setFormError("auth.errWrongPassword");
+      }
+    } catch {
+      setFormError("auth.errWrongPassword");
+    }
+    setOtpBusy(false);
+  };
+
+  const verifyOtpAndSignup = async () => {
+    setOtpBusy(true);
+    setFormError(null);
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: values.email.trim(),
+          otp: otpCode.trim(),
+          hash: otpStep!.hash,
+          expiry: otpStep!.expiry,
+        }),
+      });
+      const data = (await res.json()) as { valid?: boolean; error?: string };
+      if (!data.valid) {
+        setFormError(data.error === "expired" ? "auth.errWrongPassword" : "auth.errWrongPassword");
+        setOtpBusy(false);
+        return;
+      }
+    } catch {
+      setFormError("auth.errWrongPassword");
+      setOtpBusy(false);
+      return;
+    }
+
+    const result = await signUpWithEmail({
+      name: values.name.trim(),
+      email: values.email,
+      password: values.password,
+    });
+    setOtpBusy(false);
+
+    if (!result.ok) {
+      if ("error" in result) setFormError(result.error);
+      return;
+    }
+    toast(t("auth.welcome", { name: values.name.trim().split(" ")[0] || "there" }));
+    closeAuth();
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!validate()) return;
@@ -138,28 +217,11 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     }
 
     if (mode === "signup") {
-      try {
-        const ev = await fetch("/api/verify-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: values.email.trim() }),
-        });
-        const evBody = (await ev.json().catch(() => ({}))) as { valid?: boolean };
-        if (!evBody.valid) {
-          setFormError("auth.errInvalidDomain");
-          return;
-        }
-      } catch { /* allow through on network failure */ }
+      await sendOtp();
+      return;
     }
 
-    const result =
-      mode === "signup"
-        ? await signUpWithEmail({
-            name: values.name.trim(),
-            email: values.email,
-            password: values.password,
-          })
-        : await signInWithEmail({ email: values.email, password: values.password });
+    const result = await signInWithEmail({ email: values.email, password: values.password });
 
     if (!result.ok) {
       if ("mfa" in result && result.mfa) {
@@ -167,11 +229,6 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
         return;
       }
       if ("error" in result) setFormError(result.error);
-      return;
-    }
-
-    if (mode === "signup" && result.ok && result.needsVerification !== false) {
-      setVerifyEmail(true);
       return;
     }
 
@@ -185,6 +242,62 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     setFormError(null);
     setVerifyEmail(false);
   };
+
+  if (otpStep) {
+    const submitOtp = async (e: FormEvent) => {
+      e.preventDefault();
+      if (otpCode.trim().length !== 6) return;
+      await verifyOtpAndSignup();
+    };
+    return (
+      <div
+        className="modal-overlay auth-overlay open"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authModalTitle"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeAuth();
+        }}
+      >
+        <div className="auth-modal auth-modal-compact">
+          <button className="modal-close auth-close" type="button" aria-label="Close" onClick={closeAuth}>
+            &times;
+          </button>
+          <div className="auth-body" style={{ textAlign: "center" }}>
+            <BrandMark />
+            <h2 id="authModalTitle" style={{ marginBottom: 8 }}>Verify your email</h2>
+            <p style={{ color: "var(--muted)", marginBottom: 24, fontSize: 14 }}>
+              We sent a 6-digit code to <strong>{values.email}</strong>
+            </p>
+            <form onSubmit={submitOtp}>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, "")); setFormError(null); }}
+                style={{ textAlign: "center", fontSize: 24, letterSpacing: 8, fontWeight: 700, maxWidth: 220, margin: "0 auto 16px" }}
+                autoFocus
+              />
+              {formError && <p className="auth-form-error">{t(formError)}</p>}
+              <button className="btn-primary auth-submit" type="submit" disabled={otpBusy || otpCode.trim().length !== 6}>
+                {otpBusy ? "Verifying..." : "Verify & Create Account"}
+              </button>
+            </form>
+            <button
+              type="button"
+              className="auth-link"
+              style={{ marginTop: 16, fontSize: 13 }}
+              onClick={() => { setOtpStep(null); setOtpCode(""); setFormError(null); }}
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (mfaStep) {
     const submitMfa = async (e: FormEvent) => {
