@@ -145,10 +145,10 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
         setOtpStep(true);
         setOtpCode("");
       } else {
-        setFormError("auth.errWrongPassword");
+        setFormError("auth.errEmail");
       }
     } catch {
-      setFormError("auth.errWrongPassword");
+      setFormError("auth.errEmail");
     }
     setOtpBusy(false);
   };
