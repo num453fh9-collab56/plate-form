@@ -137,6 +137,21 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
       }
     }
 
+    if (mode === "signup") {
+      try {
+        const ev = await fetch("/api/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: values.email.trim() }),
+        });
+        const evBody = (await ev.json().catch(() => ({}))) as { valid?: boolean };
+        if (!evBody.valid) {
+          setFormError("auth.errInvalidDomain");
+          return;
+        }
+      } catch { /* allow through on network failure */ }
+    }
+
     const result =
       mode === "signup"
         ? await signUpWithEmail({
