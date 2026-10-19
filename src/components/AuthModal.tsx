@@ -157,29 +157,36 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     setOtpBusy(true);
     setFormError(null);
     try {
-      const res = await fetch("/api/auth/verify-otp", {
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: values.email.trim(),
+          password: values.password,
+          name: values.name.trim(),
           otp: otpCode.trim(),
         }),
       });
-      const data = (await res.json()) as { valid?: boolean; error?: string };
-      if (!data.valid) {
-        setFormError(data.error === "expired" ? "auth.errOtpExpired" : "auth.errOtpInvalid");
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!data.ok) {
+        if (data.error === "otp_invalid") {
+          setFormError("auth.errOtpInvalid");
+        } else if (data.error === "exists") {
+          setFormError("auth.errExists");
+        } else {
+          setFormError("auth.errOtpInvalid");
+        }
         setOtpBusy(false);
         return;
       }
     } catch {
-      setFormError("auth.errWrongPassword");
+      setFormError("auth.errOtpInvalid");
       setOtpBusy(false);
       return;
     }
 
-    const result = await signUpWithEmail({
-      name: values.name.trim(),
-      email: values.email,
+    const result = await signInWithEmail({
+      email: values.email.trim(),
       password: values.password,
     });
     setOtpBusy(false);
