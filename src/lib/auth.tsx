@@ -563,13 +563,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled || !data.session) return;
       const u = data.session.user;
+      const isGoogle = u.app_metadata?.provider === "google";
+      const emailConfirmed = !!u.email_confirmed_at;
+      if (!isGoogle && !emailConfirmed) return;
       const current = authStore.getSnapshot();
       let account = current.accounts.find((a) => a.id === u.id);
       if (!account) {
         account = makeAccount({
           name: (u.user_metadata?.full_name as string) || u.email || "User",
           email: u.email || "",
-          provider: "email",
+          provider: isGoogle ? "google" : "email",
           passwordHash: "",
           profile: { fullName: (u.user_metadata?.full_name as string) || "" },
         });
@@ -646,6 +649,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         applyState({ ...current, sessionId: null, updatedAt: Date.now() });
       } else if (session?.user) {
         const u = session.user;
+        const isGoogle = u.app_metadata?.provider === "google";
+        const emailConfirmed = !!u.email_confirmed_at;
+        if (!isGoogle && !emailConfirmed) return;
         const current = authStore.getSnapshot();
         if (current.sessionId !== u.id) {
           const exists = current.accounts.find((a) => a.id === u.id);
@@ -653,7 +659,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const account = makeAccount({
               name: (u.user_metadata?.full_name as string) || u.email || "User",
               email: u.email || "",
-              provider: "email",
+              provider: isGoogle ? "google" : "email",
               passwordHash: "",
               profile: { fullName: (u.user_metadata?.full_name as string) || "" },
             });
