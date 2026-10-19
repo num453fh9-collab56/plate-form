@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
@@ -27,6 +28,7 @@ function passwordValid(value: string): boolean {
 }
 
 function AuthForm({ initialMode }: { initialMode: Mode }) {
+  const router = useRouter();
   const { closeAuth, toast } = useUI();
   const {
     configured,
@@ -197,6 +199,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
     }
     toast(t("auth.welcome", { name: values.name.trim().split(" ")[0] || "there" }));
     closeAuth();
+    router.push("/dashboard");
   };
 
   const submit = async (event: FormEvent) => {
