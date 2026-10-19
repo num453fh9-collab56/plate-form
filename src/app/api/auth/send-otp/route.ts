@@ -1,19 +1,12 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/email";
+import { getAdminSupabase } from "@/lib/stripe-server";
 
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || "otp-secret";
-const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+const OTP_EXPIRY_MIN = 10;
 
 function generateOtp(): string {
   return String(crypto.randomInt(100000, 999999));
-}
-
-function createHash(email: string, otp: string, expiry: number): string {
-  return crypto
-    .createHmac("sha256", SECRET)
-    .update(`${email.toLowerCase()}:${otp}:${expiry}`)
-    .digest("hex");
 }
 
 export async function POST(req: Request) {
@@ -23,9 +16,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "missing" }, { status: 400 });
     }
 
+    const admin = getAdminSupabase();
+    if (!admin) {
+      return NextResponse.json({ error: "config" }, { status: 500 });
+    }
+
     const otp = generateOtp();
-    const expiry = Date.now() + OTP_EXPIRY_MS;
-    const hash = createHash(email, otp, expiry);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MIN * 60 * 1000).toISOString();
+    const cleanEmail = email.toLowerCase().trim();
+
+    await admin.from("email_otps").delete().eq("email", cleanEmail);
+
+    await admin.from("email_otps").insert({
+      email: cleanEmail,
+      otp_hash: crypto.createHash("sha256").update(otp).digest("hex"),
+      expires_at: expiresAt,
+    });
 
     await sendEmail(
       email,
@@ -44,7 +50,7 @@ export async function POST(req: Request) {
 <div style="background:#f4f4f5;border-radius:12px;padding:20px;display:inline-block;margin:0 0 24px">
 <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0d9488">${otp}</span>
 </div>
-<p style="margin:0;font-size:13px;color:#71717a">This code expires in 10 minutes.</p>
+<p style="margin:0;font-size:13px;color:#71717a">This code expires in ${OTP_EXPIRY_MIN} minutes.</p>
 </td></tr>
 <tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #e4e4e7;font-size:12px;color:#71717a;text-align:center">
 <p style="margin:0">If you didn't request this, ignore this email.</p>
@@ -52,7 +58,7 @@ export async function POST(req: Request) {
 </table></td></tr></table></body></html>`,
     );
 
-    return NextResponse.json({ hash, expiry });
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "failed" }, { status: 500 });
   }

@@ -1,31 +1,42 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || "otp-secret";
-
-function createHash(email: string, otp: string, expiry: number): string {
-  return crypto
-    .createHmac("sha256", SECRET)
-    .update(`${email.toLowerCase()}:${otp}:${expiry}`)
-    .digest("hex");
-}
+import { getAdminSupabase } from "@/lib/stripe-server";
 
 export async function POST(req: Request) {
   try {
-    const { email, otp, hash, expiry } = await req.json();
-    if (!email || !otp || !hash || !expiry) {
+    const { email, otp } = await req.json();
+    if (!email || !otp) {
       return NextResponse.json({ valid: false, error: "missing" });
     }
 
-    if (Date.now() > expiry) {
+    const admin = getAdminSupabase();
+    if (!admin) {
+      return NextResponse.json({ valid: false, error: "config" });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const otpHash = crypto.createHash("sha256").update(String(otp)).digest("hex");
+
+    const { data } = await admin
+      .from("email_otps")
+      .select("otp_hash, expires_at")
+      .eq("email", cleanEmail)
+      .single();
+
+    if (!data) {
+      return NextResponse.json({ valid: false, error: "not_found" });
+    }
+
+    if (new Date(data.expires_at) < new Date()) {
+      await admin.from("email_otps").delete().eq("email", cleanEmail);
       return NextResponse.json({ valid: false, error: "expired" });
     }
 
-    const expected = createHash(email, otp, expiry);
-    if (hash !== expected) {
+    if (data.otp_hash !== otpHash) {
       return NextResponse.json({ valid: false, error: "invalid" });
     }
 
+    await admin.from("email_otps").delete().eq("email", cleanEmail);
     return NextResponse.json({ valid: true });
   } catch {
     return NextResponse.json({ valid: false, error: "failed" });

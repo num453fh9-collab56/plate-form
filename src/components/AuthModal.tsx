@@ -43,7 +43,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
   const [errors, setErrors] = useState<Partial<Record<keyof Values, TranslationKey>>>({});
   const [formError, setFormError] = useState<TranslationKey | null>(null);
   const [verifyEmail, setVerifyEmail] = useState(false);
-  const [otpStep, setOtpStep] = useState<{ hash: string; expiry: number } | null>(null);
+  const [otpStep, setOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpBusy, setOtpBusy] = useState(false);
   const [mfaStep, setMfaStep] = useState<{ factorId: string } | null>(null);
@@ -140,9 +140,9 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: values.email.trim() }),
       });
-      const data = (await res.json()) as { hash?: string; expiry?: number };
-      if (data.hash && data.expiry) {
-        setOtpStep({ hash: data.hash, expiry: data.expiry });
+      const data = (await res.json()) as { ok?: boolean };
+      if (data.ok) {
+        setOtpStep(true);
         setOtpCode("");
       } else {
         setFormError("auth.errWrongPassword");
@@ -163,13 +163,11 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
         body: JSON.stringify({
           email: values.email.trim(),
           otp: otpCode.trim(),
-          hash: otpStep!.hash,
-          expiry: otpStep!.expiry,
         }),
       });
       const data = (await res.json()) as { valid?: boolean; error?: string };
       if (!data.valid) {
-        setFormError(data.error === "expired" ? "auth.errWrongPassword" : "auth.errWrongPassword");
+        setFormError(data.error === "expired" ? "auth.errOtpExpired" : "auth.errOtpInvalid");
         setOtpBusy(false);
         return;
       }
@@ -289,7 +287,7 @@ function AuthForm({ initialMode }: { initialMode: Mode }) {
               type="button"
               className="auth-link"
               style={{ marginTop: 16, fontSize: 13 }}
-              onClick={() => { setOtpStep(null); setOtpCode(""); setFormError(null); }}
+              onClick={() => { setOtpStep(false); setOtpCode(""); setFormError(null); }}
             >
               ← Back
             </button>
