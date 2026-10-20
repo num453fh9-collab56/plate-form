@@ -50,20 +50,11 @@ export default function Overlays() {
       /* storage unavailable */
     }
 
-    if (!profile.role) {
-      openRoleSelector();
-      return;
-    }
-
-    if (profile.role === "freelancer" || profile.role === "both") {
-      const strength = computeProfileStrength(profile);
-      if (strength.percent >= 60) return;
-      const requiredDone = (["fullName", "title", "bio"] as const).every(
-        (key) => strength.items.find((item) => item.key === key)?.done,
-      );
-      if (!requiredDone) openProfile();
-    }
-  }, [user, profile, openProfile, openRoleSelector]);
+    const strength = computeProfileStrength(profile);
+    if (strength.percent >= 60) return;
+    const hasBasics = profile.fullName.trim().length >= 2 && profile.phone.replace(/\D/g, "").length >= 7;
+    if (!hasBasics) openProfile();
+  }, [user, profile, openProfile]);
 
   return (
     <>

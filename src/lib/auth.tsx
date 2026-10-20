@@ -287,44 +287,12 @@ export interface ProfileStrength {
 }
 
 export function computeProfileStrength(profile: Profile): ProfileStrength {
-  const rate = Number(profile.hourlyRate);
   const items: StrengthItem[] = [
-    { key: "fullName", label: "Full name", done: profile.fullName.trim().length >= 2 },
-    { key: "title", label: "Professional title", done: profile.title.trim().length >= 3 },
-    {
-      key: "primaryCategory",
-      label: "Primary category",
-      done: isAllowedCategory(profile.primaryCategory),
-    },
-    { key: "bio", label: "Bio / description", done: profile.bio.trim().length >= 40 },
-    {
-      key: "phone",
-      label: "Phone number",
-      done: profile.phone.replace(/\D/g, "").length >= 7,
-    },
     { key: "avatar", label: "Profile picture", done: profile.avatar.trim().length > 0 },
-    { key: "skills", label: "3+ skills", done: profile.skills.length >= 3 },
+    { key: "fullName", label: "Full name", done: profile.fullName.trim().length >= 2 },
+    { key: "phone", label: "Phone number", done: profile.phone.replace(/\D/g, "").length >= 7 },
     { key: "country", label: "Country / location", done: profile.country.trim().length >= 2 },
-    { key: "languages", label: "Languages", done: profile.languages.trim().length >= 2 },
-    {
-      key: "hourlyRate",
-      label: "Hourly rate",
-      done: profile.hourlyRate.trim().length > 0 && Number.isFinite(rate) && rate > 0,
-    },
-    { key: "availability", label: "Availability", done: profile.availability.trim().length > 0 },
-    {
-      key: "portfolio",
-      label: "Portfolio / website",
-      done:
-        profile.portfolio.trim().length >= 4 ||
-        Object.values(profile.socialLinks ?? {}).some((value) => value.trim().length >= 4),
-    },
-    {
-      key: "portfolioProjects",
-      label: "Portfolio project",
-      done: Array.isArray(profile.portfolioProjects) && profile.portfolioProjects.length >= 1,
-    },
-    { key: "introVideo", label: "Intro video", done: profile.introVideo.trim().length > 0 },
+    { key: "title", label: "Company / role", done: profile.title.trim().length >= 2 },
   ];
   const completed = items.filter((item) => item.done).length;
   const total = items.length;
