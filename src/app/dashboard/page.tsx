@@ -55,11 +55,11 @@ function ProfileStrengthCard() {
 }
 
 function QuickActions() {
-  const { openProfile, openAccount, openMessages } = useUI();
+  const { openProfile, openMessages } = useUI();
 
   const actions = [
     { label: "Edit Profile", icon: "✏️", action: openProfile },
-    { label: "Account Settings", icon: "⚙️", action: openAccount },
+    { label: "Settings", icon: "⚙️", href: "/settings" },
     { label: "Messages", icon: "💬", action: openMessages },
     { label: "Chat Inbox", icon: "📨", href: "/dashboard/chat" },
     { label: "My Projects", icon: "📊", href: "/projects" },
