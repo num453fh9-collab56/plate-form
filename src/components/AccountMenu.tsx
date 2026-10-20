@@ -136,7 +136,7 @@ interface DashItem {
 
 const DASH_ITEMS: DashItem[] = [
   { id: "manage", labelKey: "account.settings", icon: "manage", color: "#0066cc", soft: "rgba(0,102,204,0.12)" },
-  { id: "post", labelKey: "account.postProject", icon: "post", color: "#059669", soft: "rgba(5,150,105,0.12)" },
+  { id: "dashboard", labelKey: "account.dashboard", icon: "post", color: "#059669", soft: "rgba(5,150,105,0.12)" },
   { id: "profile", labelKey: "account.myProfile", icon: "profile", color: "#4f46e5", soft: "rgba(79,70,229,0.12)" },
   { id: "improve", labelKey: "account.improveProfile", icon: "improve", color: "#0891b2", soft: "rgba(8,145,178,0.12)" },
 ];
@@ -146,7 +146,7 @@ export default function AccountMenu() {
   const role = profile.role;
   const isBuyer = role === "buyer";
   const isFreelancer = role === "freelancer";
-  const { openPost, openProfile, openAccount, openMessages, toast } = useUI();
+  const { openProfile, openAccount, openMessages, toast } = useUI();
   const requireAuth = useRequireAuth();
   const { t } = useI18n();
   const router = useRouter();
@@ -173,8 +173,8 @@ export default function AccountMenu() {
 
   const handleItem = (item: DashItem) => {
     setOpen(false);
-    if (item.id === "post") {
-      requireAuth(openPost);
+    if (item.id === "dashboard") {
+      router.push("/dashboard");
       return;
     }
     if (item.id === "profile") {

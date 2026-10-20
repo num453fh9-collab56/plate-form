@@ -1,6 +1,5 @@
 import type Stripe from "stripe";
 import { getAdminSupabase, getStripe } from "@/lib/stripe-server";
-import { markOrderPaid } from "@/lib/order-paid";
 
 export const runtime = "nodejs";
 
@@ -26,24 +25,24 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const orderId = session.metadata?.order_id;
-    if (orderId && session.payment_status === "paid") {
-      await markOrderPaid(admin, orderId, {
-        paymentIntent: session.payment_intent ? String(session.payment_intent) : null,
-        amountTotal: session.amount_total ?? null,
-      });
-    }
-  }
 
-  if (event.type === "checkout.session.expired") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const orderId = session.metadata?.order_id;
-    if (orderId) {
-      await admin
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", orderId)
-        .eq("status", "pending");
+    if (session.payment_status === "paid" && session.metadata?.invoice_id) {
+      await admin.from("invoices").update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        stripe_payment_id: session.id,
+        updated_at: new Date().toISOString(),
+      }).eq("id", session.metadata.invoice_id);
+    }
+
+    if (session.payment_status === "paid" && session.metadata?.type) {
+      await admin.from("payments").insert({
+        stripe_session_id: session.id,
+        amount: session.amount_total,
+        currency: session.currency,
+        status: "paid",
+        metadata: session.metadata,
+      });
     }
   }
 

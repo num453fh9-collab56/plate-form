@@ -1,29 +1,70 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PLATFORM_FEE_RATE } from "@/lib/fees";
 
 export const metadata: Metadata = {
   title: "How It Works",
-  description: "Learn how to buy and sell freelance services on Hirelyx — from posting a gig to secure payment via Stripe.",
+  description: "Learn how Hirelyx delivers your digital project — from initial consultation to launch and ongoing support.",
   alternates: { canonical: "/how-it-works" },
 };
 
-const BUYER_STEPS = [
-  { title: "Find or request", body: "Browse lyxes with fixed packages, or post a request with your budget and let sellers send proposals." },
-  { title: "Pay securely", body: "Pay by card through Stripe. The money is held until you approve the work — the seller is not paid upfront." },
-  { title: "Work together", body: "Chat, share files, jump on a video call and request revisions until it is right." },
-  { title: "Approve & review", body: "Approve the delivery (or each milestone) to release payment, then leave a review." },
+const STEPS = [
+  {
+    title: "Tell us what you need",
+    body: "Fill out our project form or send us a message. Describe your goals, timeline, and budget — we'll take it from there.",
+    icon: "💬",
+  },
+  {
+    title: "Get a free consultation",
+    body: "We'll review your requirements and schedule a call to discuss the best approach, tech stack, and timeline for your project.",
+    icon: "📋",
+  },
+  {
+    title: "Agree on scope & pricing",
+    body: "We'll send you a clear proposal with deliverables, milestones, and pricing. No hidden fees, no surprises.",
+    icon: "🤝",
+  },
+  {
+    title: "We build your project",
+    body: "Our team gets to work. You'll receive regular updates, demos, and have the chance to give feedback at every milestone.",
+    icon: "⚡",
+  },
+  {
+    title: "Review & revisions",
+    body: "We deliver the finished product for your review. Request revisions until everything is exactly how you want it.",
+    icon: "🔍",
+  },
+  {
+    title: "Launch & support",
+    body: "We help you launch, set up hosting, and provide ongoing support. Your success is our priority.",
+    icon: "🚀",
+  },
 ];
 
-const SELLER_STEPS = [
-  { title: "Build your profile", body: "Add your skills, experience, portfolio and an intro video so buyers trust you." },
-  { title: "Create lyxes", body: "Offer up to three packages with clear deliverables, extras, FAQs and buyer requirements." },
-  { title: "Win more work", body: "Reply to buyer requests with proposals, and send custom offers or milestone plans in chat." },
-  { title: "Deliver & get paid", body: `Deliver through the order page. When the buyer approves, you receive the amount minus the ${Math.round(PLATFORM_FEE_RATE * 100)}% platform fee.` },
+const FAQS = [
+  {
+    q: "How much does a project cost?",
+    a: "It depends on the scope. A simple landing page starts at $499, while complex web apps or mobile apps can range from $2,000 to $10,000+. We always provide a clear quote before starting.",
+  },
+  {
+    q: "How long does a project take?",
+    a: "Timelines vary by project. A website typically takes 2–4 weeks, a mobile app 4–8 weeks, and larger projects may take 2–3 months. We'll agree on a timeline before starting.",
+  },
+  {
+    q: "What payment methods do you accept?",
+    a: "We accept all major credit/debit cards through Stripe. Payments are secure and you can pay in milestones for larger projects.",
+  },
+  {
+    q: "What if I'm not happy with the result?",
+    a: "We include revision rounds in every project. If something isn't right, we'll fix it. Your satisfaction is guaranteed before final payment.",
+  },
+  {
+    q: "Do you provide ongoing support?",
+    a: "Yes! We offer post-launch support packages. Bug fixes, updates, and maintenance — we're here for you after delivery too.",
+  },
 ];
 
 function HowToSchema() {
-  const steps = [...BUYER_STEPS, ...SELLER_STEPS].map((step, i) => ({
+  const steps = STEPS.map((step, i) => ({
     "@type": "HowToStep" as const,
     position: i + 1,
     name: step.title,
@@ -36,8 +77,8 @@ function HowToSchema() {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "HowTo",
-          name: "How to Hire Freelancers and Sell Services on Hirelyx",
-          description: "A step-by-step guide to buying and selling freelance services on Hirelyx marketplace.",
+          name: "How Hirelyx Works — From Idea to Launch",
+          description: "A step-by-step guide to working with the Hirelyx team on your digital project.",
           step: steps,
         }),
       }}
@@ -53,45 +94,39 @@ export default function HowItWorksPage() {
         <div className="section-head">
           <div>
             <div className="kicker">How it works</div>
-            <h2>Hire with confidence. Sell with ease.</h2>
-            <p className="sub">Hirelyx connects businesses with freelancers — and protects both sides.</p>
+            <h2>From idea to launch — we handle everything.</h2>
+            <p className="sub">A simple, transparent process that puts you in control.</p>
           </div>
         </div>
 
-        <h3 id="buyers" className="info-h">For buyers</h3>
         <ol className="info-steps">
-          {BUYER_STEPS.map((step, i) => (
+          {STEPS.map((step, i) => (
             <li key={step.title}>
               <span className="info-step-num">{i + 1}</span>
-              <strong>{step.title}</strong>
-              <p>{step.body}</p>
+              <div>
+                <strong style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span>{step.icon}</span> {step.title}
+                </strong>
+                <p>{step.body}</p>
+              </div>
             </li>
           ))}
         </ol>
 
-        <h3 id="sellers" className="info-h">For sellers</h3>
-        <ol className="info-steps">
-          {SELLER_STEPS.map((step, i) => (
-            <li key={step.title}>
-              <span className="info-step-num">{i + 1}</span>
-              <strong>{step.title}</strong>
-              <p>{step.body}</p>
-            </li>
+        <h3 className="info-h" style={{ marginTop: "3rem" }}>Frequently Asked Questions</h3>
+        <div className="info-grid" style={{ gap: "1.25rem" }}>
+          {FAQS.map((faq) => (
+            <div key={faq.q} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "1.25rem" }}>
+              <strong style={{ fontSize: "0.92rem", display: "block", marginBottom: "0.5rem" }}>{faq.q}</strong>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>{faq.a}</p>
+            </div>
           ))}
-        </ol>
-
-        <h3 className="info-h">Seller levels</h3>
-        <div className="info-grid">
-          <div><strong>New Seller</strong><p>Everyone starts here.</p></div>
-          <div><strong>Level 1</strong><p>10+ completed orders, 4.4+ rating, 60+ days on Hirelyx.</p></div>
-          <div><strong>Level 2</strong><p>50+ orders, 4.6+ rating, 85%+ on-time delivery, 120+ days.</p></div>
-          <div><strong>Top Rated</strong><p>100+ orders, 4.8+ rating, 90%+ on-time delivery, 180+ days.</p></div>
         </div>
 
         <div className="info-cta">
-          <Link className="btn-primary" href="/search">Browse lyxes</Link>
-          <Link className="btn-ghost" href="/requests/new">Post a request</Link>
-          <Link className="btn-ghost" href="/help">Help center</Link>
+          <Link className="btn-primary" href="/contact">Start a Project</Link>
+          <Link className="btn-ghost" href="/services">View Services</Link>
+          <Link className="btn-ghost" href="/help">Help Center</Link>
         </div>
       </div>
     </section>

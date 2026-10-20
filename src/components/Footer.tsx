@@ -2,14 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
-import {
-  FOOTER_CATEGORIES,
-  FOOTER_COLUMNS,
-  type FooterAction,
-} from "@/lib/navigation";
+import { FOOTER_CATEGORIES, FOOTER_COLUMNS } from "@/lib/navigation";
 import LanguageSelector from "./LanguageSelector";
 import BrandMark from "./BrandMark";
 
@@ -46,7 +41,7 @@ function Newsletter() {
   return (
     <div className="foot-newsletter">
       <h4>Stay in the loop</h4>
-      <p>Get the latest freelancing tips, platform updates, and exclusive offers.</p>
+      <p>Get the latest updates, project showcases, and exclusive offers.</p>
       {sent ? (
         <div className="foot-newsletter-done">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
@@ -71,27 +66,22 @@ function Newsletter() {
 function SocialLinks() {
   return (
     <div className="foot-socials">
-      <Link className="foot-social" href="/contact" aria-label="Contact us">
+      <a className="foot-social" href="mailto:support@hirelyx.com" aria-label="Email us">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </a>
+      <Link className="foot-social" href="/contact" aria-label="Contact us">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </Link>
     </div>
   );
 }
 
 export default function Footer() {
-  const { openPost, openAuth } = useUI();
+  const { openAuth } = useUI();
   const { t } = useI18n();
-  const router = useRouter();
 
-  const goToCategory = (marketplaceCategory: string | undefined, label: string) => {
-    const params = new URLSearchParams();
-    if (marketplaceCategory) params.set("category", marketplaceCategory);
-    else if (label) params.set("q", label);
-    router.push(`/search${params.toString() ? `?${params.toString()}` : ""}`);
-  };
-
-  const runAction = (action: FooterAction) => {
-    if (action === "postGig") openPost();
+  const runAction = (action: string) => {
+    if (action === "contact") window.location.href = "/contact";
     else openAuth("signup");
   };
 
@@ -104,28 +94,16 @@ export default function Footer() {
               <span className="kicker">{t("footer.categoriesKicker")}</span>
               <h3 id="footerCategoriesTitle">{t("footer.exploreCategories")}</h3>
             </div>
-            <button
-              className="link-all"
-              type="button"
-              onClick={() => router.push("/search")}
-            >
-              {t("footer.viewAll")} <span aria-hidden="true">&rarr;</span>
-            </button>
           </div>
 
           <div className="foot-category-grid">
             {FOOTER_CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                className="foot-category"
-                onClick={() => goToCategory(category.marketplaceCategory, t(category.labelKey))}
-              >
+              <div key={category.id} className="foot-category">
                 <span className="foot-category-glyph" aria-hidden="true">
                   {category.glyph}
                 </span>
                 <span className="foot-category-label">{t(category.labelKey)}</span>
-              </button>
+              </div>
             ))}
           </div>
         </section>
@@ -151,12 +129,12 @@ export default function Footer() {
                     key={link.labelKey}
                     className="link-btn"
                     type="button"
-                    onClick={() => runAction(link.action as FooterAction)}
+                    onClick={() => runAction(link.action!)}
                   >
                     {t(link.labelKey)}
                   </button>
                 ) : (
-                  <Link key={link.labelKey} href={link.href ?? "/search"}>
+                  <Link key={link.labelKey} href={link.href ?? "/"}>
                     {t(link.labelKey)}
                   </Link>
                 ),

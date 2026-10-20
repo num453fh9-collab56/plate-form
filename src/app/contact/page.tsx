@@ -38,7 +38,7 @@ export default function ContactPage() {
           <div>
             <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Live Chat</h3>
             <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.6 }}>
-              Use our AI assistant Gemi (bottom-right corner) for instant answers to common questions.
+              Use the chat widget (bottom-right corner) to message our team directly.
             </p>
           </div>
         </div>

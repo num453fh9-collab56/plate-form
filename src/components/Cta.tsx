@@ -2,36 +2,36 @@
 
 import { useRequireAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
-import { useI18n } from "@/lib/i18n";
 import { CTA_VIDEO } from "@/lib/site-media";
 
 export default function Cta() {
-  const { openPost, openProfile } = useUI();
+  const { openAuth } = useUI();
   const requireAuth = useRequireAuth();
-  const { t } = useI18n();
 
   return (
     <div className="wrap">
       <div className="cta" id="cta">
         <div className="cta-copy">
           <div>
-            <h3>{t("cta.title")}</h3>
-            <p>{t("cta.text")}</p>
+            <h3>Ready to bring your idea to life?</h3>
+            <p>Our team is ready to build your next digital product. Get in touch and let&apos;s make it happen.</p>
           </div>
           <div className="cta-actions">
             <button
               className="btn-primary"
               type="button"
-              onClick={() => requireAuth(openProfile)}
+              onClick={() => requireAuth(() => {
+                window.location.href = "/contact";
+              })}
             >
-              {t("cta.becomeSeller")}
+              Contact Us
             </button>
             <button
               className="btn-dark"
               type="button"
-              onClick={() => requireAuth(openPost)}
+              onClick={() => openAuth("signup")}
             >
-              {t("cta.postGig")}
+              Create Account
             </button>
           </div>
         </div>

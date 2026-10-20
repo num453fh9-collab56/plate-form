@@ -1,102 +1,88 @@
-import { getAdminSupabase, getUserFromRequest } from "@/lib/stripe-server";
-import { rateLimit } from "@/lib/rate-limit";
-import { notifyUser } from "@/lib/notify";
+import { createClient } from "@supabase/supabase-js";
+import { getUserFromRequest } from "@/lib/stripe-server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+function adminSb() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+}
 
-  const limited = await rateLimit(request, "review", 10, 60, user.id);
-  if (limited) return limited;
+export async function GET(req: NextRequest) {
+  const sb = adminSb();
+  const mode = req.nextUrl.searchParams.get("mode");
 
-  const body = (await request.json().catch(() => ({}))) as {
-    action?: string;
-    orderId?: string;
-    reviewId?: string;
-    rating?: number;
-    comment?: string;
-    reply?: string;
-  };
+  if (mode === "all") {
+    const user = await getUserFromRequest(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data } = await sb.from("reviews").select("*").order("created_at", { ascending: false });
+    return NextResponse.json({ reviews: data ?? [] });
+  }
 
-  const supabase = getAdminSupabase();
-  if (!supabase) return Response.json({ error: "Server error." }, { status: 500 });
+  if (mode === "my") {
+    const user = await getUserFromRequest(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data } = await sb.from("reviews").select("*").eq("client_id", user.id).order("created_at", { ascending: false });
+    return NextResponse.json({ reviews: data ?? [] });
+  }
 
-  const action = body.action ?? "submit";
+  const { data } = await sb
+    .from("reviews")
+    .select("*")
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false });
+  return NextResponse.json({ reviews: data ?? [] });
+}
+
+export async function POST(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  const { action } = body;
+  const sb = adminSb();
 
   if (action === "submit") {
-    const { orderId, rating, comment } = body;
-    if (!orderId) return Response.json({ error: "orderId required." }, { status: 400 });
-    if (!rating || rating < 1 || rating > 5) return Response.json({ error: "Rating must be 1-5." }, { status: 400 });
+    const { client_name, client_email, project_id, service, rating, title, content } = body;
+    if (!content?.trim()) return NextResponse.json({ error: "Review content required" }, { status: 400 });
 
-    const { data: order } = await supabase
-      .from("orders")
-      .select("id, buyer_id, seller_id, gig_id, status")
-      .eq("id", orderId)
-      .maybeSingle();
+    const { data, error } = await sb.from("reviews").insert({
+      client_id: user.id,
+      client_name: client_name?.trim() ?? "",
+      client_email: client_email?.trim() ?? "",
+      project_id: project_id || null,
+      service: service ?? "",
+      rating: Math.min(5, Math.max(1, rating ?? 5)),
+      title: title?.trim() ?? "",
+      content: content.trim(),
+      is_approved: false,
+      is_featured: false,
+    }).select().single();
 
-    if (!order) return Response.json({ error: "Order not found." }, { status: 404 });
-    if (order.buyer_id !== user.id) return Response.json({ error: "Only the buyer can leave a review." }, { status: 403 });
-    if (order.status !== "completed") return Response.json({ error: "Order must be completed first." }, { status: 400 });
-    if (!order.gig_id || !order.seller_id) return Response.json({ error: "Invalid order." }, { status: 400 });
-
-    const { data: existing } = await supabase
-      .from("reviews")
-      .select("id")
-      .eq("order_id", orderId)
-      .maybeSingle();
-
-    if (existing) return Response.json({ error: "You already reviewed this order." }, { status: 409 });
-
-    const { error } = await supabase.from("reviews").insert({
-      order_id: orderId,
-      gig_id: order.gig_id,
-      reviewer_id: user.id,
-      seller_id: order.seller_id,
-      rating: Math.round(rating),
-      comment: (comment ?? "").trim().slice(0, 2000),
-    });
-
-    if (error) return Response.json({ error: error.message }, { status: 500 });
-
-    void notifyUser(supabase, order.seller_id, "New review received", `You received a ${Math.round(rating)}-star review.`, `/orders/${orderId}`, "review");
-
-    return Response.json({ ok: true });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ review: data });
   }
 
-  if (action === "reply") {
-    const { reviewId, reply } = body;
-    if (!reviewId) return Response.json({ error: "reviewId required." }, { status: 400 });
-    if (!reply?.trim()) return Response.json({ error: "Reply cannot be empty." }, { status: 400 });
-
-    const { data: review } = await supabase
-      .from("reviews")
-      .select("id, seller_id, reviewer_id, seller_reply, order_id")
-      .eq("id", reviewId)
-      .maybeSingle();
-
-    if (!review) return Response.json({ error: "Review not found." }, { status: 404 });
-    if (review.seller_id !== user.id) return Response.json({ error: "Only the seller can reply." }, { status: 403 });
-    if (review.seller_reply) return Response.json({ error: "You already replied." }, { status: 409 });
-
-    const { error } = await supabase
-      .from("reviews")
-      .update({
-        seller_reply: reply.trim().slice(0, 2000),
-        seller_replied_at: new Date().toISOString(),
-      })
-      .eq("id", reviewId);
-
-    if (error) return Response.json({ error: error.message }, { status: 500 });
-
-    const rv = review as { reviewer_id?: string; order_id?: string };
-    if (rv.reviewer_id) {
-      void notifyUser(supabase, rv.reviewer_id, "Seller replied to your review", reply.trim().slice(0, 100), `/orders/${rv.order_id ?? ""}`, "review");
-    }
-
-    return Response.json({ ok: true });
+  if (action === "approve") {
+    const { id } = body;
+    await sb.from("reviews").update({ is_approved: true }).eq("id", id);
+    return NextResponse.json({ ok: true });
   }
 
-  return Response.json({ error: "Unknown action." }, { status: 400 });
+  if (action === "feature") {
+    const { id, featured } = body;
+    await sb.from("reviews").update({ is_featured: !!featured }).eq("id", id);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "delete") {
+    const { id } = body;
+    await sb.from("reviews").delete().eq("id", id);
+    return NextResponse.json({ ok: true });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }

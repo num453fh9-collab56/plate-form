@@ -1,98 +1,52 @@
-import { CATEGORY_OPTIONS, glyphFor } from "./gigs";
-import { categoryColors, isAllowedCategory } from "./taxonomy";
-import type { Gig, GigExtra, GigPackage, GigStatus, PackageKey, RequirementQuestion } from "./types";
+import type { Gig, PackageKey, GigPackage, GigExtra } from "./types";
 
-export interface GigRow {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  skills: string[] | null;
-  price: number | null;
-  delivery_days: number | null;
-  seller_name: string | null;
-  seller_id: string | null;
-  video: string | null;
-  video_name: string | null;
-  images: string[] | null;
-  packages: Partial<Record<PackageKey, GigPackage>> | null;
-  extras: GigExtra[] | null;
-  faq: { question: string; answer: string }[] | null;
-  requirements: string | null;
-  requirement_questions?: RequirementQuestion[] | null;
-  tags?: string[] | null;
-  status?: string | null;
-  views?: number | null;
-  created_at: string;
-}
+/* Stub — marketplace gig model kept for API/Stripe compatibility. */
 
-export function rowToGig(row: GigRow): Gig {
-  const category =
-    row.category && isAllowedCategory(row.category) ? row.category : CATEGORY_OPTIONS[0];
-  const days = row.delivery_days ?? 1;
-  return {
-    id: row.id,
-    sellerId: row.seller_id ?? undefined,
-    title: row.title,
-    description: row.description ?? "",
-    seller: row.seller_name ?? "Independent Professional",
-    role: "New Seller",
-    verified: false,
-    rating: 0,
-    reviews: 0,
-    price: Number(row.price ?? 0),
-    delivery: `${days} ${days === 1 ? "day" : "days"}`,
-    category,
-    skills: Array.isArray(row.skills) ? row.skills : [],
-    badge: "New",
-    colors: categoryColors(category),
-    glyph: glyphFor(category),
-    video: row.video ?? undefined,
-    videoName: row.video_name ?? undefined,
-    images: Array.isArray(row.images) ? row.images : [],
-    packages: row.packages ?? undefined,
-    extras: Array.isArray(row.extras) ? row.extras : undefined,
-    faq: Array.isArray(row.faq) ? row.faq : undefined,
-    requirementsText: row.requirements ?? undefined,
-    requirementQuestions: Array.isArray(row.requirement_questions)
-      ? row.requirement_questions
-      : undefined,
-    tags: Array.isArray(row.tags) ? row.tags : [],
-    status: toStatus(row.status),
-    views: Number(row.views ?? 0),
-    createdAt: row.created_at,
-    isNew: false,
-  };
-}
-
-function toStatus(value: string | null | undefined): GigStatus {
-  return value === "draft" || value === "paused" ? value : "published";
-}
+export type GigRow = Record<string, unknown>;
 
 export const PACKAGE_KEYS: PackageKey[] = ["basic", "standard", "premium"];
 
-/** Packages that actually have a price, in tier order. */
-export function offeredPackages(gig: Pick<Gig, "packages">): [PackageKey, GigPackage][] {
-  if (!gig.packages) return [];
-  return PACKAGE_KEYS.flatMap((key) => {
-    const pkg = gig.packages?.[key];
-    return pkg && Number(pkg.price) > 0 ? [[key, pkg] as [PackageKey, GigPackage]] : [];
-  });
+export function rowToGig(row: GigRow): Gig {
+  return {
+    id: String(row.id ?? ""),
+    title: String(row.title ?? ""),
+    description: String(row.description ?? ""),
+    seller: String(row.seller_name ?? ""),
+    role: String(row.role ?? ""),
+    verified: Boolean(row.verified),
+    rating: Number(row.rating ?? 0),
+    reviews: Number(row.reviews ?? 0),
+    price: Number(row.price ?? 0),
+    delivery: String(row.delivery ?? ""),
+    category: String(row.category ?? ""),
+    skills: Array.isArray(row.skills) ? (row.skills as string[]) : [],
+    badge: String(row.badge ?? ""),
+    colors: ["#0066cc", "#0891b2"],
+    glyph: String(row.glyph ?? ""),
+  };
 }
 
-/** Price + delivery for a package choice and extras (same math as checkout). */
+interface GigLike {
+  price: number;
+  packages?: Partial<Record<PackageKey, GigPackage>>;
+  extras?: GigExtra[];
+  delivery?: string;
+}
+
 export function quoteOrder(
-  gig: Pick<Gig, "price" | "packages" | "extras" | "delivery">,
-  packageKey: PackageKey | null,
-  extraLabels: string[],
-): { total: number; days: number } {
-  const pkg = packageKey ? gig.packages?.[packageKey] : undefined;
-  let total = pkg && Number(pkg.price) > 0 ? Number(pkg.price) : Number(gig.price);
-  let days = pkg ? Number(pkg.delivery) || 1 : parseInt(gig.delivery, 10) || 1;
-  for (const extra of gig.extras ?? []) {
-    if (!extraLabels.includes(extra.label)) continue;
-    total += Number(extra.price) || 0;
-    days += Number(extra.days) || 0;
-  }
-  return { total: Math.round(total * 100) / 100, days: Math.max(1, days) };
+  gig: GigLike,
+  packageKey?: PackageKey | null,
+  extraLabels?: string[],
+): { subtotal: number; total: number; fee: number; days: number } {
+  const pkg = packageKey && gig.packages?.[packageKey];
+  const basePrice = pkg ? pkg.price : gig.price;
+  const baseDays = pkg ? (pkg.delivery ?? 1) : Number(gig.delivery ?? 1);
+  const selectedExtras = (gig.extras ?? []).filter((e) =>
+    extraLabels?.includes(e.label),
+  );
+  const extrasPrice = selectedExtras.reduce((s, e) => s + e.price, 0);
+  const extrasDays = selectedExtras.reduce((s, e) => s + (e.days ?? 0), 0);
+  const subtotal = basePrice + extrasPrice;
+  const fee = Math.round(subtotal * 0.1 * 100) / 100;
+  return { subtotal, total: subtotal, fee, days: baseDays + extrasDays };
 }

@@ -1,48 +1,56 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PLATFORM_FEE_RATE } from "@/lib/fees";
 
 export const metadata: Metadata = {
   title: "Help Center",
-  description: "Answers to common questions about orders, payments, refunds and disputes on Hirelyx. Get support for your freelance projects.",
+  description: "Answers to common questions about projects, bookings, payments, and working with the Hirelyx team.",
   alternates: { canonical: "/help" },
 };
 
-const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";
-const FEE = `${Math.round(PLATFORM_FEE_RATE * 100)}%`;
+const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@hirelyx.com";
 
 const FAQ: { group: string; items: [string, string][] }[] = [
   {
-    group: "Orders & payments",
+    group: "Getting Started",
     items: [
-      ["How do I pay?", "By card through Stripe at checkout. Prices are charged in US dollars; other currencies on the site are shown for convenience."],
-      ["When does the seller get paid?", "Only after you accept the delivery (or approve a milestone). Until then the payment is held."],
-      ["What are custom offers and milestones?", "A seller can send you a tailored offer in chat. Larger offers can be split into milestones — you approve and release payment for each part separately."],
-      ["Can I ask for changes?", "Yes. After a delivery, use “Request revision” on the order page and explain what should change."],
+      ["How do I start a project?", "Visit our Contact page or book a free consultation. Tell us about your goals and requirements, and we'll take it from there."],
+      ["What services do you offer?", "We offer six core services: Programming & Tech, Digital Marketing, Custom AI Agents, Social Media AI & Animation, Prompt Engineering, and n8n & Workflow Automation."],
+      ["Do you work with international clients?", "Yes! We work with clients worldwide. Communication is handled through our platform, email, and video calls."],
+      ["How long does a typical project take?", "It depends on the scope. A website takes 2–4 weeks, a mobile app 4–8 weeks, and larger projects may take 2–3 months. We agree on a timeline before starting."],
     ],
   },
   {
-    group: "Cancellations, refunds & disputes",
+    group: "Projects & Tracking",
     items: [
-      ["Can I cancel an order?", "Unpaid orders can be cancelled anytime. After payment, the seller can cancel and refund you, and you can cancel yourself if the order is past its due date and not delivered."],
-      ["What if we can't agree?", "Open a dispute from the order page. Both sides explain their position and a Hirelyx admin decides: a full refund, a partial refund or releasing payment to the seller."],
-      ["How long do refunds take?", "Refunds go back to your original card. Banks usually show them within 5–10 business days."],
+      ["How can I track my project?", "Once your project starts, you can track its progress in the Client Portal. You'll see the current stage, milestones, and a timeline — all updated in real time."],
+      ["What stages does a project go through?", "Every project follows six stages: Discovery → Design → Development → Testing → Launch → Completed. You can see your project's stage in the portal."],
+      ["Can I communicate with the team during development?", "Absolutely. Each project has a built-in activity feed where you can leave comments and ask questions. You can also use the live chat widget or book a call."],
+      ["Can I upload files for my project?", "Yes. The project detail page has a file upload section where you can share documents, images, and other assets with the team (up to 10 MB per file)."],
     ],
   },
   {
-    group: "Selling",
+    group: "Bookings & Consultations",
     items: [
-      ["What does Hirelyx charge sellers?", `A ${FEE} platform fee on each completed order or milestone. Buyers pay the listed price.`],
-      ["How do I receive payouts?", "Connect a payout account from the Earnings page. Payouts are sent automatically when buyers approve your work."],
-      ["How do seller levels work?", "Levels update automatically from completed orders, rating, on-time delivery and account age. See How it works for the exact requirements."],
+      ["How do I book a consultation?", "Visit the Bookings page, pick an available time slot from the calendar, fill in your details, and confirm. You'll get a confirmation."],
+      ["Can I cancel or reschedule a booking?", "Yes. Go to the Bookings page, find your booking in the 'My Bookings' tab, and cancel it. Then book a new slot that works better."],
+      ["Are consultations free?", "Initial consultations are free. We use them to understand your requirements and discuss the best approach for your project."],
     ],
   },
   {
-    group: "Account & safety",
+    group: "Payments & Invoices",
     items: [
-      ["I forgot my password.", "Use “Forgot password?” on the sign-in screen and we will email you a reset link."],
-      ["How do I stay safe?", "Keep all communication and payments on Hirelyx. Never pay outside the platform — we cannot protect payments made elsewhere."],
-      ["How do I report a user or lyx?", "Message our team with a link to the lyx or profile. We review reports and can pause lyxes or ban accounts."],
+      ["How do I pay?", "We send you an invoice through the platform. You can pay securely via Stripe using any major credit or debit card."],
+      ["When do I need to pay?", "Payment terms are agreed upon before the project starts. For larger projects, we typically work with milestone-based payments."],
+      ["Where can I see my invoices?", "All your invoices and quotes are available in the Invoices page. Sign in to view, download, or pay them online."],
+      ["What currencies do you accept?", "We support USD, PKR, EUR, and GBP. The currency is set when the invoice is created."],
+    ],
+  },
+  {
+    group: "Account & Security",
+    items: [
+      ["How do I sign in?", "Click 'Sign In' in the top navigation. You can sign in with your email (using a one-time code) or with Google."],
+      ["How do I access the Client Portal?", "After signing in, go to the Portal page from the navigation menu. You'll see your projects, bookings, and invoices in one place."],
+      ["Is my data secure?", "Yes. We use Supabase with Row Level Security, which means you can only see your own data. All payments are processed securely through Stripe."],
     ],
   },
 ];
@@ -78,7 +86,7 @@ export default function HelpPage() {
           <div>
             <div className="kicker">Help center</div>
             <h2>How can we help?</h2>
-            <p className="sub">Quick answers about orders, payments and safety.</p>
+            <p className="sub">Quick answers about projects, bookings, payments, and more.</p>
           </div>
         </div>
 
@@ -97,11 +105,10 @@ export default function HelpPage() {
         <div className="gw-card info-contact">
           <h3>Still need help?</h3>
           <p className="gw-muted">
-            For a problem with an order, open a dispute from the order page — it reaches our team directly.
-            {SUPPORT_EMAIL ? " For anything else, email us." : ""}
+            Can&apos;t find what you&apos;re looking for? Reach out to our team — we&apos;re happy to help.
           </p>
           <div className="info-cta">
-            <Link className="btn-primary" href="/orders">Go to my orders</Link>
+            <Link className="btn-primary" href="/contact">Contact Us</Link>
             {SUPPORT_EMAIL ? (
               <a className="btn-ghost" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             ) : null}

@@ -12,15 +12,11 @@ import NotificationBell from "./NotificationBell";
 import BrandMark from "./BrandMark";
 
 export default function Header() {
-  const { user, profile } = useAuth();
-  const { openPost, openAuth } = useUI();
+  const { user } = useAuth();
+  const { openAuth } = useUI();
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
-  const role = profile.role;
-  const isBuyer = role === "buyer";
-  const isFreelancer = role === "freelancer";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -28,12 +24,6 @@ export default function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const startProject = () => {
-    setMenuOpen(false);
-    if (user) openPost();
-    else openAuth("signup");
-  };
 
   return (
     <header className={scrolled ? "scrolled" : ""}>
@@ -56,39 +46,23 @@ export default function Header() {
           <Link href="/" onClick={() => setMenuOpen(false)}>
             {t("nav.home")}
           </Link>
-          <Link href="/search" onClick={() => setMenuOpen(false)}>
-            {isBuyer ? "Find Talent" : t("nav.project")}
+          <Link href="/services" onClick={() => setMenuOpen(false)}>
+            Services
           </Link>
-          {!isBuyer && (
-            <Link href="/requests" onClick={() => setMenuOpen(false)}>
-              {isFreelancer ? "Find Work" : "Requests"}
+          <Link href="/about" onClick={() => setMenuOpen(false)}>
+            About
+          </Link>
+          <Link href="/portfolio" onClick={() => setMenuOpen(false)}>
+            Portfolio
+          </Link>
+          <Link href="/contact" onClick={() => setMenuOpen(false)}>
+            Contact
+          </Link>
+
+          {user && (
+            <Link href="/dashboard" className="btn-gig" onClick={() => setMenuOpen(false)}>
+              Dashboard
             </Link>
-          )}
-          {!isBuyer && (
-            <Link href="/#portfolio" onClick={() => setMenuOpen(false)}>
-              {t("nav.resolutions")}
-            </Link>
-          )}
-          {isBuyer && (
-            <Link href="/requests" onClick={() => setMenuOpen(false)}>
-              My Requests
-            </Link>
-          )}
-          {user && isBuyer && (
-            <Link
-              href="/requests/new"
-              className="btn-gig"
-              onClick={() => setMenuOpen(false)}
-            >
-              <span className="btn-gig-plus" aria-hidden="true">+</span>
-              Post a Request
-            </Link>
-          )}
-          {user && !isBuyer && (
-            <button className="btn-gig" type="button" onClick={startProject}>
-              <span className="btn-gig-plus" aria-hidden="true">+</span>
-              {t("nav.postProject")}
-            </button>
           )}
 
           <LanguageSelector />

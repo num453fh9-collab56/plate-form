@@ -21,7 +21,7 @@ export default function DashboardWelcome() {
       </div>
       <div className="dash-welcome-copy">
         <h3>Welcome to Hirelyx, {firstName}!</h3>
-        <p>Get started in three simple steps and begin your freelancing journey today.</p>
+        <p>Manage your projects, track progress, and connect with our team.</p>
         <div className="dash-welcome-steps">
           <div className="dash-welcome-step">
             <span className="dash-welcome-step-num">1</span>
@@ -29,11 +29,11 @@ export default function DashboardWelcome() {
           </div>
           <div className="dash-welcome-step">
             <span className="dash-welcome-step-num">2</span>
-            Create Your First Lyx
+            Browse Our Services
           </div>
           <div className="dash-welcome-step">
             <span className="dash-welcome-step-num">3</span>
-            Start Earning
+            Start a Project
           </div>
         </div>
       </div>

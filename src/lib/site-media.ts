@@ -13,5 +13,5 @@ export const LANDING_VIDEOS: string[] = [
   "/videos/hero-2.mp4",
 ];
 
-/** Looping video beside the "become a seller / post a gig" call to action. */
+/** Looping video beside the call-to-action section. */
 export const CTA_VIDEO: string | null = "/videos/hero-2.mp4";
