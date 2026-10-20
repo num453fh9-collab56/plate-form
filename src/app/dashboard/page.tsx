@@ -252,8 +252,8 @@ function DashboardInner() {
           border-radius: 999px;
           font-size: 0.7rem;
           font-weight: 600;
-          background: var(--accent-soft);
-          color: var(--accent);
+          background: rgba(0,102,204,0.08);
+          color: #0066cc;
         }
 
         /* Strength */
@@ -326,7 +326,7 @@ function DashboardInner() {
         }
         .db-action-btn:hover {
           border-color: var(--accent, #0066cc);
-          background: var(--hover);
+          background: rgba(0,102,204,0.04);
           transform: translateY(-1px);
         }
         .db-action-icon {
