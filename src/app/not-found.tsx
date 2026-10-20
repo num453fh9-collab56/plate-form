@@ -9,8 +9,8 @@ export default function NotFound() {
           <h3>Page not found</h3>
           <p>The page you are looking for does not exist or has been moved.</p>
           <div className="status-page-actions">
-            <Link className="btn-primary" href="/search">
-              Browse gigs
+            <Link className="btn-primary" href="/services">
+              View Services
             </Link>
             <Link className="btn-ghost" href="/">
               Go home

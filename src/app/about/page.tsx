@@ -42,7 +42,7 @@ const VALUES = [
 
 const TIMELINE = [
   { year: "2024", title: "The Idea", desc: "Started as a PIAIC student project with a vision to build something real and useful." },
-  { year: "2025", title: "First Launch", desc: "Launched Hirelyx as a freelance marketplace with Supabase, Stripe, and Next.js." },
+  { year: "2025", title: "First Launch", desc: "Launched Hirelyx as a platform with Supabase, Stripe, and Next.js — learning what clients really need." },
   { year: "2026", title: "Pivot to Services", desc: "Evolved into a professional services team, offering direct project delivery to clients worldwide." },
   { year: "Now", title: "Growing", desc: "Expanding our team and services, delivering high-quality digital products to clients across the globe." },
 ];

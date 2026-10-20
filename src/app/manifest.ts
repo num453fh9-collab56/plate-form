@@ -1,11 +1,10 @@
 import type { MetadataRoute } from "next";
 
-/* Makes Hirelyx installable as an app ("Add to Home Screen" / "Install app"). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Hirelyx — Hire Expert Freelance Talent",
+    name: "Hirelyx — Professional Digital Services",
     short_name: "Hirelyx",
-    description: "Hire expert freelancers or sell your services.",
+    description: "Professional digital services — web development, AI solutions, digital marketing, and more.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -19,9 +18,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Orders", url: "/orders" },
-      { name: "Buyer requests", url: "/requests" },
-      { name: "Create a lyx", url: "/post-project" },
+      { name: "Services", url: "/services" },
+      { name: "Contact", url: "/contact" },
+      { name: "Portfolio", url: "/portfolio" },
     ],
   };
 }

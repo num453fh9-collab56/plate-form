@@ -15,15 +15,15 @@ export async function POST(req: Request) {
         user_id: userId,
         type: "system",
         title: "Welcome to Hirelyx!",
-        body: `Hi ${name || "there"}, your account is ready. Start exploring freelancers or offer your own services.`,
-        link: "/dashboard",
+        body: `Hi ${name || "there"}, your account is ready. Explore our services and let's build something great together.`,
+        link: "/services",
       });
     }
 
     await sendTemplateEmail(email, {
       template: "welcome",
       title: "Welcome to Hirelyx!",
-      body: `Hi ${name || "there"}, your account is ready. Start exploring freelancers or offer your own services.`,
+      body: `Hi ${name || "there"}, your account is ready. Explore our services and let's build something great together.`,
       link: "/dashboard",
       linkLabel: "Go to Dashboard",
     });
