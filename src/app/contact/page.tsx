@@ -24,7 +24,7 @@ export default function ContactPage() {
             <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Email</h3>
             <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.6 }}>
               You can also email us directly at{" "}
-              <strong style={{ color: "var(--accent)" }}>support@hirelyx.com</strong>
+              <a href="mailto:support@hirelyx.com" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>support@hirelyx.com</a>
             </p>
           </div>
 
