@@ -6,147 +6,20 @@ import { useRouter } from "next/navigation";
 import { useAuth, useRequireAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
 import { initials } from "@/lib/format";
 import { useIsAdmin } from "@/lib/admin";
 
-type IconName =
-  | "manage"
-  | "groups"
-  | "bell"
-  | "post"
-  | "wallet"
-  | "profile"
-  | "improve"
-  | "certified"
-  | "promote"
-  | "rewards"
-  | "chat";
-
-const ICON_PATHS: Record<IconName, ReactNode> = {
-  manage: (
-    <>
-      <line x1="4" y1="21" x2="4" y2="14" />
-      <line x1="4" y1="10" x2="4" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12" y2="3" />
-      <line x1="20" y1="21" x2="20" y2="16" />
-      <line x1="20" y1="12" x2="20" y2="3" />
-      <line x1="1" y1="14" x2="7" y2="14" />
-      <line x1="9" y1="8" x2="15" y2="8" />
-      <line x1="17" y1="16" x2="23" y2="16" />
-    </>
-  ),
-  groups: (
-    <>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </>
-  ),
-  bell: (
-    <>
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </>
-  ),
-  post: (
-    <>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="12" y1="8" x2="12" y2="16" />
-      <line x1="8" y1="12" x2="16" y2="12" />
-    </>
-  ),
-  wallet: (
-    <>
-      <rect x="2" y="6" width="20" height="14" rx="2" />
-      <path d="M2 10h20" />
-      <circle cx="17" cy="14" r="1.5" />
-    </>
-  ),
-  profile: (
-    <>
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </>
-  ),
-  improve: (
-    <>
-      <path d="M23 6l-9.5 9.5-5-5L1 18" />
-      <path d="M17 6h6v6" />
-    </>
-  ),
-  certified: (
-    <>
-      <circle cx="12" cy="8" r="6" />
-      <path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12" />
-    </>
-  ),
-  promote: (
-    <>
-      <path d="M11 5 6 9H2v6h4l5 4V5z" />
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-    </>
-  ),
-  rewards: (
-    <>
-      <path d="M20 12v10H4V12" />
-      <rect x="2" y="7" width="20" height="5" />
-      <line x1="12" y1="22" x2="12" y2="7" />
-      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-    </>
-  ),
-  chat: (
-    <>
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </>
-  ),
-};
-
-function Icon({ name }: { name: IconName }) {
+function MenuIcon({ children }: { children: ReactNode }) {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {ICON_PATHS[name]}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
     </svg>
   );
 }
 
-interface DashItem {
-  id: string;
-  labelKey: TranslationKey;
-  icon: IconName;
-  color: string;
-  soft: string;
-  badge?: string;
-  value?: string;
-}
-
-const DASH_ITEMS: DashItem[] = [
-  { id: "manage", labelKey: "account.settings", icon: "manage", color: "#0066cc", soft: "rgba(0,102,204,0.12)" },
-  { id: "dashboard", labelKey: "account.dashboard", icon: "post", color: "#059669", soft: "rgba(5,150,105,0.12)" },
-  { id: "profile", labelKey: "account.myProfile", icon: "profile", color: "#4f46e5", soft: "rgba(79,70,229,0.12)" },
-  { id: "improve", labelKey: "account.improveProfile", icon: "improve", color: "#0891b2", soft: "rgba(8,145,178,0.12)" },
-];
-
 export default function AccountMenu() {
   const { user, signOut, strength, profile } = useAuth();
-  const role = profile.role;
-  const isBuyer = role === "buyer";
-  const isFreelancer = role === "freelancer";
-  const { openProfile, openAccount, openMessages, toast } = useUI();
+  const { openProfile, openMessages, toast } = useUI();
   const requireAuth = useRequireAuth();
   const { t } = useI18n();
   const router = useRouter();
@@ -156,9 +29,7 @@ export default function AccountMenu() {
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -171,27 +42,7 @@ export default function AccountMenu() {
     };
   }, []);
 
-  const handleItem = (item: DashItem) => {
-    setOpen(false);
-    if (item.id === "dashboard") {
-      router.push("/dashboard");
-      return;
-    }
-    if (item.id === "profile") {
-      setOpen(false);
-      if (user?.sub) router.push(`/user/${user.sub}`);
-      return;
-    }
-    if (item.id === "improve") {
-      requireAuth(openProfile);
-      return;
-    }
-    if (item.id === "manage") {
-      requireAuth(openAccount);
-      return;
-    }
-    toast(t("account.soon", { item: t(item.labelKey) }));
-  };
+  const go = (path: string) => { setOpen(false); router.push(path); };
 
   return (
     <div className={"account-menu" + (open ? " open" : "")} ref={ref}>
@@ -200,324 +51,110 @@ export default function AccountMenu() {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen((v) => !v)}
       >
         {user?.picture ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img className="account-avatar" src={user.picture} alt="" />
         ) : user ? (
           <span className="account-avatar account-initials">{initials(user.name)}</span>
         ) : (
           <span className="account-avatar account-guest">
-            <Icon name="profile" />
+            <MenuIcon><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></MenuIcon>
           </span>
         )}
-        <span className="account-name">
-          {user ? user.name.split(" ")[0] : t("account.account")}
-        </span>
-        <svg
-          className="chev"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <span className="account-name">{user ? user.name.split(" ")[0] : t("account.account")}</span>
+        <svg className="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
       </button>
 
       <div className="account-dropdown" role="menu">
         {user ? (
-          <div className="account-head">
-            {user.picture ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.picture} alt="" />
-            ) : (
-              <span className="account-avatar account-initials account-head-avatar">
-                {initials(user.name)}
-              </span>
-            )}
-            <div className="account-head-info">
-              <strong>{user.name}</strong>
-              <span>{user.email}</span>
+          <>
+            <div className="account-head">
+              {user.picture ? (
+                <img src={user.picture} alt="" />
+              ) : (
+                <span className="account-avatar account-initials account-head-avatar">{initials(user.name)}</span>
+              )}
+              <div className="account-head-info">
+                <strong>{user.name}</strong>
+                <span>{user.email}</span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="account-head guest">
-            <strong>{t("account.welcomeTitle")}</strong>
-            <span>{t("account.welcomeText")}</span>
-          </div>
-        )}
 
-        {user && (
-          <button
-            className="account-strength"
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              openProfile();
-            }}
-          >
-            <span className="account-strength-label">{t("profile.strength")}</span>
-            <span className="account-strength-bar">
-              <span style={{ width: `${strength.percent}%` }} />
-            </span>
-            <span className="account-strength-value">{strength.percent}%</span>
-          </button>
-        )}
+            {/* Profile strength */}
+            <button className="account-strength" type="button" role="menuitem" onClick={() => { setOpen(false); go("/settings"); }}>
+              <span className="account-strength-label">Profile</span>
+              <span className="account-strength-bar"><span style={{ width: `${strength.percent}%` }} /></span>
+              <span className="account-strength-value">{strength.percent}%</span>
+            </button>
 
-        {user && (
-          <>
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                openMessages();
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#0066cc", background: "rgba(0,102,204,0.12)" }}
-              >
-                <Icon name="chat" />
-              </span>
-              <span className="dash-text">Messages</span>
-            </button>
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                router.push("/orders");
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#d97706", background: "rgba(217,119,6,0.13)" }}
-              >
-                <Icon name="wallet" />
-              </span>
-              <span className="dash-text">Orders</span>
-            </button>
-            {!isBuyer && (
-              <button
-                className="dash-item"
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  router.push("/dashboard");
-                }}
-              >
-                <span
-                  className="dash-icon"
-                  style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}
-                >
-                  <Icon name="improve" />
+            {/* Menu items */}
+            <div className="am-items">
+              <button className="dash-item" type="button" role="menuitem" onClick={() => go("/dashboard")}>
+                <span className="dash-icon" style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}>
+                  <MenuIcon><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></MenuIcon>
                 </span>
-                <span className="dash-text">Seller Dashboard</span>
+                <span className="dash-text">Dashboard</span>
               </button>
-            )}
-            {!isFreelancer && (
-              <button
-                className="dash-item"
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  router.push(isBuyer ? "/dashboard" : "/dashboard?mode=buying");
-                }}
-              >
-                <span
-                  className="dash-icon"
-                  style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}
-                >
-                  <Icon name="wallet" />
-                </span>
-                <span className="dash-text">Buyer Dashboard</span>
-              </button>
-            )}
-            {isAdmin ? (
-              <button
-                className="dash-item"
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  router.push("/admin");
-                }}
-              >
-                <span
-                  className="dash-icon"
-                  style={{ color: "#dc2626", background: "rgba(220,38,38,0.12)" }}
-                >
-                  <Icon name="manage" />
-                </span>
-                <span className="dash-text">Admin panel</span>
-              </button>
-            ) : null}
-            {!isBuyer && (
-              <button
-                className="dash-item"
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  router.push("/earnings");
-                }}
-              >
-                <span
-                  className="dash-icon"
-                  style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}
-                >
-                  <Icon name="wallet" />
-                </span>
-                <span className="dash-text">Earnings</span>
-              </button>
-            )}
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                router.push("/notifications");
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#2563eb", background: "rgba(37,99,235,0.12)" }}
-              >
-                <Icon name="bell" />
-              </span>
-              <span className="dash-text">Notifications</span>
-            </button>
-            <button
-              className="dash-item"
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                router.push("/favorites");
-              }}
-            >
-              <span
-                className="dash-icon"
-                style={{ color: "#e11d48", background: "rgba(225,29,72,0.12)" }}
-              >
-                <Icon name="rewards" />
-              </span>
-              <span className="dash-text">Saved lyxes</span>
-            </button>
-            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/wishlists"); }}>
-              <span className="dash-icon" style={{ color: "#8b5cf6", background: "rgba(139,92,246,0.12)" }}><Icon name="rewards" /></span>
-              <span className="dash-text">Wishlists</span>
-            </button>
-            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/referrals"); }}>
-              <span className="dash-icon" style={{ color: "#059669", background: "rgba(5,150,105,0.12)" }}><Icon name="groups" /></span>
-              <span className="dash-text">Referrals</span>
-            </button>
-            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/teams"); }}>
-              <span className="dash-icon" style={{ color: "#0284c7", background: "rgba(2,132,199,0.12)" }}><Icon name="groups" /></span>
-              <span className="dash-text">Teams</span>
-            </button>
-            {!isBuyer && (
-              <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/promoted"); }}>
-                <span className="dash-icon" style={{ color: "#d97706", background: "rgba(217,119,6,0.12)" }}><Icon name="promote" /></span>
-                <span className="dash-text">Promoted Gigs</span>
-              </button>
-            )}
-            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/skill-tests"); }}>
-              <span className="dash-icon" style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}><Icon name="certified" /></span>
-              <span className="dash-text">Skill Tests</span>
-            </button>
-            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/recurring"); }}>
-              <span className="dash-icon" style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}><Icon name="manage" /></span>
-              <span className="dash-text">Recurring Orders</span>
-            </button>
-            <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); router.push("/affiliates"); }}>
-              <span className="dash-icon" style={{ color: "#dc2626", background: "rgba(220,38,38,0.12)" }}><Icon name="promote" /></span>
-              <span className="dash-text">Affiliates</span>
-            </button>
-          </>
-        )}
 
-        {user ? (
-          <>
-            <div className="dash-label">{t("account.dashboard")}</div>
-            <ul className="dash-list">
-              {DASH_ITEMS.filter((item) => {
-                if (isBuyer && (item.id === "post" || item.id === "improve")) return false;
-                return true;
-              }).map((item) => (
-                <li key={item.id}>
-                  <button
-                    className="dash-item"
-                    type="button"
-                    role="menuitem"
-                    onClick={() => handleItem(item)}
-                  >
-                    <span className="dash-icon" style={{ color: item.color, background: item.soft }}>
-                      <Icon name={item.icon} />
-                    </span>
-                    <span className="dash-text">{t(item.labelKey)}</span>
-                    {item.badge && (
-                      <span className="dash-badge" style={{ background: item.color }}>
-                        {item.badge}
-                      </span>
-                    )}
-                    {item.value && (
-                      <span
-                        className="dash-value"
-                        style={{ color: item.color, background: item.soft }}
-                      >
-                        {item.value}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
+              <button className="dash-item" type="button" role="menuitem" onClick={() => go("/portal")}>
+                <span className="dash-icon" style={{ color: "#0066cc", background: "rgba(0,102,204,0.12)" }}>
+                  <MenuIcon><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></MenuIcon>
+                </span>
+                <span className="dash-text">Client Portal</span>
+              </button>
+
+              <button className="dash-item" type="button" role="menuitem" onClick={() => go("/invoices")}>
+                <span className="dash-icon" style={{ color: "#7c3aed", background: "rgba(124,58,237,0.12)" }}>
+                  <MenuIcon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></MenuIcon>
+                </span>
+                <span className="dash-text">Invoices</span>
+              </button>
+
+              <button className="dash-item" type="button" role="menuitem" onClick={() => { setOpen(false); openMessages(); }}>
+                <span className="dash-icon" style={{ color: "#0891b2", background: "rgba(8,145,178,0.12)" }}>
+                  <MenuIcon><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></MenuIcon>
+                </span>
+                <span className="dash-text">Messages</span>
+              </button>
+
+              <button className="dash-item" type="button" role="menuitem" onClick={() => go("/notifications")}>
+                <span className="dash-icon" style={{ color: "#2563eb", background: "rgba(37,99,235,0.12)" }}>
+                  <MenuIcon><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></MenuIcon>
+                </span>
+                <span className="dash-text">Notifications</span>
+              </button>
+
+              <button className="dash-item" type="button" role="menuitem" onClick={() => go("/settings")}>
+                <span className="dash-icon" style={{ color: "#64748b", background: "rgba(100,116,139,0.12)" }}>
+                  <MenuIcon><circle cx="12" cy="12" r="3" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></MenuIcon>
+                </span>
+                <span className="dash-text">Settings</span>
+              </button>
+
+              {isAdmin && (
+                <button className="dash-item" type="button" role="menuitem" onClick={() => go("/admin")}>
+                  <span className="dash-icon" style={{ color: "#dc2626", background: "rgba(220,38,38,0.12)" }}>
+                    <MenuIcon><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></MenuIcon>
+                  </span>
+                  <span className="dash-text">Admin Panel</span>
+                </button>
+              )}
+            </div>
+
+            <button className="dash-signout" type="button" role="menuitem" onClick={() => { signOut(); setOpen(false); toast(t("toast.signedOut")); }}>
+              {t("account.signOut")}
+            </button>
           </>
         ) : (
           <div style={{ padding: "12px 16px" }}>
             <p style={{ color: "var(--muted)", marginBottom: 10, fontSize: "0.85rem" }}>
-              Sign in or join to manage lyxes, orders and messages.
+              Sign in to manage your projects, invoices and messages.
             </p>
-            <button
-              className="btn-primary"
-              type="button"
-              style={{ width: "100%" }}
-              onClick={() => {
-                setOpen(false);
-                requireAuth(() => undefined);
-              }}
-            >
-              Sign in / Join
+            <button className="btn-primary" type="button" style={{ width: "100%" }} onClick={() => { setOpen(false); requireAuth(() => undefined); }}>
+              Sign In / Join
             </button>
           </div>
-        )}
-
-        {user && (
-          <button
-            className="dash-signout"
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              signOut();
-              setOpen(false);
-              toast(t("toast.signedOut"));
-            }}
-          >
-            {t("account.signOut")}
-          </button>
         )}
       </div>
     </div>
