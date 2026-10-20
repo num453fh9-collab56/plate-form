@@ -11,10 +11,10 @@ interface Message {
 }
 
 const QUICK_QUESTIONS = [
-  "How does Hirelyx work?",
-  "How do I hire a freelancer?",
-  "How do sellers get paid?",
-  "What are the platform fees?",
+  "What services do you offer?",
+  "How does a project work?",
+  "How do payments work?",
+  "Can I book a consultation?",
 ];
 
 function GemiAvatar({ size = 36 }: { size?: number }) {
@@ -197,7 +197,7 @@ export default function ChatbotWidget() {
           </form>
 
           {user ? null : (
-            <p className="cb-login-hint">Sign in to check your order status</p>
+            <p className="cb-login-hint">Sign in to check your project status</p>
           )}
         </div>
       ) : null}
