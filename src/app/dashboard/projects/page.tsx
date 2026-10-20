@@ -177,7 +177,7 @@ export default function ManageProjectsPage() {
         .mp-filter{padding:.35rem .7rem;border-radius:999px;border:1px solid var(--border);background:transparent;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.35rem;color:var(--text-secondary);transition:all .15s}
         .mp-filter:hover{border-color:var(--accent);color:var(--accent)}
         .mp-filter-active{background:var(--accent);color:#fff;border-color:var(--accent)}
-        .mp-filter-count{font-size:.65rem;background:rgba(0,0,0,.08);padding:.1rem .35rem;border-radius:999px}
+        .mp-filter-count{font-size:.65rem;background:var(--hover);padding:.1rem .35rem;border-radius:999px}
         .mp-filter-active .mp-filter-count{background:rgba(255,255,255,.2)}
 
         .mp-list{display:flex;flex-direction:column;gap:.6rem;padding-bottom:2rem}

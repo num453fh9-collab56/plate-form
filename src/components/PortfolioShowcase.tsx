@@ -301,7 +301,7 @@ export default function PortfolioShowcase() {
           font-weight: 700;
         }
         .pf-filter:not(.pf-filter-active) .pf-filter-count {
-          background: rgba(0,0,0,0.06);
+          background: var(--hover);
         }
 
         .pf-empty {
