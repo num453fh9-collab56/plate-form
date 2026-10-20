@@ -285,7 +285,7 @@ export default function TeamSection() {
           font-size: .65rem; font-weight: 600; border: 1.5px solid;
           transition: background .2s;
         }
-        .tm-card-hover .tm-skill { background: rgba(0,0,0,.03) }
+        .tm-card-hover .tm-skill { background: var(--hover) }
 
         .tm-socials { display: flex; gap: .5rem; margin-top: auto; padding-top: .25rem }
         .tm-social {

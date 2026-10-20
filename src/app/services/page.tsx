@@ -369,7 +369,7 @@ export default function ServicesPage() {
           font: inherit;
         }
         .svc-card-header:hover {
-          background: rgba(0,0,0,0.02);
+          background: var(--hover);
         }
         .svc-card-icon {
           width: 52px;
@@ -551,7 +551,7 @@ export default function ServicesPage() {
           transition: background 0.2s, transform 0.2s;
         }
         .svc-tier-btn:hover {
-          background: rgba(0,0,0,0.04);
+          background: var(--hover);
           transform: translateY(-1px);
         }
         .svc-tier-btn-primary {

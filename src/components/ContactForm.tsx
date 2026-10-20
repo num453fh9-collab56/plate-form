@@ -595,7 +595,7 @@ export default function ContactForm() {
           align-items: center;
           gap: 0.5rem;
           padding: 0.4rem 0.6rem;
-          background: rgba(0,0,0,0.03);
+          background: var(--hover);
           border-radius: 0.4rem;
           font-size: 0.78rem;
         }
@@ -677,7 +677,7 @@ export default function ContactForm() {
           gap: 0.4rem;
           text-align: left;
           padding: 1rem 1.5rem;
-          background: rgba(0,0,0,0.03);
+          background: var(--hover);
           border-radius: 0.75rem;
           font-size: 0.85rem;
           color: var(--text-secondary);
