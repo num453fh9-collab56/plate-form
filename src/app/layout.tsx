@@ -12,6 +12,8 @@ import Footer from "@/components/Footer";
 import Overlays from "@/components/Overlays";
 import ErrorReporter from "@/components/ErrorReporter";
 import ChatWidget from "@/components/ChatWidget";
+import ScrollToTop from "@/components/ScrollToTop";
+import CookieConsent from "@/components/CookieConsent";
 import PageTracker from "@/components/PageTracker";
 import PresenceTracker from "@/components/PresenceTracker";
 
@@ -117,6 +119,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   <Footer />
                   <Overlays />
                   <ChatWidget />
+                  <ScrollToTop />
+                  <CookieConsent />
                   <PageTracker />
                   <PresenceTracker />
               </MessagingProvider>
