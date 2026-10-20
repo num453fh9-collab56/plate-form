@@ -10,13 +10,31 @@ import { getRecaptchaToken } from "@/lib/recaptcha";
    ========================================================================== */
 
 const SERVICE_OPTIONS = [
-  { value: "programming", label: "Programming & Tech", icon: "🌐" },
-  { value: "marketing", label: "Digital Marketing", icon: "📈" },
-  { value: "ai-agents", label: "Custom AI Agents", icon: "🤖" },
-  { value: "social-ai", label: "Social Media AI & Animation", icon: "🎬" },
-  { value: "prompt", label: "Prompt Engineering", icon: "💬" },
-  { value: "n8n", label: "n8n & Workflow Automation", icon: "⚡" },
-  { value: "other", label: "Other / Not Sure", icon: "❓" },
+  {
+    value: "programming", label: "Programming & Tech", icon: "🌐",
+    subs: ["Website Development", "UI/UX Design", "Frontend Development", "Backend Development", "Full Stack Development", "API Integration", "Database Design", "Mobile App (React Native)"],
+  },
+  {
+    value: "marketing", label: "Digital Marketing", icon: "📈",
+    subs: ["Meta Ads (Facebook/Instagram)", "Google Ads", "SEO Optimization", "Social Media Marketing", "Content Marketing", "Email Marketing", "Web Analytics Setup", "Competitor Analysis"],
+  },
+  {
+    value: "ai-agents", label: "Custom AI Agents", icon: "🤖",
+    subs: ["AI Chatbot", "Customer Support Agent", "Data Processing Agent", "Lead Qualification Bot", "Multi-Agent Pipeline", "RAG / Knowledge Base", "AI API Integration"],
+  },
+  {
+    value: "social-ai", label: "Social Media AI & Animation", icon: "🎬",
+    subs: ["AI Video Generation", "Short-form Reels/TikToks", "AI Animation", "Thumbnail Design", "Content Calendar", "Brand Visual Identity", "YouTube Shorts"],
+  },
+  {
+    value: "prompt", label: "Prompt Engineering", icon: "💬",
+    subs: ["System Prompt Design", "Prompt Library", "ChatGPT Optimization", "Claude Optimization", "Chain-of-Thought Prompts", "RAG Prompt Tuning", "Team Training"],
+  },
+  {
+    value: "n8n", label: "n8n & Workflow Automation", icon: "⚡",
+    subs: ["n8n Workflow Setup", "Zapier Automation", "CRM Integration", "Email Automation", "Data Sync Between Apps", "Scheduled Reports", "Custom API Webhooks"],
+  },
+  { value: "other", label: "Other / Not Sure", icon: "❓", subs: [] },
 ];
 
 const BUDGET_RANGES = [
@@ -52,6 +70,7 @@ export default function ContactForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [service, setService] = useState("");
+  const [subServices, setSubServices] = useState<string[]>([]);
   const [budget, setBudget] = useState("");
   const [timeline, setTimeline] = useState("");
   const [subject, setSubject] = useState("");
@@ -76,6 +95,7 @@ export default function ContactForm() {
       const captchaToken = await getRecaptchaToken("contact");
       const fullMessage = [
         `Service: ${SERVICE_OPTIONS.find((s) => s.value === service)?.label ?? service}`,
+        subServices.length > 0 ? `Specifics: ${subServices.join(", ")}` : null,
         budget ? `Budget: ${budget}` : null,
         timeline ? `Timeline: ${timeline}` : null,
         files.length > 0 ? `Attachments: ${files.map((f) => f.name).join(", ")}` : null,
@@ -124,6 +144,7 @@ export default function ContactForm() {
         <p>Thank you, {name.split(" ")[0]}! We&apos;ll review your project details and get back to you within 24 hours.</p>
         <div className="cf-success-summary">
           <div><strong>Service:</strong> {SERVICE_OPTIONS.find((s) => s.value === service)?.label}</div>
+          {subServices.length > 0 && <div><strong>Specifics:</strong> {subServices.join(", ")}</div>}
           {budget && <div><strong>Budget:</strong> {budget}</div>}
           {timeline && <div><strong>Timeline:</strong> {timeline}</div>}
         </div>
@@ -161,13 +182,31 @@ export default function ContactForm() {
                 key={opt.value}
                 type="button"
                 className={"cf-service-btn" + (service === opt.value ? " cf-service-selected" : "")}
-                onClick={() => setService(opt.value)}
+                onClick={() => { setService(opt.value); setSubServices([]); }}
               >
                 <span className="cf-service-icon">{opt.icon}</span>
                 <span>{opt.label}</span>
               </button>
             ))}
           </div>
+
+          {service && SERVICE_OPTIONS.find((s) => s.value === service)?.subs?.length ? (
+            <>
+              <h4 className="cf-sub-title">What specifically do you need? <span style={{ fontWeight: 400, fontSize: ".78rem", color: "var(--text-secondary)" }}>(select all that apply)</span></h4>
+              <div className="cf-chip-row">
+                {SERVICE_OPTIONS.find((s) => s.value === service)!.subs!.map((sub) => (
+                  <button
+                    key={sub}
+                    type="button"
+                    className={"cf-chip" + (subServices.includes(sub) ? " cf-chip-active" : "")}
+                    onClick={() => setSubServices((prev) => prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub])}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
 
           <h4 className="cf-sub-title">Estimated Budget</h4>
           <div className="cf-chip-row">
