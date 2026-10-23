@@ -75,15 +75,22 @@ function buildHtml(data: EmailData): string {
 export async function sendEmail(to: string | null | undefined, subject: string, html: string): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "Hirelyx <onboarding@resend.dev>";
-  if (!key || !to) return;
+  if (!key || !to) {
+    console.warn("[email] skipped:", !key ? "RESEND_API_KEY missing" : "no recipient");
+    return;
+  }
   try {
-    await fetch("https://api.resend.com/emails", {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to, subject, html }),
     });
-  } catch {
-    /* email best-effort */
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(`[email] Resend error ${res.status}:`, body);
+    }
+  } catch (err) {
+    console.error("[email] send failed:", err);
   }
 }
 
