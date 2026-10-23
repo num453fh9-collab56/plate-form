@@ -22,10 +22,10 @@ interface TeamMember {
 const TEAM: TeamMember[] = [
   {
     name: "Saad Amjad",
-    role: "CEO & Full-Stack Developer",
-    badge: "CEO",
+    role: "Founder & Full-Stack Developer",
+    badge: "Founder",
     badgeColor: "#0066cc",
-    bio: "Leads Hirelyx vision and builds custom AI agents and n8n automation workflows that eliminate manual work and supercharge business operations.",
+    bio: "Founded Hirelyx to deliver world-class digital products. Builds custom AI agents and automation workflows that eliminate manual work and supercharge businesses.",
     skills: ["Full-Stack Dev", "Custom AI Agents", "n8n", "LangChain", "Python", "Prompt Engineering"],
     certifications: ["OpenAI Developer", "n8n Expert"],
     experience: "3+ Years",
