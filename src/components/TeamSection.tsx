@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface TeamMember {
   name: string;
@@ -12,6 +12,7 @@ interface TeamMember {
   certifications: string[];
   experience: string;
   avatar: string;
+  photo?: string;
   gradient: string;
   linkedin?: string;
   github?: string;
@@ -20,53 +21,43 @@ interface TeamMember {
 
 const TEAM: TeamMember[] = [
   {
-    name: "Ahmad",
-    role: "Full-Stack Developer & Founder",
-    badge: "Founder",
+    name: "Saad Amjad",
+    role: "CEO & Full-Stack Developer",
+    badge: "CEO",
     badgeColor: "#0066cc",
-    bio: "Leads technical vision — frontend, backend, FastAPI, and API integrations. Builds end-to-end with Python, Java, and Next.js.",
-    skills: ["Next.js", "Python", "Java", "FastAPI", "TypeScript", "Supabase"],
-    certifications: ["PIAIC Certified", "Full-Stack Development"],
+    bio: "Leads Hirelyx vision and builds custom AI agents and n8n automation workflows that eliminate manual work and supercharge business operations.",
+    skills: ["Full-Stack Dev", "Custom AI Agents", "n8n", "LangChain", "Python", "Prompt Engineering"],
+    certifications: ["OpenAI Developer", "n8n Expert"],
     experience: "3+ Years",
-    avatar: "A",
+    avatar: "SA",
+    photo: "/team-saad.png",
     gradient: "linear-gradient(135deg, #0066cc, #0891b2)",
   },
   {
     name: "Nauman Ali",
-    role: "Frontend Developer & UI/UX Designer",
+    role: "Full-Stack Developer & UI/UX Designer",
     badge: "Frontend Lead",
     badgeColor: "#4f46e5",
-    bio: "Crafts pixel-perfect interfaces with React and Next.js. Specializes in responsive design, animations, and user experience.",
-    skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Figma", "UI/UX"],
+    bio: "Crafts pixel-perfect interfaces and full-stack applications with React and Next.js. Specializes in responsive design, animations, and user experience.",
+    skills: ["Full-Stack Dev", "React", "Next.js", "TypeScript", "Tailwind CSS", "Figma", "UI/UX"],
     certifications: ["Google UX Design", "Meta Frontend Developer"],
     experience: "2+ Years",
     avatar: "N",
+    photo: "/team-nauman.jpeg",
     gradient: "linear-gradient(135deg, #4f46e5, #7c3aed)",
     github: "https://github.com/num453fh9-collab56",
   },
   {
     name: "Hafiz Salman",
-    role: "Digital Marketing Specialist",
+    role: "Full-Stack Developer & Digital Marketing",
     badge: "Marketing Lead",
     badgeColor: "#059669",
-    bio: "Drives growth through SEO, Web Analytics, Social Media Marketing, and Meta Ads campaigns that deliver measurable results.",
-    skills: ["SEO", "Meta Ads", "Google Analytics", "Social Media", "Content Strategy"],
+    bio: "Full-stack developer who also drives growth through SEO, Web Analytics, Social Media Marketing, and Meta Ads campaigns that deliver measurable results.",
+    skills: ["Full-Stack Dev", "SEO", "Meta Ads", "Google Analytics", "Social Media", "Content Strategy"],
     certifications: ["Google Ads Certified", "Meta Blueprint"],
     experience: "4+ Years",
     avatar: "HS",
     gradient: "linear-gradient(135deg, #059669, #10b981)",
-  },
-  {
-    name: "Saad Amjad",
-    role: "AI Agent & Automation Developer",
-    badge: "AI & Automation",
-    badgeColor: "#7c3aed",
-    bio: "Builds custom AI agents and n8n automation workflows that eliminate manual work and supercharge business operations.",
-    skills: ["Custom AI Agents", "n8n", "LangChain", "Python", "Prompt Engineering"],
-    certifications: ["OpenAI Developer", "n8n Expert"],
-    experience: "3+ Years",
-    avatar: "SA",
-    gradient: "linear-gradient(135deg, #7c3aed, #a855f7)",
   },
 ];
 
@@ -83,19 +74,20 @@ function SocialIcon({ type }: { type: "linkedin" | "github" | "portfolio" }) {
 }
 
 function TeamCard({ member, index }: { member: TeamMember; index: number }) {
-  const [hovered, setHovered] = useState(false);
   const hasSocials = member.linkedin || member.github || member.portfolio;
 
   return (
     <div
-      className={"tm-card reveal" + (hovered ? " tm-card-hover" : "")}
+      className="tm-card reveal"
       style={{ transitionDelay: `${index * 0.1}s` }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <div className="tm-card-top">
-        <div className="tm-avatar" style={{ background: member.gradient }}>
-          <span>{member.avatar}</span>
+        <div className="tm-avatar" style={{ background: member.photo ? "none" : member.gradient }}>
+          {member.photo ? (
+            <img src={member.photo} alt={member.name} className="tm-avatar-img" />
+          ) : (
+            <span>{member.avatar}</span>
+          )}
         </div>
         <div className="tm-badge" style={{ background: `${member.badgeColor}14`, color: member.badgeColor }}>
           {member.badge}
@@ -220,7 +212,7 @@ export default function TeamSection() {
           transition: transform .35s cubic-bezier(.4,0,.2,1), box-shadow .35s, border-color .35s;
           display: flex; flex-direction: column; align-items: center;
         }
-        .tm-card-hover {
+        .tm-card.revealed:hover {
           transform: translateY(-6px);
           box-shadow: 0 20px 48px rgba(0,0,0,.12);
           border-color: transparent;
@@ -234,7 +226,10 @@ export default function TeamSection() {
           font-size: 1.4rem; font-weight: 800; color: #fff;
           transition: transform .35s cubic-bezier(.4,0,.2,1);
         }
-        .tm-card-hover .tm-avatar { transform: scale(1.08) }
+        .tm-avatar-img {
+          width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+        }
+        .tm-card.revealed:hover .tm-avatar { transform: scale(1.08) }
 
         .tm-badge {
           display: inline-block; padding: .25rem .75rem; border-radius: 999px;
@@ -267,7 +262,7 @@ export default function TeamSection() {
           font-size: .65rem; font-weight: 600; border: 1.5px solid;
           transition: background .2s;
         }
-        .tm-card-hover .tm-skill { background: var(--hover) }
+        .tm-card.revealed:hover .tm-skill { background: var(--hover) }
 
         .tm-socials { display: flex; gap: .5rem; margin-top: auto; padding-top: .25rem }
         .tm-social {
@@ -283,7 +278,7 @@ export default function TeamSection() {
           position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
           opacity: 0; transition: opacity .35s;
         }
-        .tm-card-hover .tm-glow { opacity: 1 }
+        .tm-card.revealed:hover .tm-glow { opacity: 1 }
 
         @media (max-width: 600px) {
           .tm-grid { grid-template-columns: 1fr; max-width: 400px; margin: 2rem auto 0 }
