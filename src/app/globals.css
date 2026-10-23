@@ -4629,6 +4629,19 @@ button.link-all {
   background: var(--ob-success);
 }
 
+.avu {
+  --ob-bg: #f5f8fc;
+  --ob-line: rgba(15, 23, 42, 0.08);
+  --ob-line-strong: rgba(15, 23, 42, 0.14);
+  --ob-text: #0f172a;
+  --ob-muted: #475569;
+  --ob-faint: #64748b;
+  --ob-accent: #0066cc;
+  --ob-accent-deep: #004f9e;
+  --ob-accent-soft: rgba(0, 102, 204, 0.08);
+  --ob-success: #059669;
+  --ob-danger: #dc2626;
+}
 .avu-modal {
   position: fixed;
   inset: 0;
@@ -4649,6 +4662,7 @@ button.link-all {
   display: grid;
   gap: 18px;
   box-shadow: 0 40px 80px -30px rgba(15, 23, 42, 0.5);
+  color: #0f172a;
 }
 .avu-modal-head h3 { font-size: 1.1rem; font-weight: 800; color: var(--ob-text); }
 .avu-modal-head p { font-size: 0.82rem; color: var(--ob-muted); margin-top: 4px; }
