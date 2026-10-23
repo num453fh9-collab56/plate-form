@@ -263,12 +263,12 @@ export default function Landing() {
           </div>
           <div className="land-cat-grid">
             {SERVICES.map((svc) => (
-              <div key={svc.title} className="land-cat-card reveal" style={{ cursor: "default" }}>
-                <div className="land-cat-card-bg" style={{ background: `linear-gradient(135deg, ${svc.color}22, ${svc.color}08)` }} />
+              <div key={svc.title} className="land-cat-card reveal" style={{ color: svc.color }}>
+                <div className="land-cat-card-bg" style={{ background: `linear-gradient(135deg, ${svc.color}12, ${svc.color}06)` }} />
                 <div className="land-cat-card-content">
-                  <span className="land-cat-card-icon" style={{ color: svc.color }}>{svc.icon}</span>
+                  <span className="land-cat-card-icon" style={{ background: `${svc.color}12`, color: svc.color }}>{svc.icon}</span>
                   <span className="land-cat-card-name">{svc.title}</span>
-                  <span className="land-cat-card-desc">{svc.desc}</span>
+                  <p className="land-cat-card-desc">{svc.desc}</p>
                 </div>
               </div>
             ))}
