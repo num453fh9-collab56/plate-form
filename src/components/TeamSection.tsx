@@ -32,6 +32,7 @@ const TEAM: TeamMember[] = [
     avatar: "SA",
     photo: "/team-saad.png",
     gradient: "linear-gradient(135deg, #0066cc, #0891b2)",
+    github: "https://github.com/saadamjad44",
   },
   {
     name: "Nauman Ali",
