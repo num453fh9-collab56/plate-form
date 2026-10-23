@@ -30,8 +30,6 @@ const TEAM: TeamMember[] = [
     experience: "3+ Years",
     avatar: "A",
     gradient: "linear-gradient(135deg, #0066cc, #0891b2)",
-    github: "https://github.com",
-    linkedin: "https://linkedin.com",
   },
   {
     name: "Nauman Ali",
@@ -44,8 +42,7 @@ const TEAM: TeamMember[] = [
     experience: "2+ Years",
     avatar: "N",
     gradient: "linear-gradient(135deg, #4f46e5, #7c3aed)",
-    github: "https://github.com",
-    linkedin: "https://linkedin.com",
+    github: "https://github.com/num453fh9-collab56",
   },
   {
     name: "Team Member",
@@ -58,7 +55,6 @@ const TEAM: TeamMember[] = [
     experience: "4+ Years",
     avatar: "M",
     gradient: "linear-gradient(135deg, #059669, #10b981)",
-    linkedin: "https://linkedin.com",
   },
   {
     name: "Team Member",
@@ -71,7 +67,6 @@ const TEAM: TeamMember[] = [
     experience: "3+ Years",
     avatar: "AI",
     gradient: "linear-gradient(135deg, #7c3aed, #a855f7)",
-    github: "https://github.com",
   },
   {
     name: "Team Member",
@@ -84,7 +79,6 @@ const TEAM: TeamMember[] = [
     experience: "2+ Years",
     avatar: "S",
     gradient: "linear-gradient(135deg, #ea580c, #f97316)",
-    linkedin: "https://linkedin.com",
   },
 ];
 

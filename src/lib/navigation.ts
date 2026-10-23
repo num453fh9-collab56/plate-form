@@ -40,7 +40,6 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     titleKey: "footer.forClients",
     links: [
       { labelKey: "footer.howItWorks", href: "/how-it-works" },
-      { labelKey: "footer.myProjects", href: "/projects" },
       { labelKey: "footer.clientPortal", href: "/portal" },
       { labelKey: "footer.contactUs", href: "/contact" },
     ],
@@ -50,7 +49,6 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     titleKey: "footer.companySupport",
     links: [
       { labelKey: "footer.aboutUs", href: "/about" },
-      { labelKey: "footer.blog", href: "/blog" },
       { labelKey: "footer.helpCenter", href: "/help" },
       { labelKey: "footer.terms", href: "/terms" },
       { labelKey: "footer.privacy", href: "/privacy" },

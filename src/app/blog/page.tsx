@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface Post {
@@ -16,14 +16,7 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState("all");
 
-  const load = useCallback(async () => {
-    const url = category !== "all" ? `/api/blog?category=${category}` : "/api/blog";
-    const res = await fetch(url);
-    if (res.ok) { const d = await res.json(); setPosts(d.posts ?? []); }
-    setLoading(false);
-  }, [category]);
-
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setLoading(false); }, []);
 
   const featured = posts.filter((p) => p.is_featured);
   const regular = posts.filter((p) => !p.is_featured);
@@ -38,22 +31,13 @@ export default function BlogPage() {
           </div>
         </div>
 
-        <div className="bl-cats">
-          <button className={`bl-cat ${category === "all" ? "bl-cat-active" : ""}`} onClick={() => setCategory("all")}>All</button>
-          {CATEGORIES.map((c) => (
-            <button key={c} className={`bl-cat ${category === c ? "bl-cat-active" : ""}`} onClick={() => setCategory(c)}>
-              {c.charAt(0).toUpperCase() + c.slice(1).replace("-", " ")}
-            </button>
-          ))}
-        </div>
-
         {loading ? (
           <p style={{ textAlign: "center", padding: "4rem", color: "var(--text-secondary)" }}>Loading...</p>
         ) : posts.length === 0 ? (
           <div className="bl-empty">
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📝</div>
-            <h2>No posts yet</h2>
-            <p>We&apos;re working on some great content. Check back soon!</p>
+            <h2>Coming Soon</h2>
+            <p>We&apos;re working on some great content — tutorials, case studies, and insights. Check back soon!</p>
           </div>
         ) : (
           <>

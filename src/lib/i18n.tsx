@@ -290,7 +290,7 @@ const EN = {
   "success.readGuide": "Read guide",
   "common.cancel": "Cancel",
   "common.close": "Close",
-  "nav.join": "Join",
+  "nav.join": "Sign Up",
   "auth.asideTitle": "Success starts here",
   "auth.asideSub": "Join a global marketplace built for serious, high-quality work.",
   "auth.asidePoint1Title": "Quality work, guaranteed",
