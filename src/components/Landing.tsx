@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useUI } from "@/lib/ui";
 import { LANDING_VIDEOS } from "@/lib/site-media";
 import TeamSection from "./TeamSection";
@@ -28,6 +29,7 @@ function Playlist({ srcs }: { srcs: string[] }) {
 const SERVICES = [
   {
     title: "Programming & Tech",
+    slug: "programming",
     desc: "Full-stack web development — frontend, backend, FastAPI, API integration. Built with Java, Python, Next.js, and modern frameworks.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
@@ -36,6 +38,7 @@ const SERVICES = [
   },
   {
     title: "Digital Marketing",
+    slug: "marketing",
     desc: "SEO, Web Analytics, Social Media Marketing, and Meta Ads campaigns that drive real traffic and measurable growth.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
@@ -44,6 +47,7 @@ const SERVICES = [
   },
   {
     title: "Custom AI Agents",
+    slug: "ai-agents",
     desc: "Automate your business workflows with custom AI agents, n8n integrations, and intelligent automation pipelines.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" /><path d="M16 14h.01" /><path d="M8 14h.01" /><path d="M12 17v3" /><path d="M6 21h12" /><path d="M20 10a8 8 0 0 1-16 0" /></svg>
@@ -52,6 +56,7 @@ const SERVICES = [
   },
   {
     title: "Social Media AI & Animation",
+    slug: "social-ai",
     desc: "AI-powered social media content, animated videos, reels, and visual storytelling that captures your audience.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
@@ -60,6 +65,7 @@ const SERVICES = [
   },
   {
     title: "Prompt Engineering",
+    slug: "prompt",
     desc: "Expert prompt design and optimization for ChatGPT, Claude, and custom LLMs. Get better AI outputs for your business.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
@@ -68,6 +74,7 @@ const SERVICES = [
   },
   {
     title: "n8n & Workflow Automation",
+    slug: "n8n",
     desc: "Build powerful automation workflows with n8n — connect your apps, automate tasks, and eliminate manual work.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
@@ -263,13 +270,15 @@ export default function Landing() {
           </div>
           <div className="land-cat-grid">
             {SERVICES.map((svc) => (
-              <div
+              <Link
                 key={svc.title}
+                href={`/services/${svc.slug}`}
                 className="land-cat-card reveal"
                 style={{
-                  // gradient border on hover via CSS custom prop
                   ["--svc" as string]: svc.color,
                   background: `linear-gradient(135deg, ${svc.color}30, var(--border), ${svc.color}18)`,
+                  textDecoration: "none",
+                  color: "inherit",
                 }}
               >
                 <div
@@ -291,7 +300,7 @@ export default function Landing() {
                   style={{ background: svc.color }}
                   aria-hidden="true"
                 />
-              </div>
+              </Link>
             ))}
           </div>
         </div>
