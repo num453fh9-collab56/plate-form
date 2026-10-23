@@ -263,13 +263,34 @@ export default function Landing() {
           </div>
           <div className="land-cat-grid">
             {SERVICES.map((svc) => (
-              <div key={svc.title} className="land-cat-card reveal" style={{ color: svc.color }}>
-                <div className="land-cat-card-bg" style={{ background: `linear-gradient(135deg, ${svc.color}12, ${svc.color}06)` }} />
-                <div className="land-cat-card-content">
-                  <span className="land-cat-card-icon" style={{ background: `${svc.color}12`, color: svc.color }}>{svc.icon}</span>
-                  <span className="land-cat-card-name">{svc.title}</span>
-                  <p className="land-cat-card-desc">{svc.desc}</p>
+              <div
+                key={svc.title}
+                className="land-cat-card reveal"
+                style={{
+                  // gradient border on hover via CSS custom prop
+                  ["--svc" as string]: svc.color,
+                  background: `linear-gradient(135deg, ${svc.color}30, var(--border), ${svc.color}18)`,
+                }}
+              >
+                <div
+                  className="land-cat-card-bg"
+                  style={{ ["--svc" as string]: svc.color }}
+                >
+                  <div className="land-cat-card-content">
+                    <span className="land-cat-card-icon" style={{ background: `${svc.color}14`, color: svc.color }}>{svc.icon}</span>
+                    <span className="land-cat-card-name">{svc.title}</span>
+                    <p className="land-cat-card-desc">{svc.desc}</p>
+                    <span className="land-cat-card-arrow" style={{ color: svc.color }}>
+                      Learn more
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </span>
+                  </div>
                 </div>
+                <span
+                  className="land-cat-card-accent"
+                  style={{ background: svc.color }}
+                  aria-hidden="true"
+                />
               </div>
             ))}
           </div>
