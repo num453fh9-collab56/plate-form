@@ -152,7 +152,7 @@ export default function HomePage() {
               <div className="hx-card-foot">
                 <Chips items={service.tech.slice(0, 3)} accent />
                 <span className="hx-link" style={{ marginTop: "1rem" }}>
-                  {service.name}
+                  Service details
                   <ArrowRight size={15} />
                 </span>
               </div>

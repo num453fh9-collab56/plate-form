@@ -1417,3 +1417,114 @@
 .hx-contact-method h3 { font-size: 0.92rem; font-weight: 650; color: var(--hx-fg); margin: 0 0 0.15rem; }
 .hx-contact-method p { font-size: var(--hx-t-xs); line-height: 1.5; color: var(--hx-fg-3); margin: 0; }
 .hx-contact-method b { display: block; margin-top: 0.3rem; font-size: var(--hx-t-sm); font-weight: 650; color: var(--hx-accent); }
+
+/* ── 9. LONG-FORM DOCUMENTS (legal, policy, help) ───────────────────────── */
+@media (max-width: 900px) {
+  .hx-doc-grid { grid-template-columns: 1fr !important; }
+}
+
+.hx-doc { max-width: 72ch; }
+.hx-doc > * + * { margin-top: 1.1em; }
+.hx-doc h2 {
+  font-family: var(--hx-font-display);
+  font-size: var(--hx-t-h3);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--hx-fg);
+  margin-top: 2.5em;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--hx-border);
+}
+.hx-doc > h2:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.hx-doc h3 {
+  font-family: var(--hx-font-display);
+  font-size: var(--hx-t-h4);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--hx-fg);
+  margin-top: 1.9em;
+}
+.hx-doc p,
+.hx-doc li { font-size: 0.96rem; line-height: 1.75; color: var(--hx-fg-2); }
+.hx-doc ul,
+.hx-doc ol { padding-left: 1.3rem; display: grid; gap: 0.45rem; }
+.hx-doc strong { color: var(--hx-fg); font-weight: 600; }
+.hx-doc a { color: var(--hx-accent); text-decoration: underline; text-underline-offset: 3px; }
+.hx-doc hr { height: 1px; border: 0; background: var(--hx-border); margin-block: 2rem; }
+.hx-doc dl { display: grid; gap: 1rem; }
+.hx-doc dt { font-weight: 650; color: var(--hx-fg); font-size: 0.96rem; }
+.hx-doc dd { margin: 0.25rem 0 0; font-size: 0.96rem; line-height: 1.75; color: var(--hx-fg-2); }
+
+.hx-doc-toc { position: sticky; top: calc(var(--hx-header-h) + 1.5rem); }
+.hx-doc-toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.1rem; }
+.hx-doc-toc a {
+  display: block;
+  padding: 0.45rem 0.6rem;
+  margin-left: -0.6rem;
+  border-radius: 8px;
+  font-size: var(--hx-t-sm);
+  color: var(--hx-fg-2);
+  text-decoration: none;
+}
+.hx-doc-toc a:hover { background: var(--hx-bg-alt); color: var(--hx-fg); }
+@media (max-width: 900px) {
+  .hx-doc-toc { position: static; }
+}
+
+/* ── 10. INSIGHTS (blog) ────────────────────────────────────────────────── */
+.hx-posts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--hx-gap); }
+.hx-post {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--hx-surface);
+  border: 1px solid var(--hx-border);
+  border-radius: var(--hx-r-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--hx-dur) var(--hx-ease), box-shadow var(--hx-dur) var(--hx-ease), border-color var(--hx-dur) var(--hx-ease);
+}
+.hx-post:hover { transform: translateY(-3px); border-color: var(--hx-border-strong); box-shadow: var(--hx-sh-2); }
+.hx-post-media { aspect-ratio: 16 / 9; background: var(--hx-paper-2); background-size: cover; background-position: center; }
+.hx-post-body { display: flex; flex-direction: column; gap: 0.6rem; padding: clamp(1.1rem, 2vw, 1.5rem); flex: 1; }
+.hx-post-body h3 { font-family: var(--hx-font-display); font-size: var(--hx-t-h3); font-weight: 650; letter-spacing: -0.02em; margin: 0; color: var(--hx-fg); }
+.hx-post-body p { font-size: var(--hx-t-sm); line-height: 1.62; color: var(--hx-fg-2); margin: 0; }
+.hx-post-meta { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; margin-top: auto; padding-top: 0.75rem; font-size: var(--hx-t-xs); color: var(--hx-fg-3); }
+
+.hx-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: clamp(2.5rem, 6vw, 5rem) 1.5rem;
+  border: 1px dashed var(--hx-border-strong);
+  border-radius: var(--hx-r-xl);
+  text-align: center;
+  background: var(--hx-bg-alt);
+}
+.hx-empty h2 { font-family: var(--hx-font-display); font-size: var(--hx-t-h3); font-weight: 650; letter-spacing: -0.02em; color: var(--hx-fg); margin: 0; }
+.hx-empty p { font-size: var(--hx-t-sm); line-height: 1.65; color: var(--hx-fg-2); margin: 0; max-width: 46ch; }
+
+/* Native <details> variant of the accordion (used where no JS is needed). */
+.hx-acc details > summary { display: flex; }
+.hx-acc details > summary::-webkit-details-marker { display: none; }
+.hx-acc details > summary::marker { content: ""; }
+.hx-acc details > summary:focus-visible { outline: 2px solid var(--hx-brand); outline-offset: 2px; }
+.hx-acc details[open] > summary .hx-acc-sign::after { transform: rotate(0deg); opacity: 0; }
+
+/* A featured post spans two columns only where two exist. */
+@media (min-width: 48rem) {
+  .hx-post-wide { grid-column: span 2; }
+}
+
+/* Outcome chips in the process timeline carry a sentence, not a label, so
+   they must wrap rather than inherit the chip default of nowrap. */
+.hx-step-body ul .hx-chip {
+  white-space: normal;
+  text-align: left;
+  max-width: 100%;
+}
+
+/* Primary nav labels never wrap — "About Us" would otherwise break in two
+   and unbalance the bar. */
+.hx-nav-trigger { white-space: nowrap; }

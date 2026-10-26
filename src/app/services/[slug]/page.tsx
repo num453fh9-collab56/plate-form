@@ -73,6 +73,8 @@ export default async function ServicePage({
     { label: service.name },
   ];
 
+  /* Pre-answers step one of the inquiry form. */
+  const proposalHref = `/contact?service=${service.slug}`;
   const work = caseStudiesBySlug(service.relatedWork);
   const solutions = solutionsBySlug(service.relatedSolutions);
 
@@ -118,7 +120,7 @@ export default async function ServicePage({
                 {service.summary}
               </p>
               <div className="hx-actions" style={{ marginTop: "2rem" }}>
-                <Btn href="/contact" variant="light" arrow>
+                <Btn href={proposalHref} variant="light" arrow>
                   Get a proposal
                 </Btn>
                 <Btn href="/bookings" variant="outline-light">
@@ -142,7 +144,8 @@ export default async function ServicePage({
         <div className="hx-split">
           <div>
             <p className="hx-kicker">Overview</p>
-            <h2 className="hx-h2">{service.tagline}</h2>
+            {/* Not the tagline — that already sits in the hero directly above. */}
+            <h2 className="hx-h2">The short version</h2>
             <div className="hx-prose" style={{ marginTop: "1.4rem" }}>
               {service.intro.map((paragraph) => (
                 <p key={paragraph.slice(0, 40)}>{paragraph}</p>
@@ -232,7 +235,7 @@ export default async function ServicePage({
               "Indicative tiers. The final scope and a fixed quote are confirmed in writing after discovery — nothing starts on an estimate."
             }
           />
-          <Tiers tiers={service.tiers} />
+          <Tiers tiers={service.tiers} ctaHref={proposalHref} />
         </Section>
       ) : (
         <Section id="engagements">
@@ -248,7 +251,7 @@ export default async function ServicePage({
                 <h3 className="hx-h4">{model.title}</h3>
                 <p className="hx-small">{model.desc}</p>
                 <div className="hx-card-foot">
-                  <Btn href="/contact" variant="secondary" size="sm" className="hx-btn-block">
+                  <Btn href={proposalHref} variant="secondary" size="sm" className="hx-btn-block">
                     Discuss this
                   </Btn>
                 </div>
@@ -269,7 +272,7 @@ export default async function ServicePage({
               without hedging.
             </p>
             <div style={{ marginTop: "1.75rem" }}>
-              <Btn href="/contact" variant="secondary" size="sm">
+              <Btn href={proposalHref} variant="secondary" size="sm">
                 Ask something else
               </Btn>
             </div>
@@ -305,6 +308,8 @@ export default async function ServicePage({
       <ClosingCta
         title={`Ready to talk about ${service.name.toLowerCase()}?`}
         body="Tell us where you are now and what needs to be true in three months. You will get a written scope and a fixed quote before anything starts."
+        primary={{ label: "Start a Project", href: proposalHref }}
+        secondary={{ label: "Get a Free Consultation", href: "/bookings" }}
       />
 
       <div className="hx-wrap" style={{ paddingBottom: "2rem" }}>

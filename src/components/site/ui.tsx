@@ -472,3 +472,107 @@ export function SubNav({ items }: { items: readonly { id: string; label: string 
     </nav>
   );
 }
+
+/* ── Interior page hero ─────────────────────────────────────────────────── */
+
+export function PageHero({
+  kicker,
+  title,
+  lead,
+  crumbs,
+  actions,
+  tone = "paper",
+  aside,
+}: {
+  kicker: string;
+  title: ReactNode;
+  lead?: ReactNode;
+  crumbs: Crumb[];
+  actions?: ReactNode;
+  tone?: "paper" | "ink";
+  aside?: ReactNode;
+}) {
+  return (
+    <section
+      className={"hx-page-hero" + (tone === "ink" ? " hx-page-hero-ink hx-ink" : "")}
+    >
+      <div className="hx-wrap">
+        <Breadcrumbs items={crumbs} />
+        {aside ? (
+          <div className="hx-page-hero-inner">
+            <div>
+              <p className="hx-kicker">{kicker}</p>
+              <h1 className="hx-h1">{title}</h1>
+              {lead ? (
+                <p className="hx-lead" style={{ marginTop: "1.1rem" }}>
+                  {lead}
+                </p>
+              ) : null}
+              {actions ? (
+                <div className="hx-actions" style={{ marginTop: "2rem" }}>
+                  {actions}
+                </div>
+              ) : null}
+            </div>
+            <div>{aside}</div>
+          </div>
+        ) : (
+          <div style={{ marginTop: "1.5rem", maxWidth: "52rem" }}>
+            <p className="hx-kicker">{kicker}</p>
+            <h1 className="hx-h1">{title}</h1>
+            {lead ? (
+              <p className="hx-lead" style={{ marginTop: "1.1rem" }}>
+                {lead}
+              </p>
+            ) : null}
+            {actions ? (
+              <div className="hx-actions" style={{ marginTop: "2rem" }}>
+                {actions}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ── Long-form document layout (legal, policy, help) ───────────────────── */
+
+export function DocPage({
+  children,
+  toc,
+}: {
+  children: ReactNode;
+  toc?: { id: string; label: string }[];
+}) {
+  return (
+    <section className="hx-section">
+      <div className="hx-wrap">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: toc ? "minmax(0, 1fr) 15rem" : "1fr",
+            gap: "clamp(2rem, 5vw, 4rem)",
+            alignItems: "start",
+          }}
+          className="hx-doc-grid"
+        >
+          <div className="hx-doc">{children}</div>
+          {toc ? (
+            <nav className="hx-doc-toc" aria-label="On this page">
+              <p className="hx-kicker">On this page</p>
+              <ul>
+                {toc.map((item) => (
+                  <li key={item.id}>
+                    <a href={`#${item.id}`}>{item.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}

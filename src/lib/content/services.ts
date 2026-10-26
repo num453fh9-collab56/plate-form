@@ -184,13 +184,6 @@ export const SERVICES: Service[] = [
     ],
     relatedWork: ["hirelyx-platform", "ai-support-agent"],
     relatedSolutions: ["custom-software", "ai-powered-workflows"],
-    menu: [
-      { label: "Python Development", href: "/services/python-development", hint: "Backends, services and APIs" },
-      { label: "FastAPI Development", href: "/expertise/fastapi", hint: "Typed, async API services" },
-      { label: "Pydantic Data Modelling", href: "/expertise/fastapi#pydantic", hint: "Validation at the boundary" },
-      { label: "Pytest & Test Automation", href: "/expertise/fastapi#pytest", hint: "Coverage you can rely on" },
-      { label: "API Development & Integration", href: "/solutions/custom-software#apis", hint: "REST, GraphQL, webhooks" },
-    ],
     keywords: [
       "python development services",
       "fastapi development company",
@@ -364,13 +357,6 @@ export const SERVICES: Service[] = [
     ],
     relatedWork: ["wordpress-ecommerce-build", "seo-content-engine"],
     relatedSolutions: ["digital-growth", "custom-software"],
-    menu: [
-      { label: "WordPress Development", href: "/services/wordpress-development", hint: "Custom themes and builds" },
-      { label: "Custom Theme Development", href: "/services/wordpress-development#capabilities", hint: "Block themes, no page builders" },
-      { label: "WooCommerce Development", href: "/services/wordpress-development#capabilities", hint: "Catalogue and checkout" },
-      { label: "Speed & Core Web Vitals", href: "/services/wordpress-development#process", hint: "Measured performance work" },
-      { label: "Migration & Redesign", href: "/services/wordpress-development#process", hint: "Without losing rankings" },
-    ],
     keywords: [
       "wordpress development services",
       "custom wordpress theme development",
@@ -540,13 +526,6 @@ export const SERVICES: Service[] = [
     ],
     relatedWork: ["meta-ads-campaign", "seo-content-engine", "short-form-video-engine"],
     relatedSolutions: ["digital-growth", "intelligent-customer-support"],
-    menu: [
-      { label: "SEO", href: "/services/digital-marketing#capabilities", hint: "Technical, on-page and content" },
-      { label: "Web Analytics", href: "/services/digital-marketing#capabilities", hint: "GA4, GTM, conversion tracking" },
-      { label: "Social Media Marketing", href: "/services/digital-marketing#capabilities", hint: "Strategy and production" },
-      { label: "Meta Ads", href: "/services/digital-marketing#capabilities", hint: "Facebook and Instagram campaigns" },
-      { label: "Conversion Optimisation", href: "/services/digital-marketing#capabilities", hint: "Landing pages and funnels" },
-    ],
     keywords: [
       "digital marketing services",
       "seo services",
@@ -717,13 +696,6 @@ export const SERVICES: Service[] = [
     ],
     relatedWork: ["ai-support-agent", "workflow-automation"],
     relatedSolutions: ["ai-powered-workflows", "intelligent-customer-support", "business-process-automation"],
-    menu: [
-      { label: "Custom AI Agents", href: "/services/ai-agents", hint: "Scoped, grounded, evaluated" },
-      { label: "RAG & Knowledge Bases", href: "/services/ai-agents#capabilities", hint: "Answers from your content" },
-      { label: "Support Automation", href: "/solutions/intelligent-customer-support", hint: "Deflect repetitive queries" },
-      { label: "Document Processing", href: "/services/ai-agents#capabilities", hint: "Extraction into clean data" },
-      { label: "Workflow Automation (n8n)", href: "/solutions/business-process-automation", hint: "Connect your systems" },
-    ],
     keywords: [
       "custom ai agent development",
       "rag development services",
@@ -862,13 +834,6 @@ export const SERVICES: Service[] = [
     ],
     relatedWork: ["mcp-server-integration", "workflow-automation"],
     relatedSolutions: ["ai-powered-workflows", "custom-software", "business-process-automation"],
-    menu: [
-      { label: "MCP Server Development", href: "/services/mcp-server-development", hint: "Typed tools for AI clients" },
-      { label: "Tool & Resource Design", href: "/services/mcp-server-development#capabilities", hint: "Contracts before code" },
-      { label: "Auth & Permission Scoping", href: "/services/mcp-server-development#capabilities", hint: "Least-privilege access" },
-      { label: "System Integration", href: "/services/mcp-server-development#capabilities", hint: "Databases, APIs, documents" },
-      { label: "MCP Discovery Sprint", href: "/services/mcp-server-development#engagements", hint: "Fixed-scope assessment" },
-    ],
     keywords: [
       "mcp server development",
       "model context protocol development",
@@ -1036,13 +1001,6 @@ export const SERVICES: Service[] = [
     ],
     relatedWork: ["prompt-library", "ai-support-agent"],
     relatedSolutions: ["ai-powered-workflows", "intelligent-customer-support"],
-    menu: [
-      { label: "Prompt Engineering", href: "/services/prompt-engineering", hint: "Measured, versioned prompts" },
-      { label: "System Prompt Design", href: "/services/prompt-engineering#capabilities", hint: "Role, constraints, contracts" },
-      { label: "Evaluation & Grading", href: "/services/prompt-engineering#capabilities", hint: "Know if a change helped" },
-      { label: "Structured Output", href: "/services/prompt-engineering#capabilities", hint: "Schemas your code can trust" },
-      { label: "Cost & Latency Tuning", href: "/services/prompt-engineering#capabilities", hint: "Same quality, less spend" },
-    ],
     keywords: [
       "prompt engineering services",
       "system prompt design",

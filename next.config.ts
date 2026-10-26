@@ -25,8 +25,11 @@ const mediaCache = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // TEMP(verification): single build worker on a low-memory machine.
-  experimental: { cpus: 1 },
+  /* Scale the number of build workers to free memory instead of to CPU
+     count. Without this, `next build` spawns one worker per core and runs
+     out of heap while prerendering on machines with ~8 GB of RAM. Safe to
+     remove on a build machine with plenty of memory. */
+  experimental: { memoryBasedWorkersCount: true },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

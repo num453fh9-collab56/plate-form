@@ -5,6 +5,7 @@ import ProjectInquiryForm from "@/components/site/ProjectInquiryForm";
 import { Breadcrumbs, CheckList, Section, SectionHead } from "@/components/site/ui";
 import { Calendar, Chat, Mail } from "@/components/site/Icons";
 import { DELIVERY_PROCESS } from "@/lib/content/process";
+import { SERVICE_SLUGS } from "@/lib/content/services";
 import { SUPPORT_EMAIL, breadcrumbSchema, pageMetadata } from "@/lib/seo";
 
 /* ==========================================================================
@@ -23,7 +24,17 @@ export const metadata: Metadata = pageMetadata({
   keywords: ["contact hirelyx", "get a proposal", "start a software project"],
 });
 
-export default function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>;
+}) {
+  /* Service pages link here as /contact?service=<slug> so the first step
+     arrives already answered. Unknown values are ignored rather than
+     trusted. */
+  const { service } = await searchParams;
+  const preselect = service && SERVICE_SLUGS.includes(service) ? service : undefined;
+
   return (
     <>
       <JsonLd data={breadcrumbSchema(CRUMBS)} />
@@ -120,7 +131,7 @@ export default function ContactPage() {
 
           {/* Form */}
           <div>
-            <ProjectInquiryForm />
+            <ProjectInquiryForm preselect={preselect} />
           </div>
         </div>
       </Section>

@@ -55,7 +55,11 @@ export interface Tier {
   cta?: string;
 }
 
-/** A link rendered inside the Services / Solutions / Expertise mega menu. */
+/**
+ * A link rendered inside the Services / Solutions / Expertise mega menu.
+ * The menu itself is assembled in `lib/content/nav.ts`, which is the single
+ * source of truth for navigation.
+ */
 export interface MenuLink {
   label: string;
   href: string;
@@ -100,8 +104,6 @@ export interface Service {
   relatedWork: string[];
   /** Solution slugs that pair naturally with this service. */
   relatedSolutions: string[];
-  /** Nested links shown under this service in the mega menu. */
-  menu: MenuLink[];
   /** High-intent keywords for metadata only — never keyword-stuffed on page. */
   keywords: string[];
 }
