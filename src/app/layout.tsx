@@ -1,14 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import "./hirelyx.css";
 import { UIProvider } from "@/lib/ui";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { MessagingProvider } from "@/lib/messaging";
 import { CurrencyProvider } from "@/lib/currency";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+import { RevealOnScroll } from "@/components/site/interactive";
 import Overlays from "@/components/Overlays";
 import ErrorReporter from "@/components/ErrorReporter";
 import ChatWidget from "@/components/ChatWidget";
@@ -16,29 +18,38 @@ import ScrollToTop from "@/components/ScrollToTop";
 import CookieConsent from "@/components/CookieConsent";
 import PageTracker from "@/components/PageTracker";
 import PresenceTracker from "@/components/PresenceTracker";
+import { SITE_URL, organizationSchema, websiteSchema } from "@/lib/seo";
 
+/* Body text. Self-hosted by next/font, so no third-party font request. */
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 });
 
+/* Display face for headings — variable axis, two subsets kept small. */
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.hirelyx.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Hirelyx — Professional Digital Services",
+    default: "Hirelyx — Python, AI & Digital Engineering Partner",
     template: "%s | Hirelyx",
   },
   description:
-    "Hirelyx is a professional digital services team offering web development, app development, UI/UX design, graphic design, digital marketing and more.",
+    "Hirelyx builds intelligent digital solutions: Python and FastAPI backends, custom AI agents, MCP servers, WordPress builds and measured digital marketing.",
   keywords: [
-    "digital services",
-    "web development",
-    "app development",
-    "UI/UX design",
-    "graphic design",
-    "digital marketing",
-    "professional services",
+    "python development services",
+    "fastapi development",
+    "custom ai agents",
+    "mcp server development",
+    "prompt engineering",
+    "wordpress development",
+    "digital marketing agency",
     "Hirelyx",
   ],
   authors: [{ name: "Hirelyx" }],
@@ -50,82 +61,55 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Hirelyx",
-    title: "Hirelyx — Professional Digital Services",
+    title: "Hirelyx — Python, AI & Digital Engineering Partner",
     description:
-      "Professional digital services team — web development, app development, design, marketing and more.",
+      "Python and FastAPI engineering, custom AI agents, MCP servers, WordPress builds and measured digital marketing.",
     url: "/",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hirelyx — Professional Digital Services",
+    title: "Hirelyx — Python, AI & Digital Engineering Partner",
     description:
-      "Professional digital services — web development, design, marketing and more.",
+      "Python and FastAPI engineering, custom AI agents, MCP servers and measured digital marketing.",
   },
   robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0066cc",
+  themeColor: "#0b5fd0",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${sora.variable}`}>
       <body>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify([
-              {
-                "@context": "https://schema.org",
-                "@type": "WebSite",
-                name: "Hirelyx",
-                url: "https://www.hirelyx.com",
-                description:
-                  "Professional digital services team offering web development, design, marketing and more.",
-              },
-              {
-                "@context": "https://schema.org",
-                "@type": "Organization",
-                name: "Hirelyx",
-                url: "https://www.hirelyx.com",
-                logo: "https://www.hirelyx.com/logo-mark.svg",
-                description:
-                  "Professional digital services team offering web development, app development, design, marketing and more.",
-                sameAs: [],
-                contactPoint: {
-                  "@type": "ContactPoint",
-                  contactType: "customer support",
-                  url: "https://www.hirelyx.com/contact",
-                  availableLanguage: ["English", "Spanish", "French", "German", "Arabic", "Urdu", "Hindi"],
-                },
-              },
-            ]),
+            __html: JSON.stringify([websiteSchema(), organizationSchema()]),
           }}
         />
-        <Script
-          src="https://accounts.google.com/gsi/client"
-          strategy="lazyOnload"
-        />
+        <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
         <ErrorReporter />
         <I18nProvider>
           <CurrencyProvider>
-          <UIProvider>
-            <AuthProvider>
-              <MessagingProvider>
-                  <Header />
-                  {children}
-                  <Footer />
+            <UIProvider>
+              <AuthProvider>
+                <MessagingProvider>
+                  <SiteHeader />
+                  <main id="main">{children}</main>
+                  <SiteFooter />
                   <Overlays />
                   <ChatWidget />
                   <ScrollToTop />
                   <CookieConsent />
                   <PageTracker />
                   <PresenceTracker />
-              </MessagingProvider>
-            </AuthProvider>
-          </UIProvider>
+                  <RevealOnScroll />
+                </MessagingProvider>
+              </AuthProvider>
+            </UIProvider>
           </CurrencyProvider>
         </I18nProvider>
       </body>

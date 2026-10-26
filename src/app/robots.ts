@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE = "https://www.hirelyx.com";
+import { SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -16,8 +15,11 @@ export default function robots(): MetadataRoute.Robots {
         "/invoices/",
         "/projects/",
         "/notifications/",
+        "/settings/",
+        "/auth/",
+        "/user/",
       ],
     },
-    sitemap: `${SITE}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

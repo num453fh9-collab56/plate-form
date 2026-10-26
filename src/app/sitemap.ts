@@ -1,9 +1,23 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { SERVICE_SLUGS } from "@/lib/content/services";
+import { SOLUTION_SLUGS } from "@/lib/content/solutions";
+import { EXPERTISE_SLUGS } from "@/lib/content/expertise";
+import { CASE_STUDIES } from "@/lib/content/portfolio";
+import { SITE_URL } from "@/lib/seo";
 
-const SITE = "https://www.hirelyx.com";
+/* ==========================================================================
+   HIRELYX · SITEMAP
+   --------------------------------------------------------------------------
+   Driven by the content modules, so a new service, solution, expertise area
+   or case study appears here automatically.
 
-const SERVICES = ["programming", "marketing", "ai-agents", "social-ai", "prompt", "n8n"];
+   Placeholder case studies are excluded: they are noindex until real project
+   detail replaces them, and a sitemap should not list pages we are asking
+   search engines to ignore.
+   ========================================================================== */
+
+const now = new Date();
 
 async function blogEntries(): Promise<MetadataRoute.Sitemap> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,39 +34,71 @@ async function blogEntries(): Promise<MetadataRoute.Sitemap> {
     .limit(200);
 
   return (posts ?? []).map((post: { slug: string; updated_at: string }) => ({
-    url: `${SITE}/blog/${post.slug}`,
+    url: `${SITE_URL}/blog/${post.slug}`,
     lastModified: new Date(post.updated_at),
     changeFrequency: "weekly" as const,
-    priority: 0.7,
+    priority: 0.6,
   }));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
-    { url: SITE, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
-    { url: `${SITE}/services`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE}/portfolio`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE}/how-it-works`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE}/blog`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
-    { url: `${SITE}/bookings`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE}/reviews`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
-    { url: `${SITE}/help`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE}/faq`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE}/privacy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE}/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE}/accessibility`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
+    { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    { url: `${SITE_URL}/services`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/solutions`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/expertise`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${SITE_URL}/portfolio`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/how-it-works`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/bookings`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/reviews`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${SITE_URL}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/faq`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/accessibility`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  const servicePages: MetadataRoute.Sitemap = SERVICES.map((slug) => ({
-    url: `${SITE}/services/${slug}`,
-    lastModified: new Date(),
+  const servicePages: MetadataRoute.Sitemap = SERVICE_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/services/${slug}`,
+    lastModified: now,
     changeFrequency: "monthly" as const,
-    priority: 0.85,
+    priority: 0.9,
   }));
+
+  const solutionPages: MetadataRoute.Sitemap = SOLUTION_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/solutions/${slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
+  const expertisePages: MetadataRoute.Sitemap = EXPERTISE_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/expertise/${slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.75,
+  }));
+
+  const casePages: MetadataRoute.Sitemap = CASE_STUDIES.filter((study) => !study.placeholder).map(
+    (study) => ({
+      url: `${SITE_URL}/portfolio/${study.slug}`,
+      lastModified: now,
+      changeFrequency: "yearly" as const,
+      priority: 0.7,
+    }),
+  );
 
   const blog = await blogEntries();
 
-  return [...staticPages, ...servicePages, ...blog];
+  return [
+    ...staticPages,
+    ...servicePages,
+    ...solutionPages,
+    ...expertisePages,
+    ...casePages,
+    ...blog,
+  ];
 }
