@@ -10,11 +10,24 @@ export async function POST(request: Request) {
   const limited = await rateLimit(request, "contact-form", 3, 300);
   if (limited) return limited;
 
-  let body: { name?: string; email?: string; subject?: string; message?: string; captchaToken?: string };
+  let body: {
+    name?: string;
+    email?: string;
+    subject?: string;
+    message?: string;
+    captchaToken?: string;
+    /* Honeypot sent by the project inquiry form: hidden from people, so any
+       value means an automated submission. */
+    trap?: string;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return Response.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  if (typeof body.trap === "string" && body.trap.trim() !== "") {
+    return Response.json({ error: "Bot verification failed. Please try again." }, { status: 403 });
   }
 
   const captcha = await verifyRecaptcha(body.captchaToken, "contact");

@@ -9,7 +9,16 @@ interface Review {
   title: string; content: string; is_featured: boolean; created_at: string;
 }
 
-const SERVICES = ["Programming & Tech", "Digital Marketing", "Custom AI Agents", "Social Media AI & Animation", "Prompt Engineering", "n8n & Workflow Automation"];
+/* Keep in step with src/lib/content/services.ts — these strings are stored
+   on review records, so renaming one does not rewrite existing rows. */
+const SERVICES = [
+  "Python Development",
+  "WordPress Development",
+  "Digital Marketing",
+  "Custom AI Agents",
+  "MCP Server Development",
+  "Prompt Engineering",
+];
 
 export default function ReviewsPage() {
   const { user } = useAuth();

@@ -1,219 +1,179 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import ContactForm from "@/components/ContactForm";
+import JsonLd from "@/components/site/JsonLd";
+import ProjectInquiryForm from "@/components/site/ProjectInquiryForm";
+import { Breadcrumbs, CheckList, Section, SectionHead } from "@/components/site/ui";
+import { Calendar, Chat, Mail } from "@/components/site/Icons";
+import { DELIVERY_PROCESS } from "@/lib/content/process";
+import { SERVICE_SLUGS } from "@/lib/content/services";
+import { SUPPORT_EMAIL, breadcrumbSchema, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact Us",
-  description: "Get in touch with the Hirelyx team for support, feedback, or business inquiries. Email us at support@hirelyx.com.",
-  alternates: { canonical: "/contact" },
-};
+/* ==========================================================================
+   HIRELYX · CONTACT
+   The conversion page. The inquiry form submits to the existing
+   POST /api/contact route; nothing new is integrated here.
+   ========================================================================== */
 
-const CONTACT_METHODS = [
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-    ),
-    title: "Email Us",
-    desc: "For general inquiries and support",
-    value: "support@hirelyx.com",
-    href: "mailto:support@hirelyx.com",
-    color: "#0066cc",
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    ),
-    title: "Live Chat",
-    desc: "Chat with Gemi, our AI assistant",
-    value: "Available 24/7",
-    color: "#7c3aed",
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    ),
-    title: "Book a Call",
-    desc: "Schedule a free consultation",
-    value: "Pick a time slot",
-    href: "/bookings",
-    color: "#059669",
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    ),
-    title: "Response Time",
-    desc: "We typically reply within",
-    value: "24–48 hours",
-    color: "#ea580c",
-  },
-];
+const CRUMBS = [{ label: "Home", href: "/" }, { label: "Contact" }];
 
-export default function ContactPage() {
+export const metadata: Metadata = pageMetadata({
+  title: "Contact — Start a Project or Get a Proposal",
+  description:
+    "Tell Hirelyx what you are trying to achieve. Four short steps, a written scope and a fixed quote. Typical first reply within 24–48 hours.",
+  path: "/contact",
+  keywords: ["contact hirelyx", "get a proposal", "start a software project"],
+});
+
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>;
+}) {
+  /* Service pages link here as /contact?service=<slug> so the first step
+     arrives already answered. Unknown values are ignored rather than
+     trusted. */
+  const { service } = await searchParams;
+  const preselect = service && SERVICE_SLUGS.includes(service) ? service : undefined;
+
   return (
-    <main>
-      <section style={{ textAlign: "center", padding: "3.5rem 1rem 1.5rem" }}>
-        <div className="wrap">
-          <span className="land-kicker" style={{ display: "inline-block" }}>Get In Touch</span>
-          <h1 className="page-title" style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 800, letterSpacing: "-0.02em", margin: "0.75rem 0" }}>
-            Let&apos;s Talk About Your Project
-          </h1>
-          <p style={{ fontSize: "1.05rem", lineHeight: 1.7, color: "var(--text-secondary)", maxWidth: 560, margin: "0 auto" }}>
-            Have a question, need help, or ready to start? We&apos;d love to hear from you.
-          </p>
+    <>
+      <JsonLd data={breadcrumbSchema(CRUMBS)} />
+
+      <section className="hx-page-hero">
+        <div className="hx-wrap">
+          <Breadcrumbs items={CRUMBS} />
+          <div style={{ marginTop: "1.5rem", maxWidth: "48rem" }}>
+            <p className="hx-kicker">Start a project</p>
+            <h1 className="hx-h1">
+              Have a project in mind? Let&apos;s build something exceptional.
+            </h1>
+            <p className="hx-lead" style={{ marginTop: "1.1rem" }}>
+              Four short steps. You will get a reply from the person who would do the work, with
+              a view on scope, cost and whether we are the right team for it.
+            </p>
+          </div>
         </div>
       </section>
 
-      <section className="wrap" style={{ paddingBottom: "4rem" }}>
-        <div className="ct-grid">
-          <div className="ct-info">
-            <div className="ct-methods">
-              {CONTACT_METHODS.map((m) => (
-                <div key={m.title} className="ct-method">
-                  <div className="ct-method-icon" style={{ background: `${m.color}12`, color: m.color }}>
-                    {m.icon}
-                  </div>
-                  <div className="ct-method-body">
-                    <h3>{m.title}</h3>
-                    <p>{m.desc}</p>
-                    {m.href ? (
-                      m.href.startsWith("mailto:") ? (
-                        <a href={m.href} className="ct-method-link" style={{ color: m.color }}>{m.value}</a>
-                      ) : (
-                        <Link href={m.href} className="ct-method-link" style={{ color: m.color }}>{m.value}</Link>
-                      )
-                    ) : (
-                      <span className="ct-method-value" style={{ color: m.color }}>{m.value}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+      <Section id="form" tone="alt">
+        <div className="hx-contact-grid">
+          {/* Sidebar */}
+          <aside className="hx-stack">
+            <div className="hx-contact-methods">
+              <a className="hx-contact-method" href={`mailto:${SUPPORT_EMAIL}`}>
+                <span className="hx-tile hx-tile-sm">
+                  <Mail size={18} />
+                </span>
+                <span>
+                  <h3>Email us</h3>
+                  <p>For anything that does not fit a form</p>
+                  <b>{SUPPORT_EMAIL}</b>
+                </span>
+              </a>
 
-            <div className="ct-faq-hint">
-              <h3>Looking for answers?</h3>
-              <p>Check our Help Center for quick answers to common questions.</p>
-              <Link href="/help" className="ct-faq-link">
-                Visit Help Center
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <Link className="hx-contact-method" href="/bookings">
+                <span className="hx-tile hx-tile-sm">
+                  <Calendar size={18} />
+                </span>
+                <span>
+                  <h3>Book a free consultation</h3>
+                  <p>A scoping call, not a sales call</p>
+                  <b>Choose a time slot</b>
+                </span>
               </Link>
-            </div>
-          </div>
 
-          <div className="ct-form-wrap">
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "1.25rem" }}>Send Us a Message</h2>
-            <ContactForm />
+              <div className="hx-contact-method">
+                <span className="hx-tile hx-tile-sm">
+                  <Chat size={18} />
+                </span>
+                <span>
+                  <h3>Live chat</h3>
+                  <p>Our AI assistant answers questions about Hirelyx and hands over to a person when it cannot</p>
+                  <b>Available on every page</b>
+                </span>
+              </div>
+            </div>
+
+            <div className="hx-card hx-card-flat">
+              <h3 className="hx-h4">What happens next</h3>
+              <ol className="hx-stack-sm" style={{ margin: "0.75rem 0 0", paddingLeft: "1.1rem" }}>
+                {["We read the brief and check we are a fit", "A reply within 24–48 hours with questions or a scoping call", "A written scope and fixed quote before anything starts"].map(
+                  (line) => (
+                    <li key={line} className="hx-small" style={{ marginBottom: "0.4rem" }}>
+                      {line}
+                    </li>
+                  ),
+                )}
+              </ol>
+              <div className="hx-card-foot">
+                <p className="hx-xs">
+                  Our full delivery process has {DELIVERY_PROCESS.length} stages —{" "}
+                  <Link href="/how-it-works" style={{ color: "var(--hx-accent)", fontWeight: 600 }}>
+                    see what each one produces
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+
+            <div className="hx-card hx-card-flat">
+              <h3 className="hx-h4">Already a client?</h3>
+              <p className="hx-small">
+                Project status, files, messages and invoices are in the client portal.
+              </p>
+              <div className="hx-card-foot">
+                <Link className="hx-btn hx-btn-secondary hx-btn-sm hx-btn-block" href="/portal">
+                  Open the client portal
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          {/* Form */}
+          <div>
+            <ProjectInquiryForm preselect={preselect} />
           </div>
         </div>
-      </section>
+      </Section>
 
-      <style>{`
-        .ct-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 2.5rem;
-          align-items: start;
-          max-width: 1000px;
-          margin: 0 auto;
-        }
-        .ct-info {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-        .ct-methods {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-        .ct-method {
-          display: flex;
-          gap: 1rem;
-          padding: 1.1rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 0.875rem;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .ct-method:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-        .ct-method-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 0.75rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .ct-method-body h3 {
-          font-size: 0.9rem;
-          font-weight: 700;
-          margin: 0 0 0.15rem;
-          color: var(--text-primary);
-        }
-        .ct-method-body p {
-          font-size: 0.78rem;
-          color: var(--text-secondary);
-          margin: 0 0 0.25rem;
-          line-height: 1.4;
-        }
-        .ct-method-link, .ct-method-value {
-          font-size: 0.82rem;
-          font-weight: 700;
-          text-decoration: none;
-        }
-        .ct-method-link:hover {
-          text-decoration: underline;
-        }
-        .ct-faq-hint {
-          padding: 1.25rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 0.875rem;
-        }
-        .ct-faq-hint h3 {
-          font-size: 0.95rem;
-          font-weight: 700;
-          margin: 0 0 0.3rem;
-          color: var(--text-primary);
-        }
-        .ct-faq-hint p {
-          font-size: 0.82rem;
-          color: var(--text-secondary);
-          margin: 0 0 0.75rem;
-          line-height: 1.5;
-        }
-        .ct-faq-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: var(--accent);
-          text-decoration: none;
-        }
-        .ct-faq-link:hover {
-          text-decoration: underline;
-        }
-        .ct-form-wrap {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 1rem;
-          padding: 2rem;
-        }
-        @media (max-width: 768px) {
-          .ct-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-          }
-          .ct-form-wrap {
-            padding: 1.5rem;
-          }
-        }
-      `}</style>
-    </main>
+      <Section id="expect">
+        <SectionHead
+          kicker="Before you write"
+          title="Things worth knowing"
+          lead="So the first exchange is useful rather than a round of qualifying questions."
+        />
+        <div className="hx-split" style={{ alignItems: "start" }}>
+          <div className="hx-panel">
+            <h3 className="hx-h4" style={{ marginBottom: "1.1rem" }}>
+              We are a good fit when
+            </h3>
+            <CheckList
+              items={[
+                "You need Python, AI, WordPress or marketing work specifically",
+                "You want the system delivered into your own accounts and repository",
+                "You would rather have a written scope than an hourly arrangement",
+                "You are comfortable being told when something is not worth building",
+              ]}
+            />
+          </div>
+          <div className="hx-panel">
+            <h3 className="hx-h4" style={{ marginBottom: "1.1rem" }}>
+              We are not the right choice when
+            </h3>
+            <CheckList
+              items={[
+                "You need native mobile app development — we do not do it",
+                "You need a brand identity or design studio rather than engineering",
+                "You want a guaranteed search ranking or advertising return",
+                "The work must be done in a stack we have not shipped in",
+              ]}
+            />
+            <p className="hx-xs" style={{ marginTop: "1.25rem" }}>
+              We would rather say this now than three weeks into a project.
+            </p>
+          </div>
+        </div>
+      </Section>
+    </>
   );
 }

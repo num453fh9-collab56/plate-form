@@ -120,7 +120,7 @@ export default function SettingsPage() {
   const avatarSrc = avatarData ?? profile.avatar;
 
   return (
-    <main>
+    <div>
       <section className="st-page">
         <div className="wrap">
           <div className="st-header">
@@ -589,6 +589,6 @@ export default function SettingsPage() {
           .st-missing{display:none}
         }
       `}</style>
-    </main>
+    </div>
   );
 }
