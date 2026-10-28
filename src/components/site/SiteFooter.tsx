@@ -3,14 +3,19 @@
 import Link from "next/link";
 import BrandMark from "@/components/BrandMark";
 import LanguageSelector from "@/components/LanguageSelector";
+import CurrencySelector from "@/components/CurrencySelector";
+import { useAuth } from "@/lib/auth";
+import { useUI } from "@/lib/ui";
 import { CONTACT_DETAILS, FOOTER_NAV, LEGAL_NAV } from "@/lib/content/nav";
 import { ArrowRight, GitHub, Mail } from "./Icons";
 
 /* ==========================================================================
    HIRELYX · SITE FOOTER
    --------------------------------------------------------------------------
-   Client component only because it hosts the language selector, which reads
-   the i18n context. Every link resolves to a real page.
+   Client component because it hosts the language and currency selectors and
+   the client sign-in trigger. Those three moved here out of the header, which
+   is now navigation plus a single call to action. Every link resolves to a
+   real page.
 
    NOTE: the previous footer had a newsletter form that never submitted
    anywhere — it only switched to a "thanks" state locally. It has been
@@ -21,6 +26,9 @@ import { ArrowRight, GitHub, Mail } from "./Icons";
 const YEAR = new Date().getFullYear();
 
 export default function SiteFooter() {
+  const { user } = useAuth();
+  const { openAuth } = useUI();
+
   return (
     <footer className="hx-footer">
       <div className="hx-wrap">
@@ -96,6 +104,13 @@ export default function SiteFooter() {
                 {link.label}
               </Link>
             ))}
+            {user ? (
+              <Link href="/dashboard">Client dashboard</Link>
+            ) : (
+              <button type="button" className="hx-footer-signin" onClick={() => openAuth("login")}>
+                Client sign in
+              </button>
+            )}
           </nav>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -113,6 +128,7 @@ export default function SiteFooter() {
               </a>
             </div>
             <LanguageSelector />
+            <CurrencySelector />
           </div>
         </div>
       </div>

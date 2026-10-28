@@ -6,7 +6,6 @@ import { CASE_STUDIES } from "@/lib/content/portfolio";
 import { DELIVERY_PROCESS, WHY_HIRELYX } from "@/lib/content/process";
 import { TEAM_CERTIFICATIONS } from "@/lib/content/team";
 import Glyph from "@/components/site/Glyph";
-import HeroVisual from "@/components/site/HeroVisual";
 import TeamGrid from "@/components/site/TeamGrid";
 import {
   Btn,
@@ -22,19 +21,21 @@ import {
   WorkCard,
 } from "@/components/site/ui";
 import { ArrowRight, Check } from "@/components/site/Icons";
+import { HERO_VIDEO, SHOWREEL_VIDEO } from "@/lib/site-media";
 
 /* ==========================================================================
    HIRELYX · HOMEPAGE
    --------------------------------------------------------------------------
    A server component: no client JavaScript other than the shared header,
    footer and the scroll-reveal observer, so the whole page is prerendered
-   as markup. The hero visual is inline SVG, which means the largest
-   contentful element is text and needs no network request.
+   as markup. The two videos are plain muted/looping <video> elements, which
+   need no client component — the hero headline is still text, so the largest
+   contentful paint does not wait on the media.
 
    Section order follows the agreed brief:
      A Hero · B Expertise overview · C Why Hirelyx · D Selected work
      E Technical capabilities · F Industries · G Delivery process
-     H Team · I Client trust · J Closing CTA
+     H In motion · I Team · J Client trust · K Closing CTA
    ========================================================================== */
 
 const HERO_PROOF = [
@@ -81,39 +82,51 @@ export default function HomePage() {
     <>
       {/* ── A · HERO ─────────────────────────────────────────────────────── */}
       <section className="hx-hero">
-        <div className="hx-hero-bg" aria-hidden />
+        <div className="hx-hero-bg" aria-hidden>
+          {HERO_VIDEO ? (
+            <video
+              className="hx-hero-video"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster="/hero/hero-visual.png"
+            >
+              <source src={HERO_VIDEO} type="video/mp4" />
+            </video>
+          ) : null}
+          <span className="hx-hero-scrim" />
+        </div>
         <div className="hx-wrap">
           <div className="hx-hero-inner">
-            <div>
-              <p className="hx-badge" style={{ color: "#bcc5d8" }}>
-                <span className="hx-badge-dot" aria-hidden />
-                Python · AI engineering · digital growth
-              </p>
-              <h1>
-                We build <em>intelligent digital solutions</em> that move businesses forward.
-              </h1>
-              <p className="hx-hero-sub">
-                From custom software and AI agents to intelligent automation and digital growth,
-                Hirelyx helps ambitious businesses turn complex challenges into working systems.
-              </p>
-              <div className="hx-actions">
-                <Btn href="/contact" variant="light" size="lg" arrow>
-                  Start Your Project
-                </Btn>
-                <Btn href="/expertise" variant="outline-light" size="lg">
-                  Explore Our Expertise
-                </Btn>
-              </div>
-              <div className="hx-hero-proof">
-                {HERO_PROOF.map((item) => (
-                  <div key={item}>
-                    <Check size={15} />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
+            <p className="hx-badge" style={{ color: "#bcc5d8" }}>
+              <span className="hx-badge-dot" aria-hidden />
+              Python · AI engineering · digital growth
+            </p>
+            <h1>
+              We build <em>intelligent digital solutions</em> that move businesses forward.
+            </h1>
+            <p className="hx-hero-sub">
+              From custom software and AI agents to intelligent automation and digital growth,
+              Hirelyx helps ambitious businesses turn complex challenges into working systems.
+            </p>
+            <div className="hx-actions">
+              <Btn href="/contact" variant="light" size="lg" arrow>
+                Start Your Project
+              </Btn>
+              <Btn href="/expertise" variant="outline-light" size="lg">
+                Explore Our Expertise
+              </Btn>
             </div>
-            <HeroVisual />
+            <div className="hx-hero-proof">
+              {HERO_PROOF.map((item) => (
+                <div key={item}>
+                  <Check size={15} />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -296,7 +309,33 @@ export default function HomePage() {
         </ol>
       </Section>
 
-      {/* ── H · TEAM ─────────────────────────────────────────────────────── */}
+      {/* ── H · IN MOTION ───────────────────────────────────────────────── */}
+      {SHOWREEL_VIDEO ? (
+        <Section id="in-motion" tone="ink">
+          <div className="hx-reel">
+            <div className="hx-reel-media">
+              <video autoPlay muted loop playsInline preload="none">
+                <source src={SHOWREEL_VIDEO} type="video/mp4" />
+              </video>
+            </div>
+            <div className="hx-reel-copy">
+              <p className="hx-kicker">Hirelyx in motion</p>
+              <h2 className="hx-h2">The same team from the first call to the handover</h2>
+              <p className="hx-small">
+                Scope, build, review and handover happen with the people you met at the start.
+                No account layer, no resourcing surprises halfway through.
+              </p>
+              <div className="hx-actions">
+                <Btn href="/how-it-works" variant="light" arrow>
+                  See how we work
+                </Btn>
+              </div>
+            </div>
+          </div>
+        </Section>
+      ) : null}
+
+      {/* ── I · TEAM ─────────────────────────────────────────────────────── */}
       <Section id="team">
         <SectionHead
           kicker="Meet our team"
@@ -307,7 +346,7 @@ export default function HomePage() {
         <TeamGrid />
       </Section>
 
-      {/* ── I · CLIENT TRUST ─────────────────────────────────────────────── */}
+      {/* ── J · CLIENT TRUST ─────────────────────────────────────────────── */}
       <Section id="trust" tone="alt">
         <SectionHead
           kicker="Client trust"
@@ -361,7 +400,7 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* ── J · CLOSING CTA ──────────────────────────────────────────────── */}
+      {/* ── K · CLOSING CTA ──────────────────────────────────────────────── */}
       <ClosingCta />
     </>
   );

@@ -4,13 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { useUI } from "@/lib/ui";
 import { PRIMARY_NAV } from "@/lib/content/nav";
 import type { NavItem } from "@/lib/content/nav";
 import BrandMark from "@/components/BrandMark";
 import AccountMenu from "@/components/AccountMenu";
-import LanguageSelector from "@/components/LanguageSelector";
-import CurrencySelector from "@/components/CurrencySelector";
 import NotificationBell from "@/components/NotificationBell";
 import { ArrowRight, ChevronDown } from "./Icons";
 
@@ -23,9 +20,10 @@ import { ArrowRight, ChevronDown } from "./Icons";
 
    Mobile: a full-height drawer with disclosure groups.
 
-   Preserved from the previous header: language and currency selectors,
-   notification bell, account menu, the auth modal trigger and the
-   dashboard link for signed-in users.
+   The bar is deliberately lean: navigation, the notification bell and the
+   account menu for signed-in users, and a single "Start a Project" call to
+   action. Language and currency selectors live in the footer; signing in is
+   reached from the footer link or /dashboard.
    ========================================================================== */
 
 const HOVER_CLOSE_DELAY = 140;
@@ -149,7 +147,6 @@ function MobileGroup({
 
 export default function SiteHeader() {
   const { user } = useAuth();
-  const { openAuth } = useUI();
   const pathname = usePathname();
 
   const [openId, setOpenId] = useState<string | null>(null);
@@ -281,25 +278,15 @@ export default function SiteHeader() {
           </nav>
 
           <div className="hx-header-actions">
-            <LanguageSelector />
-            <CurrencySelector />
-            <NotificationBell />
             {user ? (
               <>
+                <NotificationBell />
                 <Link className="hx-btn hx-btn-secondary hx-btn-sm" href="/dashboard">
                   Dashboard
                 </Link>
                 <AccountMenu />
               </>
-            ) : (
-              <button
-                type="button"
-                className="hx-btn hx-btn-secondary hx-btn-sm"
-                onClick={() => openAuth("login")}
-              >
-                Sign in
-              </button>
-            )}
+            ) : null}
             <Link className="hx-btn hx-btn-sm" href="/contact">
               Start a Project
               <ArrowRight size={15} className="hx-btn-arrow" />
@@ -338,26 +325,15 @@ export default function SiteHeader() {
               <Link className="hx-btn hx-btn-secondary" href="/dashboard" onClick={closeAll}>
                 Go to dashboard
               </Link>
-            ) : (
-              <button
-                type="button"
-                className="hx-btn hx-btn-secondary"
-                onClick={() => {
-                  closeAll();
-                  openAuth("login");
-                }}
-              >
-                Sign in
-              </button>
-            )}
+            ) : null}
           </div>
 
-          <div className="hx-drawer-meta">
-            <LanguageSelector />
-            <CurrencySelector />
-            <NotificationBell />
-            {user ? <AccountMenu /> : null}
-          </div>
+          {user ? (
+            <div className="hx-drawer-meta">
+              <NotificationBell />
+              <AccountMenu />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </header>

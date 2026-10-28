@@ -420,7 +420,7 @@
 
 /* Desktop nav */
 .hx-nav { display: none; align-items: center; gap: 0.1rem; margin-left: auto; }
-.hx-nav-item { position: relative; }
+.hx-nav-item { position: static; }
 .hx-nav-trigger {
   display: inline-flex;
   align-items: center;
@@ -448,12 +448,20 @@
 
 .hx-header-actions { display: none; align-items: center; gap: 0.5rem; flex: none; }
 
-/* Mega panel */
+/* Mega panel.
+   The panel is rendered inside .hx-nav-item so the hover group stays intact,
+   but it must span the whole bar. .hx-nav-item is therefore position:static
+   and the nearest positioned ancestor is .hx-header (sticky) — without that,
+   the panel collapsed to the width of one nav button and its dark feature
+   rail painted as a black slab over the page. */
 .hx-mega {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
+  max-height: calc(100vh - var(--hx-header-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 110;
   background: #fff;
   border-top: 1px solid var(--hx-line);
@@ -470,9 +478,12 @@
 
 .hx-mega-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 18.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 18.5rem);
   gap: clamp(1.5rem, 3vw, 3rem);
   padding-block: clamp(1.75rem, 3vw, 2.5rem);
+}
+@media (max-width: 1180px) {
+  .hx-mega-inner { grid-template-columns: minmax(0, 1fr); }
 }
 .hx-mega-groups {
   display: grid;
@@ -713,6 +724,17 @@
 .hx-footer-bottom nav { display: flex; flex-wrap: wrap; gap: 1.1rem; }
 .hx-footer-bottom a { color: #8d97ad; text-decoration: none; }
 .hx-footer-bottom a:hover { color: #fff; }
+/* Client sign-in moved out of the header; styled to read as a sibling of the
+   legal links rather than a button. */
+.hx-footer-signin {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: #8d97ad;
+  cursor: pointer;
+}
+.hx-footer-signin:hover { color: #fff; }
 .hx-footer-social { display: flex; gap: 0.5rem; }
 .hx-footer-social a {
   display: grid;
@@ -742,6 +764,25 @@
   isolation: isolate;
 }
 .hx-hero-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+/* Background video. .hx-hero-bg is a stacking context (positioned, z-index:-1),
+   so z-index:-1 here keeps the clip underneath the grid and glow layers the
+   ::before/::after draw. The scrim follows it in source order and therefore
+   paints on top of it. */
+.hx-hero-video {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hx-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(8, 14, 28, 0.82) 0%, rgba(8, 14, 28, 0.7) 45%, rgba(8, 14, 28, 0.92) 100%);
+}
 .hx-hero-bg::before {
   content: "";
   position: absolute;
@@ -760,31 +801,73 @@
   background: radial-gradient(45rem 28rem at 22% 18%, rgba(11, 95, 208, 0.42), transparent 68%),
     radial-gradient(34rem 24rem at 82% 8%, rgba(22, 163, 74, 0.2), transparent 70%);
 }
+/* Single centred column over the background video. */
 .hx-hero-inner {
-  display: grid;
-  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
-  gap: clamp(2.5rem, 5vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  text-align: center;
+  max-width: 58rem;
+  margin-inline: auto;
 }
-@media (max-width: 1000px) {
-  .hx-hero-inner { grid-template-columns: 1fr; gap: 2.75rem; }
-}
+.hx-hero .hx-badge { justify-content: center; }
 .hx-hero h1 {
   font-family: var(--hx-font-display);
   font-size: var(--hx-t-display);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.032em;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.028em;
   color: #fff;
   margin: 1.25rem 0 0;
   text-wrap: balance;
 }
-.hx-hero h1 em { font-style: normal; color: #7fb2ff; }
-.hx-hero-sub { font-size: clamp(1.02rem, 0.96rem + 0.4vw, 1.2rem); line-height: 1.6; color: #b9c4d9; margin: 1.35rem 0 0; max-width: 54ch; text-wrap: pretty; }
-.hx-hero .hx-actions { margin-top: 2.1rem; }
-.hx-hero-proof { display: flex; flex-wrap: wrap; gap: 0.5rem 1.6rem; margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.hx-hero h1 em { font-style: normal; font-weight: 600; color: #7fb2ff; }
+.hx-hero-sub {
+  font-size: clamp(1.02rem, 0.96rem + 0.4vw, 1.2rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: #c3cde0;
+  margin: 1.35rem auto 0;
+  max-width: 56ch;
+  text-wrap: pretty;
+}
+.hx-hero .hx-actions { margin-top: 2.1rem; justify-content: center; }
+.hx-hero-proof { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1.6rem; margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(255, 255, 255, 0.12); width: 100%; }
 .hx-hero-proof div { display: flex; align-items: center; gap: 0.5rem; font-size: 0.83rem; color: #a9b4c9; }
 .hx-hero-proof svg { color: var(--hx-growth-bright); flex: none; }
+
+/* Mid-page video band ("Hirelyx in motion"). Sits in an ink section, so the
+   copy inherits the light-on-dark aliases .hx-ink sets. */
+.hx-reel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(1.75rem, 4vw, 3.25rem);
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .hx-reel { grid-template-columns: 1fr; }
+}
+.hx-reel-media {
+  position: relative;
+  border-radius: var(--hx-r-lg);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(165deg, #11203c 0%, var(--hx-ink-base) 100%);
+  aspect-ratio: 16 / 10;
+  box-shadow: 0 40px 70px -40px rgba(0, 0, 0, 0.8);
+}
+.hx-reel-media video {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hx-reel-copy { display: flex; flex-direction: column; gap: 0.9rem; }
+.hx-reel-copy .hx-kicker { color: #8fb8ff; }
+.hx-reel-copy h2 { margin: 0; color: #fff; }
+.hx-reel-copy p { margin: 0; color: #b9c4d9; }
+.hx-reel-copy .hx-actions { margin-top: 0.6rem; }
 
 /* Logo / tech marquee */
 .hx-marquee { position: relative; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
