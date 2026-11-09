@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import BrandMark from "@/components/BrandMark";
-import LanguageSelector from "@/components/LanguageSelector";
-import CurrencySelector from "@/components/CurrencySelector";
 import { useAuth } from "@/lib/auth";
 import { useUI } from "@/lib/ui";
 import { CONTACT_DETAILS, FOOTER_NAV, LEGAL_NAV } from "@/lib/content/nav";
@@ -39,7 +37,7 @@ export default function SiteFooter() {
                 <BrandMark />
               </span>
               <span className="hx-logo-word" style={{ color: "#fff" }}>
-                Hire<i style={{ color: "#8fb8ff" }}>lyx</i>
+                Hire<i style={{ color: "#a88462" }}>lyx</i>
               </span>
             </Link>
             <h2>Have a project in mind?</h2>
@@ -113,22 +111,18 @@ export default function SiteFooter() {
             )}
           </nav>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <div className="hx-footer-social">
-              <a href={`mailto:${CONTACT_DETAILS.email}`} aria-label="Email Hirelyx">
-                <Mail size={17} />
-              </a>
-              <a
-                href="https://github.com/saadamjad44"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Hirelyx founder on GitHub"
-              >
-                <GitHub size={17} />
-              </a>
-            </div>
-            <LanguageSelector />
-            <CurrencySelector />
+          <div className="hx-footer-social">
+            <a href={`mailto:${CONTACT_DETAILS.email}`} aria-label="Email Hirelyx">
+              <Mail size={17} />
+            </a>
+            <a
+              href="https://github.com/saadamjad44"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Hirelyx founder on GitHub"
+            >
+              <GitHub size={17} />
+            </a>
           </div>
         </div>
       </div>

@@ -185,8 +185,8 @@ export default function ChatWidget() {
       )}
 
       <style>{`
-        .chat-fab{position:fixed;bottom:1.5rem;right:1.5rem;width:56px;height:56px;border-radius:50%;background:var(--accent,#0066cc);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,102,204,.4);z-index:9999;transition:transform .2s,box-shadow .2s;animation:cfPulse 2s infinite}
-        .chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(0,102,204,.5)}
+        .chat-fab{position:fixed;bottom:1.5rem;right:1.5rem;width:56px;height:56px;border-radius:50%;background:var(--accent,#6b4a2e);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(26,18,14,.45);z-index:9999;transition:transform .2s,box-shadow .2s;animation:cfPulse 2s infinite}
+        .chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(26,18,14,.6)}
         @keyframes cfPulse{0%,100%{box-shadow:0 4px 20px rgba(0,102,204,.4)}50%{box-shadow:0 4px 28px rgba(0,102,204,.65)}}
         .chat-fab-dot{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#ef4444;border:2px solid var(--bg);animation:cfDotPop .3s ease}
         @keyframes cfDotPop{from{transform:scale(0)}to{transform:scale(1)}}
@@ -194,7 +194,7 @@ export default function ChatWidget() {
         .chat-panel{position:fixed;bottom:1.5rem;right:1.5rem;width:380px;height:540px;background:var(--surface);border:1px solid var(--border);border-radius:1rem;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.18);z-index:9999;animation:cpUp .3s ease;overflow:hidden}
         @keyframes cpUp{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-        .chat-hdr{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;background:linear-gradient(135deg,#0066cc,#0891b2);color:#fff;flex-shrink:0}
+        .chat-hdr{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;background:linear-gradient(135deg,#1a120e,#6b4a2e);color:#fff;flex-shrink:0}
         .chat-hdr-info{display:flex;align-items:center;gap:.7rem}
         .chat-hdr-av{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem}
         .chat-hdr-info strong{display:block;font-size:.92rem}
@@ -213,7 +213,7 @@ export default function ChatWidget() {
         .chat-bub-me{align-self:flex-end;flex-direction:row-reverse}
         .chat-bub-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#0066cc,#0891b2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;flex-shrink:0;margin-top:2px}
         .chat-bub-c{border-radius:.9rem;padding:.55rem .8rem;border:1px solid var(--border);background:var(--bg)}
-        .chat-bub-me .chat-bub-c{background:var(--accent,#0066cc);color:#fff;border-color:transparent;border-bottom-right-radius:.25rem}
+        .chat-bub-me .chat-bub-c{background:var(--accent,#6b4a2e);color:#fff;border-color:transparent;border-bottom-right-radius:.25rem}
         .chat-bub-team .chat-bub-c{border-bottom-left-radius:.25rem}
         .chat-bub-c p{margin:0;font-size:.84rem;line-height:1.5}
         .chat-bub-c p+p{margin-top:.25rem}

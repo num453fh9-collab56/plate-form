@@ -5,7 +5,6 @@ import { PortfolioFilter } from "@/components/site/interactive";
 import {
   Breadcrumbs,
   Btn,
-  ClosingCta,
   Section,
   SectionHead,
   Stats,
@@ -102,11 +101,6 @@ export default function PortfolioPage() {
           </article>
         </div>
       </Section>
-
-      <ClosingCta
-        title="Didn't find a case study like your project?"
-        body="That usually means it is not published rather than not done. Describe what you need and we will tell you plainly whether we have built something comparable."
-      />
     </>
   );
 }
