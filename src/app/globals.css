@@ -4,9 +4,9 @@
   --card: #ffffff;
   --card-2: #f3f4f6;
   --line: #e5e7eb;
-  --accent: #0066cc;
-  --accent-dark: #004f9e;
-  --accent-soft: rgba(0, 102, 204, 0.1);
+  --accent: #6b4a2e;
+  --accent-dark: #4a321e;
+  --accent-soft: rgba(107, 74, 46, 0.1);
   --emerald: #059669;
   --emerald-deep: #047857;
   --emerald-dark: #065f46;
@@ -36,9 +36,9 @@
   --card: #18181b;
   --card-2: #1e1e22;
   --line: #27272a;
-  --accent: #3b82f6;
-  --accent-dark: #2563eb;
-  --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent: #a88462;
+  --accent-dark: #8c6a49;
+  --accent-soft: rgba(168, 132, 98, 0.14);
   --emerald: #10b981;
   --emerald-deep: #059669;
   --emerald-dark: #047857;
@@ -722,7 +722,7 @@ html[dir="rtl"] .foot-col button.link-btn { text-align: right; }
 }
 
 .btn-search {
-  background: linear-gradient(135deg, var(--accent) 0%, #5b5bd6 50%, #7c3aed 100%);
+  background: linear-gradient(135deg, #4a321e 0%, #6b4a2e 55%, #8c6a49 100%);
   background-size: 200% 200%;
   background-position: 0% 50%;
   color: #ffffff;
@@ -1134,7 +1134,7 @@ html[dir="rtl"] .foot-col button.link-btn { text-align: right; }
   background: linear-gradient(180deg, rgba(17, 17, 17, 0) 60%, rgba(17, 17, 17, 0.28) 100%);
 }
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent) 0%, #5b5bd6 50%, #7c3aed 100%);
+  background: linear-gradient(135deg, #4a321e 0%, #6b4a2e 55%, #8c6a49 100%);
   background-size: 200% 200%;
   background-position: 0% 50%;
   color: #ffffff;
@@ -1148,7 +1148,7 @@ html[dir="rtl"] .foot-col button.link-btn { text-align: right; }
 .btn-primary:hover {
   background-position: 100% 50%;
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px -12px rgba(124, 58, 237, 0.5);
+  box-shadow: 0 16px 36px -12px rgba(107, 74, 46, 0.55);
 }
 .btn-dark {
   background: linear-gradient(135deg, var(--ink-2) 0%, #111111 100%);
