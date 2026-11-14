@@ -81,7 +81,7 @@ export default async function SolutionPage({
                 <Glyph id={solution.glyph} />
               </span>
               <h1 className="hx-h1">{solution.title}</h1>
-              <p className="hx-lead" style={{ marginTop: "1rem", fontWeight: 500, color: "#dbe3f2" }}>
+              <p className="hx-lead" style={{ marginTop: "1rem", fontWeight: 500, color: "var(--hx-text-2)" }}>
                 {solution.tagline}
               </p>
               <p className="hx-body" style={{ marginTop: "1rem", maxWidth: "54ch" }}>

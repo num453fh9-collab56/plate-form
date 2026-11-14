@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EXPERTISE, getExpertise } from "@/lib/content/expertise";
 import { servicesBySlug } from "@/lib/content/services";
+import { solutionsForExpertise } from "@/lib/content/links";
 import Glyph from "@/components/site/Glyph";
 import JsonLd from "@/components/site/JsonLd";
 import {
@@ -62,6 +63,7 @@ export default async function ExpertisePage({
     { label: area.name },
   ];
   const services = servicesBySlug(area.services);
+  const solutions = solutionsForExpertise(area.slug);
 
   return (
     <>
@@ -147,6 +149,24 @@ export default async function ExpertisePage({
           }))}
         />
       </Section>
+
+      {/* ── Solutions this area feeds ──────────────────────────────────── */}
+      {solutions.length > 0 ? (
+        <Section tone="alt">
+          <SectionHead
+            kicker="Where it gets applied"
+            title="Business outcomes built on this stack"
+            lead="Reached through the services above — each page states the scope and what you receive."
+          />
+          <LinkRows
+            items={solutions.map((solution) => ({
+              href: `/solutions/${solution.slug}`,
+              title: solution.name,
+              desc: solution.summary,
+            }))}
+          />
+        </Section>
+      ) : null}
 
       {/* ── Other areas ────────────────────────────────────────────────── */}
       <Section>

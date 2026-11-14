@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { listPosts } from "@/lib/blog";
 import { SERVICE_SLUGS } from "@/lib/content/services";
 import { SOLUTION_SLUGS } from "@/lib/content/solutions";
 import { EXPERTISE_SLUGS } from "@/lib/content/expertise";
@@ -20,22 +20,11 @@ import { SITE_URL } from "@/lib/seo";
 const now = new Date();
 
 async function blogEntries(): Promise<MetadataRoute.Sitemap> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return [];
+  const posts = await listPosts();
 
-  const supabase = createClient(url, key, { auth: { persistSession: false } });
-
-  const { data: posts } = await supabase
-    .from("blog_posts")
-    .select("slug, updated_at")
-    .eq("status", "published")
-    .order("updated_at", { ascending: false })
-    .limit(200);
-
-  return (posts ?? []).map((post: { slug: string; updated_at: string }) => ({
+  return posts.map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.updated_at),
+    lastModified: new Date(post.updated_at ?? post.published_at),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));

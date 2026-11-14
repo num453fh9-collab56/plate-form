@@ -94,7 +94,7 @@ export default function AboutPage() {
               <h1 className="hx-h1">
                 A small engineering team that would rather be specific than impressive.
               </h1>
-              <p className="hx-lead" style={{ marginTop: "1.1rem", color: "#dbe3f2" }}>
+              <p className="hx-lead" style={{ marginTop: "1.1rem", color: "var(--hx-text-2)" }}>
                 Hirelyx builds Python backends, AI agents, MCP servers, WordPress sites and
                 measured marketing programmes. Six service lines, three people, and a strong
                 preference for saying what we do not do.

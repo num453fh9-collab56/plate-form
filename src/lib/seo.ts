@@ -17,6 +17,19 @@ export const SITE_URL = "https://www.hirelyx.com";
 export const SITE_NAME = "Hirelyx";
 export const SUPPORT_EMAIL = "support@hirelyx.com";
 
+/** Profiles we actually control, used for Organization.sameAs. */
+export const SOCIAL_PROFILES = ["https://github.com/saadamjad44"];
+
+/**
+ * The generated share card from app/opengraph-image.tsx.
+ *
+ * Next only inherits a file-based opengraph-image into routes that do not set
+ * `openGraph` themselves, and every page here goes through pageMetadata(),
+ * which does. So the default is applied explicitly rather than relied on —
+ * without it only the home page carried an og:image.
+ */
+export const DEFAULT_OG_IMAGE = "/opengraph-image";
+
 export function absolute(path: string): string {
   if (path.startsWith("http")) return path;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
@@ -38,6 +51,8 @@ export function pageMetadata({
   type?: "website" | "article";
   image?: string;
 }): Metadata {
+  const card = absolute(image || DEFAULT_OG_IMAGE);
+
   return {
     title,
     description,
@@ -50,13 +65,13 @@ export function pageMetadata({
       description,
       url: path,
       locale: "en_US",
-      ...(image ? { images: [{ url: absolute(image) }] } : {}),
+      images: [{ url: card, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      ...(image ? { images: [absolute(image)] } : {}),
+      images: [card],
     },
   };
 }
@@ -84,7 +99,7 @@ export function organizationSchema() {
     description:
       "Digital engineering team delivering Python development, custom AI agents, MCP server development, prompt engineering, WordPress development and digital marketing.",
     email: SUPPORT_EMAIL,
-    sameAs: [],
+    sameAs: SOCIAL_PROFILES,
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
@@ -132,6 +147,49 @@ export function serviceSchema({
       url: SITE_URL,
     },
     areaServed: "Worldwide",
+  };
+}
+
+export function articleSchema({
+  title,
+  description,
+  path,
+  published,
+  modified,
+  author,
+  image,
+  section,
+  tags,
+}: {
+  title: string;
+  description: string;
+  path: string;
+  published: string;
+  modified?: string | null;
+  author?: string;
+  image?: string | null;
+  section?: string;
+  tags?: readonly string[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: title,
+    description,
+    url: absolute(path),
+    mainEntityOfPage: { "@type": "WebPage", "@id": absolute(path) },
+    datePublished: published,
+    dateModified: modified || published,
+    author: { "@type": author ? "Person" : "Organization", name: author || SITE_NAME },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: absolute("/logo-mark.svg") },
+    },
+    ...(image ? { image: [absolute(image)] } : {}),
+    ...(section ? { articleSection: section } : {}),
+    ...(tags && tags.length > 0 ? { keywords: tags.join(", ") } : {}),
   };
 }
 

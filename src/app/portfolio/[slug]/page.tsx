@@ -86,7 +86,7 @@ export default async function CaseStudyPage({
             <div>
               <p className="hx-kicker">{study.category}</p>
               <h1 className="hx-h1">{study.title}</h1>
-              <p className="hx-lead" style={{ marginTop: "1rem", color: "#dbe3f2" }}>
+              <p className="hx-lead" style={{ marginTop: "1rem", color: "var(--hx-text-2)" }}>
                 {study.summary}
               </p>
 

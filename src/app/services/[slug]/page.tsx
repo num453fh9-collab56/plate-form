@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SERVICES, getService } from "@/lib/content/services";
 import { solutionsBySlug } from "@/lib/content/solutions";
+import { expertiseForService, solutionsForService } from "@/lib/content/links";
 import { caseStudiesBySlug } from "@/lib/content/portfolio";
 import Glyph from "@/components/site/Glyph";
 import JsonLd from "@/components/site/JsonLd";
@@ -76,7 +77,17 @@ export default async function ServicePage({
   /* Pre-answers step one of the inquiry form. */
   const proposalHref = `/contact?service=${service.slug}`;
   const work = caseStudiesBySlug(service.relatedWork);
-  const solutions = solutionsBySlug(service.relatedSolutions);
+
+  /* Curated order first, then any solution that names this service but was
+     not listed by hand — so the two directions can never fall out of sync. */
+  const curated = solutionsBySlug(service.relatedSolutions);
+  const curatedSlugs = new Set(curated.map((s) => s.slug));
+  const solutions = [
+    ...curated,
+    ...solutionsForService(service.slug).filter((s) => !curatedSlugs.has(s.slug)),
+  ];
+
+  const expertise = expertiseForService(service.slug);
 
   const anchors = [
     { id: "overview", label: "Overview" },
@@ -113,7 +124,7 @@ export default async function ServicePage({
                 <Glyph id={service.glyph} />
               </span>
               <h1 className="hx-h1">{service.title}</h1>
-              <p className="hx-lead" style={{ marginTop: "1rem", fontWeight: 500, color: "#dbe3f2" }}>
+              <p className="hx-lead" style={{ marginTop: "1rem", fontWeight: 500, color: "var(--hx-text-2)" }}>
                 {service.tagline}
               </p>
               <p className="hx-body" style={{ marginTop: "1rem", maxWidth: "54ch" }}>
@@ -301,6 +312,35 @@ export default async function ServicePage({
               all six services
             </Link>
             .
+          </p>
+        </Section>
+      ) : null}
+
+      {/* ── Expertise applied here ─────────────────────────────────────── */}
+      {expertise.length > 0 ? (
+        <Section tone="alt">
+          <SectionHead
+            kicker="Underlying expertise"
+            title="The technical ground this service stands on"
+            lead="Each area has its own page covering the stack and what we build with it."
+          />
+          <LinkRows
+            items={expertise.map((area) => ({
+              href: `/expertise/${area.slug}`,
+              title: area.name,
+              desc: area.summary,
+            }))}
+          />
+          <p className="hx-small hx-mt-lg">
+            See the full{" "}
+            <Link href="/expertise" style={{ color: "var(--hx-accent)", fontWeight: 600 }}>
+              technical expertise index
+            </Link>
+            , or the{" "}
+            <Link href="/how-it-works" style={{ color: "var(--hx-accent)", fontWeight: 600 }}>
+              delivery process
+            </Link>{" "}
+            we follow on every engagement.
           </p>
         </Section>
       ) : null}
