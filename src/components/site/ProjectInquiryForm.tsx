@@ -234,43 +234,77 @@ export default function ProjectInquiryForm({ preselect }: { preselect?: string }
 
     try {
       const captchaToken = await getRecaptchaToken("contact");
-      const body = [
-        `Service: ${serviceLabel || "Unspecified"}`,
-        subs.length > 0 ? `Specifics: ${subs.join(", ")}` : null,
-        budget ? `Budget: ${budget}` : null,
-        timeline ? `Timeline: ${timeline}` : null,
-        company.trim() ? `Company: ${company.trim()}` : null,
-        phone.trim() ? `Phone: ${phone.trim()}` : null,
-        links.trim() ? `Reference links: ${links.trim()}` : null,
-        files.length > 0
-          ? `Files the client wants to share (names only — not uploaded): ${files
-              .map((file) => file.name)
-              .join(", ")}`
-          : null,
-        "",
-        message.trim(),
-      ]
-        .filter((line) => line !== null)
-        .join("\n");
 
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          subject: `Project inquiry — ${serviceLabel || "general"}`,
-          message: body,
-          captchaToken,
-          trap,
-        }),
-      });
+      const SLUG_TO_SERVICE: Record<string, string> = {
+        "python-development": "python_development",
+        "wordpress-development": "wordpress_development",
+        "digital-marketing": "digital_marketing",
+        "ai-agents": "custom_ai_agents",
+        "mcp-server-development": "mcp_server_development",
+        "prompt-engineering": "prompt_engineering",
+        other: "not_sure_yet",
+      };
 
-      const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (data.ok) {
+      const BUDGET_MAP: Record<string, string> = {
+        "Under $1,000": "under_1k",
+        "$1,000 – $2,500": "1k_2.5k",
+        "$2,500 – $5,000": "2.5k_5k",
+        "$5,000 – $10,000": "5k_10k",
+        "$10,000+": "10k_plus",
+        "Not sure yet": "not_sure",
+      };
+
+      const TIMELINE_MAP: Record<string, string> = {
+        "As soon as possible": "asap",
+        Short: "short",
+        Medium: "medium",
+        Long: "long",
+        Flexible: "flexible",
+      };
+
+      const referenceLinks = links
+        .trim()
+        .split(/[\n,]+/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      const payload = {
+        service: SLUG_TO_SERVICE[service] ?? "not_sure_yet",
+        sub_services: subs,
+        budget: budget ? BUDGET_MAP[budget] ?? null : null,
+        timeline: timeline ? TIMELINE_MAP[timeline] ?? null : null,
+        project_brief: message.trim(),
+        reference_links: referenceLinks,
+        file_names: files.map((f) => f.name),
+        name: name.trim(),
+        email: email.trim(),
+        company: company.trim() || null,
+        phone: phone.trim() || null,
+        consent: true,
+        captcha_token: captchaToken,
+      };
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://hirelyx-backend.fastapicloud.dev"}/api/v1/leads`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const data = (await response.json().catch(() => ({}))) as {
+        id?: string;
+        status?: string;
+        message?: string;
+        detail?: string;
+      };
+      if (response.ok && data.id) {
         setSent(true);
       } else {
-        setFormError(data.error ?? "Something went wrong sending your request. Please try again.");
+        setFormError(
+          data.detail ?? data.message ?? "Something went wrong sending your request. Please try again.",
+        );
       }
     } catch {
       setFormError("We could not reach the server. Check your connection and try again.");
