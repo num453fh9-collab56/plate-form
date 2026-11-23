@@ -37,7 +37,7 @@ export default function SiteFooter() {
                 <BrandMark />
               </span>
               <span className="hx-logo-word" style={{ color: "#fff" }}>
-                Hire<i style={{ color: "#a88462" }}>lyx</i>
+                Hire<i style={{ color: "#e8912d" }}>lyx</i>
               </span>
             </Link>
             <h2>Have a project in mind?</h2>

@@ -20,12 +20,12 @@ export default function BrandMark({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 64 64" fill="none" aria-hidden="true">
       <defs>
         <linearGradient id={tile} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#2e1f16" />
-          <stop offset="1" stopColor="#1a120e" />
+          <stop offset="0" stopColor="#143438" />
+          <stop offset="1" stopColor="#0d2a2e" />
         </linearGradient>
         <linearGradient id={bar} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#6b4a2e" />
-          <stop offset="1" stopColor="#c4a585" />
+          <stop offset="0" stopColor="#c2740f" />
+          <stop offset="1" stopColor="#f4ad5c" />
         </linearGradient>
       </defs>
 
@@ -36,20 +36,20 @@ export default function BrandMark({ className }: { className?: string }) {
         height="60"
         rx="16"
         fill={`url(#${tile})`}
-        stroke="rgba(213,196,174,0.14)"
+        stroke="rgba(237,234,227,0.16)"
         strokeWidth="1.25"
       />
 
       {/* Unequal stems, bottom-aligned: the right one carries the growth. */}
-      <rect x="18" y="21" width="6.5" height="22" rx="3.25" fill="#d5c4ae" />
-      <rect x="39.5" y="14.5" width="6.5" height="28.5" rx="3.25" fill="#d5c4ae" />
+      <rect x="18" y="21" width="6.5" height="22" rx="3.25" fill="#edeae3" />
+      <rect x="39.5" y="14.5" width="6.5" height="28.5" rx="3.25" fill="#edeae3" />
 
-      {/* Crossbar — bronze, level, and tucked into both stems so the H stays
+      {/* Crossbar — amber, level, and tucked into both stems so the H stays
           unambiguous. The growth lives in the stem heights, not in an angle. */}
       <rect x="21" y="28.75" width="22" height="5.5" rx="2.75" fill={`url(#${bar})`} />
 
       {/* Baseline rule — the underscore from the wordmark. */}
-      <rect x="18" y="46.5" width="28" height="3" rx="1.5" fill="#a88462" />
+      <rect x="18" y="46.5" width="28" height="3" rx="1.5" fill="#e8912d" />
     </svg>
   );
 }
