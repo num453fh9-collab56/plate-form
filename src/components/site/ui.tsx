@@ -331,7 +331,7 @@ export function GeneratedCover({ title }: { title: string }) {
         display: "grid",
         placeItems: "center",
         background:
-          "linear-gradient(145deg, #1a120e 0%, #3a2418 60%, #a88462 180%)",
+          "linear-gradient(145deg, #0d2a2e 0%, #1a4247 60%, #e8912d 180%)",
         color: "rgba(255,255,255,0.92)",
         fontFamily: "var(--hx-font-display)",
         fontSize: "2.4rem",

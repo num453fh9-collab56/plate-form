@@ -124,7 +124,7 @@ export default async function ServicePage({
                 <Glyph id={service.glyph} />
               </span>
               <h1 className="hx-h1">{service.title}</h1>
-              <p className="hx-lead" style={{ marginTop: "1rem", fontWeight: 500, color: "var(--hx-text-2)" }}>
+              <p className="hx-lead" style={{ marginTop: "1rem", fontWeight: 500, color: "var(--hx-fg-2)" }}>
                 {service.tagline}
               </p>
               <p className="hx-body" style={{ marginTop: "1rem", maxWidth: "54ch" }}>
