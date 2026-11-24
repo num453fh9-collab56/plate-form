@@ -11,7 +11,7 @@ export function middleware(request: NextRequest) {
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com https://flagcdn.com https://*.stripe.com`,
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.deepseek.com https://api.stripe.com https://open.er-api.com`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.deepseek.com https://api.stripe.com https://open.er-api.com https://hirelyx-backend.fastapicloud.dev`,
     `frame-src https://accounts.google.com https://js.stripe.com https://meet.jit.si https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/`,
     `object-src 'none'`,
     `base-uri 'self'`,
